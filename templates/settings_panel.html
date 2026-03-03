@@ -246,6 +246,40 @@
                     <small class="openvault-hint">LLM profile for memory extraction</small>
                 </div>
 
+                <!-- Features Group -->
+                <div class="openvault-settings-group">
+                    <div class="openvault-settings-group-header">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Features</span>
+                    </div>
+
+                    <label for="openvault_reflection_threshold">
+                        Reflection Threshold: <span id="openvault_reflection_threshold_value">30</span>
+                        <small class="openvault-default-hint" data-default-key="reflectionThreshold"></small>
+                    </label>
+                    <input type="range" id="openvault_reflection_threshold" min="10" max="100" step="5" value="30" />
+                    <small class="openvault-hint">Importance sum to trigger character reflection. Lower = more frequent.</small>
+
+                    <div style="height: 8px;"></div>
+
+                    <label for="openvault_world_context_budget">
+                        World Context Budget: <span id="openvault_world_context_budget_value">2000</span> tokens
+                        <small class="openvault-default-hint" data-default-key="worldContextBudget"></small>
+                        <small class="openvault-words-hint">~<span id="openvault_world_context_budget_words">1500</span> words</small>
+                    </label>
+                    <input type="range" id="openvault_world_context_budget" min="500" max="5000" step="250" value="2000" />
+                    <small class="openvault-hint">Token budget for community summaries injected as world context.</small>
+
+                    <div style="height: 8px;"></div>
+
+                    <label for="openvault_community_interval">
+                        Community Detection Interval: <span id="openvault_community_interval_value">50</span> messages
+                        <small class="openvault-default-hint" data-default-key="communityDetectionInterval"></small>
+                    </label>
+                    <input type="range" id="openvault_community_interval" min="10" max="200" step="10" value="50" />
+                    <small class="openvault-hint">How often Louvain runs. Lower = fresher communities, more LLM calls.</small>
+                </div>
+
                 <!-- Embedding Settings Group -->
                 <div class="openvault-settings-group">
                     <div class="openvault-settings-group-header">

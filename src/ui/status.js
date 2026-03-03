@@ -114,7 +114,7 @@ export function refreshStats() {
     const charCount = Object.keys(data[CHARACTERS_KEY] || {}).length;
 
     // New feature stats
-    const reflectionCount = memories.filter(m => m.type === 'reflection').length;
+    const reflectionCount = memories.filter((m) => m.type === 'reflection').length;
     const entityCount = Object.keys(data.graph?.nodes || {}).length;
     const communityCount = Object.keys(data.communities || {}).length;
 

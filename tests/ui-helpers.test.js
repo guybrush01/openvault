@@ -57,7 +57,7 @@ describe('ui/helpers', () => {
             ];
             const result = filterMemories(mems, 'event', '');
             expect(result).toHaveLength(2);
-            expect(result.every(m => m.type !== 'reflection')).toBe(true);
+            expect(result.every((m) => m.type !== 'reflection')).toBe(true);
         });
 
         it('filters reflections only', () => {
@@ -68,7 +68,7 @@ describe('ui/helpers', () => {
             ];
             const result = filterMemories(mems, 'reflection', '');
             expect(result).toHaveLength(2);
-            expect(result.every(m => m.type === 'reflection')).toBe(true);
+            expect(result.every((m) => m.type === 'reflection')).toBe(true);
         });
 
         it('combines type and character filter', () => {

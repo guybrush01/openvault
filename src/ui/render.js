@@ -18,13 +18,20 @@ import {
 import {
     buildCharacterStateData,
     extractCharactersSet,
-    filterMemories,
     filterEntities,
+    filterMemories,
     getPaginationInfo,
     sortMemoriesByDate,
 } from './helpers.js';
 import { refreshStats } from './status.js';
-import { renderCharacterState, renderMemoryEdit, renderMemoryItem, renderCommunityAccordion, renderEntityCard, renderReflectionProgress } from './templates.js';
+import {
+    renderCharacterState,
+    renderCommunityAccordion,
+    renderEntityCard,
+    renderMemoryEdit,
+    renderMemoryItem,
+    renderReflectionProgress,
+} from './templates.js';
 
 // DOM Selectors
 const SELECTORS = {
@@ -321,7 +328,7 @@ function renderReflectionProgressSection() {
     const data = getOpenVaultData();
     const reflectionState = data?.reflection_state || {};
 
-    const settings = getDeps().getExtensionSettings()['openvault'] || {};
+    const settings = getDeps().getExtensionSettings().openvault || {};
     const threshold = settings.reflectionThreshold ?? 30;
 
     $container.html(renderReflectionProgress(reflectionState, threshold));
@@ -348,7 +355,7 @@ function renderCommunityList() {
         return;
     }
 
-    const html = ids.map(id => renderCommunityAccordion(id, communities[id])).join('');
+    const html = ids.map((id) => renderCommunityAccordion(id, communities[id])).join('');
     $container.html(html);
 }
 

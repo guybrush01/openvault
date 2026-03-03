@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { renderMemoryItem, renderReflectionProgress, renderCommunityAccordion, renderEntityCard } from '../src/ui/templates.js';
+import {
+    renderCommunityAccordion,
+    renderEntityCard,
+    renderMemoryItem,
+    renderReflectionProgress,
+} from '../src/ui/templates.js';
 
 describe('ui/templates', () => {
     describe('renderMemoryItem', () => {
@@ -59,8 +64,8 @@ describe('ui/templates', () => {
 
         it('sorts characters alphabetically', () => {
             const state = {
-                'Zelda': { importance_sum: 10 },
-                'Alice': { importance_sum: 5 },
+                Zelda: { importance_sum: 10 },
+                Alice: { importance_sum: 5 },
             };
             const html = renderReflectionProgress(state, 30);
             const aliceIdx = html.indexOf('Alice');
@@ -79,7 +84,7 @@ describe('ui/templates', () => {
         });
 
         it('defaults importance_sum to 0', () => {
-            const state = { 'Alice': {} };
+            const state = { Alice: {} };
             const html = renderReflectionProgress(state, 30);
             expect(html).toContain('Alice: 0/30');
         });

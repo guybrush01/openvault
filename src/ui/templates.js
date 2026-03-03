@@ -238,12 +238,8 @@ export function renderReflectionProgress(reflectionState, threshold) {
  */
 export function renderCommunityAccordion(id, community) {
     const memberCount = community.nodeKeys?.length || 0;
-    const findings = (community.findings || [])
-        .map(f => `<li>${escapeHtml(f)}</li>`)
-        .join('');
-    const members = (community.nodeKeys || [])
-        .map(k => escapeHtml(k))
-        .join(', ');
+    const findings = (community.findings || []).map((f) => `<li>${escapeHtml(f)}</li>`).join('');
+    const members = (community.nodeKeys || []).map((k) => escapeHtml(k)).join(', ');
 
     return `
         <details class="openvault-community-item">

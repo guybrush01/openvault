@@ -39,6 +39,7 @@ import {
 } from '../utils.js';
 import { getBackfillMessageIds, getExtractedMessageIds } from './scheduler.js';
 import { parseExtractionResponse } from './structured.js';
+import { initGraphState, upsertEntity, upsertRelationship } from '../graph/graph.js';
 
 /**
  * Update character states based on extracted events
@@ -289,6 +290,20 @@ export async function extractMemories(messageIds = null, targetChatId = null) {
                 log(`Dedup: Filtered ${validated.events.length - events.length} similar events`);
             }
         }
+
+        // Stage 4.5: Graph Update — upsert entities and relationships
+        initGraphState(data);
+        if (validated.entities) {
+            for (const entity of validated.entities) {
+                upsertEntity(data.graph, entity.name, entity.type, entity.description);
+            }
+        }
+        if (validated.relationships) {
+            for (const rel of validated.relationships) {
+                upsertRelationship(data.graph, rel.source, rel.target, rel.description);
+            }
+        }
+        data.graph_message_count = (data.graph_message_count || 0) + messages.length;
 
         // Stage 5: Result Committing
         const maxId = processedIds.length > 0 ? Math.max(...processedIds) : 0;

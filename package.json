@@ -16,6 +16,9 @@
     },
     "devDependencies": {
         "@biomejs/biome": "2.4.4",
+        "graphology": "^0.26.0",
+        "graphology-communities-louvain": "^2.0.2",
+        "graphology-operators": "^1.6.1",
         "jsdom": "^27.4.0",
         "jsonrepair": "^3.13.2",
         "repomix": "^0.3.2",

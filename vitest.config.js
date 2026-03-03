@@ -26,6 +26,10 @@ export default defineConfig({
             'https://esm.sh/snowball-stemmers@0.6.0': path.resolve(__dirname, 'node_modules/snowball-stemmers'),
             // Map https://esm.sh/jsonrepair to local package for tests
             'https://esm.sh/jsonrepair': path.resolve(__dirname, 'node_modules/jsonrepair'),
+            // Map https://esm.sh/graphology to local package for tests
+            'https://esm.sh/graphology@0.25.4': path.resolve(__dirname, 'node_modules/graphology'),
+            'https://esm.sh/graphology-communities-louvain@0.12.0': path.resolve(__dirname, 'node_modules/graphology-communities-louvain'),
+            'https://esm.sh/graphology-operators@1.6.0': path.resolve(__dirname, 'node_modules/graphology-operators'),
         },
     },
 });

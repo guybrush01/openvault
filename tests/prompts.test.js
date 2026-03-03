@@ -100,3 +100,19 @@ describe('buildExtractionPrompt', () => {
         expect(usr).toContain('A curious traveler');
     });
 });
+
+describe('buildExtractionPrompt entity/relationship instructions', () => {
+    it('system prompt contains entity extraction instructions', () => {
+        const result = buildExtractionPrompt({
+            messages: '[Alice]: Hello',
+            names: { char: 'Alice', user: 'Bob' },
+            context: {},
+        });
+        const systemContent = result[0].content;
+        expect(systemContent).toContain('entities');
+        expect(systemContent).toContain('PERSON');
+        expect(systemContent).toContain('PLACE');
+        expect(systemContent).toContain('ORGANIZATION');
+        expect(systemContent).toContain('relationships');
+    });
+});

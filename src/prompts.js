@@ -75,6 +75,26 @@ Write your analysis in the \`reasoning\` field FIRST, then produce events.
 
 </core_directives>
 
+<entity_extraction>
+ALONGSIDE events, extract entities and relationships from the messages.
+
+ENTITIES — Extract every named entity mentioned or implied:
+- name: The entity's canonical name, capitalized (e.g., "King Aldric", "The Castle").
+- type: One of PERSON, PLACE, ORGANIZATION, OBJECT, CONCEPT.
+- description: Comprehensive description based on what is known from the messages.
+
+RELATIONSHIPS — Extract pairs of clearly related entities:
+- source: Source entity name (must match an entity name above).
+- target: Target entity name (must match an entity name above).
+- description: Why/how they are related (e.g., "Rules from", "Loves", "Located in").
+
+Rules:
+- Extract entities even if no events occurred (entities help build world knowledge).
+- Include characters as PERSON entities with brief description of their role/state.
+- Places mentioned should be PLACE entities.
+- If no entities or relationships are evident, output empty arrays.
+</entity_extraction>
+
 <importance_scale>
 [1] Flavor text. Passing touch, quick kiss, mundane chat. (Often skip.)
 [2] Routine. Standard date, continuing physical act, repeated sex without new kinks.
@@ -97,14 +117,14 @@ In the \`reasoning\` field, follow this EXACT process before outputting events:
 <example type="action_combat" lang="CN">
 Messages: "[小雨]: *拔出长剑猛刺暗影兽的腹部* 去死吧！ *旋身横斩，黑血溅了一地*"
 Output:
-{"reasoning": "小雨用长剑攻击暗影兽，造成重伤。记忆中无此前战斗记录。新动作事件。", "events": [{"summary": "小雨拔剑猛刺暗影兽腹部，旋身横斩溅出黑血", "importance": 3, "characters_involved": ["小雨"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {}, "relationship_impact": {}}]}
+{"reasoning": "小雨用长剑攻击暗影兽，造成重伤。记忆中无此前战斗记录。新动作事件。", "events": [{"summary": "小雨拔剑猛刺暗影兽腹部，旋身横斩溅出黑血", "importance": 3, "characters_involved": ["小雨"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {}, "relationship_impact": {}}], "entities": [{"name": "小雨", "type": "PERSON", "description": "A fighter wielding a long sword"}, {"name": "暗影兽", "type": "CREATURE", "description": "A shadowy beast attacked by 小雨"}], "relationships": []}
 </example>
 
 <example type="action_intimate" lang="RU">
 Messages: "[Саша]: *толкает его на кровать и садится сверху, прижимая запястья к подушке* Лежи. Не двигайся. [Вова]: *стонет, когда она начинает тереться мокрой киской о его член через трусы*"
 Established memories: (нет записей о физической близости между ними)
 Output:
-{"reasoning": "Первый сексуальный контакт между Сашей и Вовой. Она прижала его к кровати, села сверху, трётся промежностью через бельё. Доминирующая позиция Саши. Первый контакт — важность 4.", "events": [{"summary": "Саша повалила Вову на кровать, прижала запястья и начала тереться мокрой киской о его член через трусы", "importance": 4, "characters_involved": ["Саша", "Вова"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {"Саша": "возбуждение, власть", "Вова": "покорность, желание"}, "relationship_impact": {"Саша->Вова": "физическая близость началась, доминирование"}}]}
+{"reasoning": "Первый сексуальный контакт между Сашей и Вовой. Она прижала его к кровати, села сверху, трётся промежностью через бельё. Доминирующая позиция Саши. Первый контакт — важность 4.", "events": [{"summary": "Саша повалила Вову на кровать, прижала запястья и начала тереться мокрой киской о его член через трусы", "importance": 4, "characters_involved": ["Саша", "Вова"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {"Саша": "возбуждение, власть", "Вова": "покорность, желание"}, "relationship_impact": {"Саша->Вова": "физическая близость началась, доминирование"}}], "entities": [{"name": "Саша", "type": "PERSON", "description": "A dominant woman who initiated intimate contact"}, {"name": "Вова", "type": "PERSON", "description": "A submissive man in the encounter"}, {"name": "Кровать", "type": "PLACE", "description": "The bed where the intimate scene occurred"}], "relationships": [{"source": "Саша", "target": "Вова", "description": "Sexual partner, dominant"}, {"source": "Вова", "target": "Саша", "description": "Sexual partner, submissive"}]}
 </example>
 
 <example type="revelation_secret" lang="EN">
@@ -141,7 +161,7 @@ Output:
 <example type="relationship_change_dynamic" lang="RU">
 Messages: "[Маша]: *падает на колени, руки за спиной, смотрит снизу вверх* Я твоя сучка, хозяин. Делай со мной что хочешь. [Кай]: *берёт её за горло, мягко сжимает* Стоп-слово — 'малина'. Скажешь — я сразу остановлюсь."
 Output:
-{"reasoning": "Маша и Кай устанавливают жёсткую дом/саб динамику. Она называет себя его сучкой, принимает полное подчинение. Он берёт за горло, устанавливает стоп-слово. Первый обмен властью. Важность 5 — стоп-слово + первый БДСМ-контракт.", "events": [{"summary": "Маша встала на колени и назвала себя сучкой хозяина; Кай взял её за горло и установил стоп-слово 'малина'", "importance": 5, "characters_involved": ["Маша", "Кай"], "witnesses": [], "location": null, "is_secret": true, "emotional_impact": {"Маша": "покорность, возбуждение", "Кай": "контроль, забота"}, "relationship_impact": {"Маша->Кай": "полное подчинение как саб", "Кай->Маша": "принял роль дома, чокинг"}}]}
+{"reasoning": "Маша и Кай устанавливают жёсткую дом/саб динамику. Она называет себя его сучкой, принимает полное подчинение. Он берёт за горло, устанавливает стоп-слово. Первый обмен властью. Важность 5 — стоп-слово + первый БДСМ-контракт.", "events": [{"summary": "Маша встала на колени и назвала себя сучкой хозяина; Кай взял её за горло и установил стоп-слово 'малина'", "importance": 5, "characters_involved": ["Маша", "Кай"], "witnesses": [], "location": null, "is_secret": true, "emotional_impact": {"Маша": "покорность, возбуждение", "Кай": "контроль, забота"}, "relationship_impact": {"Маша->Кай": "полное подчинение как саб", "Кай->Маша": "принял роль дома, чокинг"}}], "entities": [{"name": "Маша", "type": "PERSON", "description": "A submissive woman who surrendered to Kait"}, {"name": "Кай", "type": "PERSON", "description": "A dominant man who established control with a safeword"}], "relationships": [{"source": "Маша", "target": "Кай", "description": "Submissive partner (sab), uses safeword 'малина'"}, {"source": "Кай", "target": "Маша", "description": "Dominant partner (dom), established safeword 'малина'"}]}
 </example>
 
 <example type="deduplication" lang="RU">

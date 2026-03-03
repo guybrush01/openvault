@@ -17,6 +17,6 @@ Extracts events, entities, and relationships from chat. Converts raw messages in
 - **Entity Keys**: Always normalize to `toLowerCase().trim()` before graph operations. LLM outputs original casing.
 - **Key Normalization**: `source`/`target` in relationships MUST be normalized before edge creation.
 - **Zod Schemas**: Defined in `structured.js`, converted to JSON Schema Draft-04 for ST.
-- **Reflection Trigger**: Importance sum >= 30 per character. Accumulator resets after reflection.
+- **Settings Values**: All thresholds/interval values read from `settings` object (defaults provided): `reflectionThreshold` (30), `communityDetectionInterval` (50).
 - **Reflections are Memories**: Stored with `type: 'reflection'`, retrieved alongside events.
 - **Testing**: Test parsers heavily. See `tests/extraction/structured.test.js`.

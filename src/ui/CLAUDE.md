@@ -10,6 +10,44 @@ We use standard jQuery (provided by SillyTavern), but enforce a strict separatio
 - **`render.js`**: State orchestration and DOM manipulation (`$()`).
 - **`settings.js`**: Settings panel event binding and persistence.
 
+## PATTERNS
+
+### Slider/Range Input Binding
+```javascript
+$('#openvault_setting_name').on('input', function () {
+    const value = parseInt($(this).val(), 10);
+    saveSetting('settingKey', value);
+    $('#openvault_setting_name_value').text(value);
+});
+```
+- Use `input` event (not `change`) for real-time updates
+- Parse with `parseInt($(this).val(), 10)`
+- Display element has `_value` suffix
+- For token budgets, also call `updateWordsDisplay(value, 'element_id_words')`
+
+### List Renderer Pattern
+```javascript
+function renderEntityList() {
+    const $container = $('#openvault_entity_list');
+    const $count = $('#openvault_entity_count');
+    const data = getOpenVaultData();
+    const items = data?.graph?.nodes || {};
+    // filter, then map through template, then $container.html(html)
+}
+```
+- Container: `#openvault_xxx_list`
+- Count badge: `#openvault_xxx_count`
+- Get data via `getOpenVaultData()`
+- Show `<p class="openvault-placeholder">` for empty state
+- Bind filter events in `initBrowser()` with debounced search (200ms timeout)
+
+### Naming Conventions
+- Input IDs: `openvault_setting_name` (snake_case)
+- Display value IDs: `openvault_setting_name_value` (add `_value`)
+- Setting keys: `camelCase` (e.g., `reflectionThreshold`)
+- Template functions: `renderXxxYyy` (e.g., `renderCommunityAccordion`)
+- Helper filters: `filterXxxYyy` (e.g., `filterEntities`)
+
 ## GOTCHAS & RULES
 - **No Inline Event Handlers**: Bind all events using jQuery `.on()` in `initBrowser()` or `bindUIElements()`.
 - **XSS Prevention**: Always wrap dynamic user data in `escapeHtml()` from `src/utils.js` before placing it in template strings.

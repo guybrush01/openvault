@@ -12,7 +12,7 @@ Hybrid **Alpha-Blend** scoring:
 
 ## HOW: World Context (`world-context.js`)
 - **Source**: GraphRAG community summaries from `src/graph/communities.js`.
-- **Retrieval**: Cosine similarity on community embeddings, token budget 2000.
+- **Retrieval**: Cosine similarity on community embeddings, token budget from `settings.worldContextBudget` (default 2000).
 - **Format**: `<world_context>` XML tag with title/summary/findings.
 - **Injection**: Named slot `openvault_world` (higher in prompt than memories).
 

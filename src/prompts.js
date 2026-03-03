@@ -190,3 +190,73 @@ Write your analysis in the \`reasoning\` field first, then produce the events ar
         { role: 'user', content: userPrompt },
     ];
 }
+
+/**
+ * Build the salient questions prompt for reflection step 1.
+ * @param {string} characterName
+ * @param {Object[]} recentMemories - Recent memories (both events and reflections)
+ * @returns {Array<{role: string, content: string}>}
+ */
+export function buildSalientQuestionsPrompt(characterName, recentMemories) {
+    const memoryList = recentMemories
+        .map((m, i) => `${i + 1}. [${m.importance || 3} Star] ${m.summary}`)
+        .join('\n');
+
+    const systemPrompt = `You are analyzing the memory stream of a character in an ongoing narrative.
+Your task: given the character's recent memories, generate exactly 3 high-level questions that capture the most salient themes about their current psychological state, evolving relationships, or shifting goals.
+
+Rules:
+- Questions should be answerable from the memory stream.
+- Focus on patterns, changes, and emotional arcs — not individual events.
+- Output exactly 3 questions as a JSON array.`;
+
+    const userPrompt = `<character>${characterName}</character>
+
+<recent_memories>
+${memoryList}
+</recent_memories>
+
+What are the 3 most salient high-level questions we can answer about ${characterName}'s current state based on these memories?
+Respond strictly in the required JSON format.`;
+
+    return [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+    ];
+}
+
+/**
+ * Build the insight extraction prompt for reflection step 2.
+ * @param {string} characterName
+ * @param {string} question - The salient question to answer
+ * @param {Object[]} relevantMemories - Memories relevant to this question
+ * @returns {Array<{role: string, content: string}>}
+ */
+export function buildInsightExtractionPrompt(characterName, question, relevantMemories) {
+    const memoryList = relevantMemories.map((m) => `${m.id}. ${m.summary}`).join('\n');
+
+    const systemPrompt = `You are synthesizing memories into high-level insights for a character in an ongoing narrative.
+Your task: given a question and relevant memories, extract 1-5 insights that answer the question.
+
+Rules:
+- Each insight must be a concise, high-level statement (not a restatement of a single memory).
+- Each insight must cite the specific memory IDs that serve as evidence.
+- Insights should reveal patterns, emotional arcs, or relationship dynamics.
+- Output as a JSON object with an "insights" array.`;
+
+    const userPrompt = `<character>${characterName}</character>
+
+<question>${question}</question>
+
+<memorys>
+${memoryList}
+</memories>
+
+Based on these memories about ${characterName}, what insights answer the question above?
+Respond strictly in the required JSON format.`;
+
+    return [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+    ];
+}

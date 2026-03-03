@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildExtractionPrompt } from '../src/prompts.js';
+import {
+    buildExtractionPrompt,
+    buildSalientQuestionsPrompt,
+    buildInsightExtractionPrompt,
+} from '../src/prompts.js';
 
 describe('smart retrieval prompt removal', () => {
     it('does not export buildSmartRetrievalPrompt', async () => {
@@ -114,5 +118,35 @@ describe('buildExtractionPrompt entity/relationship instructions', () => {
         expect(systemContent).toContain('PLACE');
         expect(systemContent).toContain('ORGANIZATION');
         expect(systemContent).toContain('relationships');
+    });
+});
+
+describe('buildSalientQuestionsPrompt', () => {
+    it('returns system/user message pair with character name', () => {
+        const memories = [
+            { summary: 'Alice met Bob', importance: 3 },
+            { summary: 'Alice fought the dragon', importance: 5 },
+        ];
+        const result = buildSalientQuestionsPrompt('Alice', memories);
+        expect(result).toHaveLength(2);
+        expect(result[0].role).toBe('system');
+        expect(result[1].role).toBe('user');
+        expect(result[1].content).toContain('Alice');
+        expect(result[1].content).toContain('Alice met Bob');
+    });
+});
+
+describe('buildInsightExtractionPrompt', () => {
+    it('returns system/user message pair with question and evidence', () => {
+        const memories = [
+            { id: 'ev_001', summary: 'Alice fought the dragon' },
+            { id: 'ev_002', summary: 'Alice was wounded' },
+        ];
+        const result = buildInsightExtractionPrompt('Alice', 'How has Alice changed?', memories);
+        expect(result).toHaveLength(2);
+        expect(result[0].role).toBe('system');
+        expect(result[1].content).toContain('How has Alice changed?');
+        expect(result[1].content).toContain('ev_001');
+        expect(result[1].content).toContain('Alice fought the dragon');
     });
 });

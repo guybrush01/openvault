@@ -229,9 +229,10 @@ export function renderMemoryList() {
     }
 
     const memories = data[MEMORIES_KEY] || [];
+    const typeFilter = $(SELECTORS.FILTER_TYPE).val();
     const characterFilter = $(SELECTORS.FILTER_CHARACTER).val();
 
-    let filteredMemories = filterMemories(memories, '', characterFilter);
+    let filteredMemories = filterMemories(memories, typeFilter, characterFilter);
     filteredMemories = filterBySearch(filteredMemories, memoryListState.searchQuery);
     filteredMemories = sortMemoriesByDate(filteredMemories);
 

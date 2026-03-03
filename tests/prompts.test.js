@@ -3,6 +3,7 @@ import {
     buildExtractionPrompt,
     buildSalientQuestionsPrompt,
     buildInsightExtractionPrompt,
+    buildCommunitySummaryPrompt,
 } from '../src/prompts.js';
 
 describe('smart retrieval prompt removal', () => {
@@ -148,5 +149,56 @@ describe('buildInsightExtractionPrompt', () => {
         expect(result[1].content).toContain('How has Alice changed?');
         expect(result[1].content).toContain('ev_001');
         expect(result[1].content).toContain('Alice fought the dragon');
+    });
+});
+
+describe('buildCommunitySummaryPrompt', () => {
+    it('returns system/user message pair with node and edge data', () => {
+        const nodes = ['- Castle (PLACE): An ancient fortress'];
+        const edges = ['- King Aldric → Castle: Rules from [weight: 4]'];
+        const result = buildCommunitySummaryPrompt(nodes, edges);
+        expect(result).toHaveLength(2);
+        expect(result[0].role).toBe('system');
+        expect(result[1].role).toBe('user');
+        expect(result[1].content).toContain('Castle');
+        expect(result[1].content).toContain('King Aldric');
+    });
+
+    it('system prompt contains report structure instructions', () => {
+        const result = buildCommunitySummaryPrompt([], []);
+        const system = result[0].content;
+        expect(system).toContain('title');
+        expect(system).toContain('summary');
+        expect(system).toContain('findings');
+    });
+
+    it('system prompt specifies 1-5 findings limit', () => {
+        const result = buildCommunitySummaryPrompt([], []);
+        const system = result[0].content;
+        expect(system).toContain('1-5');
+        expect(system).toContain('findings');
+    });
+
+    it('user prompt wraps nodes in community_entities tag', () => {
+        const nodes = ['- King (PERSON): The ruler'];
+        const result = buildCommunitySummaryPrompt(nodes, []);
+        const user = result[1].content;
+        expect(user).toContain('<community_entities>');
+        expect(user).toContain('</community_entities>');
+        expect(user).toContain('King');
+    });
+
+    it('user prompt wraps edges in community_relationships tag', () => {
+        const edges = ['- King → Castle: Rules from [weight: 4]'];
+        const result = buildCommunitySummaryPrompt([], edges);
+        const user = result[1].content;
+        expect(user).toContain('<community_relationships>');
+        expect(user).toContain('</community_relationships>');
+    });
+
+    it('includes JSON format instruction', () => {
+        const result = buildCommunitySummaryPrompt([], []);
+        const user = result[1].content;
+        expect(user).toContain('JSON');
     });
 });

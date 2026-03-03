@@ -260,3 +260,39 @@ Respond strictly in the required JSON format.`;
         { role: 'user', content: userPrompt },
     ];
 }
+
+/**
+ * Build the community summarization prompt.
+ * @param {string[]} nodeLines - Formatted node descriptions
+ * @param {string[]} edgeLines - Formatted edge descriptions
+ * @returns {Array<{role: string, content: string}>}
+ */
+export function buildCommunitySummaryPrompt(nodeLines, edgeLines) {
+    const systemPrompt = `You are an AI assistant performing information discovery on a narrative knowledge graph.
+Your task: write a comprehensive report about a community of related entities.
+
+Report Structure:
+- title: A short, specific name for this community (2-5 words).
+- summary: An executive summary of the community's structure, key entities, and their dynamics.
+- findings: 1-5 key insights about this group, grounded in the provided data.
+
+Rules:
+- Be specific — reference entity names and relationships.
+- Capture the narrative significance of the group.
+- Output as JSON in the required format.`;
+
+    const userPrompt = `<community_entities>
+${nodeLines.join('\n')}
+</community_entities>
+
+<community_relationships>
+${edgeLines.join('\n')}
+</community_relationships>
+
+Write a comprehensive report about this community. Respond strictly in the required JSON format.`;
+
+    return [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+    ];
+}

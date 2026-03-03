@@ -7,7 +7,7 @@
 
 import { extensionName } from './constants.js';
 import { getDeps } from './deps.js';
-import { getExtractionJsonSchema, getRetrievalJsonSchema } from './extraction/structured.js';
+import { getExtractionJsonSchema } from './extraction/structured.js';
 import { log, showToast, withTimeout } from './utils.js';
 
 /**
@@ -20,13 +20,6 @@ export const LLM_CONFIGS = {
         errorContext: 'Extraction',
         timeoutMs: 120000, // 2 minutes max for extraction
         getJsonSchema: getExtractionJsonSchema,
-    },
-    retrieval: {
-        profileSettingKey: 'retrievalProfile',
-        maxTokens: 4000,
-        errorContext: 'Smart retrieval',
-        timeoutMs: 60000, // 60 seconds max for retrieval
-        getJsonSchema: getRetrievalJsonSchema,
     },
 };
 
@@ -127,14 +120,4 @@ export async function callLLM(messages, config, options = {}) {
  */
 export function callLLMForExtraction(messages, options = {}) {
     return callLLM(messages, LLM_CONFIGS.extraction, options);
-}
-
-/**
- * Call LLM for memory retrieval/scoring
- * @param {Array<{role: string, content: string}>} messages - Array of message objects
- * @param {Object} options - Optional parameters
- * @returns {Promise<string>} The LLM response content
- */
-export function callLLMForRetrieval(messages, options = {}) {
-    return callLLM(messages, LLM_CONFIGS.retrieval, options);
 }

@@ -95,6 +95,9 @@ export function refreshStats() {
         $('#openvault_stat_events').text('0');
         $('#openvault_stat_embeddings').text('0');
         $('#openvault_stat_characters').text('0');
+        $('#openvault_stat_reflections').text('0');
+        $('#openvault_stat_entities').text('0');
+        $('#openvault_stat_communities').text('0');
         // Update legacy badges
         $('#openvault_stat_events_badge').text('0 events');
         $('#openvault_stat_embeddings_badge').text('0 embeddings');
@@ -110,10 +113,18 @@ export function refreshStats() {
     const embeddingCount = memories.filter((m) => m.embedding?.length > 0).length;
     const charCount = Object.keys(data[CHARACTERS_KEY] || {}).length;
 
+    // New feature stats
+    const reflectionCount = memories.filter(m => m.type === 'reflection').length;
+    const entityCount = Object.keys(data.graph?.nodes || {}).length;
+    const communityCount = Object.keys(data.communities || {}).length;
+
     // Update new stat cards
     $('#openvault_stat_events').text(eventCount);
     $('#openvault_stat_embeddings').text(embeddingCount);
     $('#openvault_stat_characters').text(charCount);
+    $('#openvault_stat_reflections').text(reflectionCount);
+    $('#openvault_stat_entities').text(entityCount);
+    $('#openvault_stat_communities').text(communityCount);
 
     // Update legacy badges
     $('#openvault_stat_events_badge').text(`${eventCount} events`);

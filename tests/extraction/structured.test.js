@@ -87,8 +87,9 @@ describe('parseExtractionResponse', () => {
         expect(result.events).toHaveLength(1);
     });
 
-    it('throws on invalid JSON', () => {
-        expect(() => parseExtractionResponse('not json')).toThrow('JSON parse failed');
+    it('throws on invalid JSON that jsonrepair cannot fix', () => {
+        // Unmatched braces that jsonrepair can't repair
+        expect(() => parseExtractionResponse('{{}')).toThrow('JSON parse failed');
     });
 
     it('throws on schema validation failure', () => {

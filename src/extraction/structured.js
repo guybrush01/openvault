@@ -1,4 +1,5 @@
 import { z } from 'https://esm.sh/zod';
+import { jsonrepair } from 'https://esm.sh/jsonrepair';
 import { stripThinkingTags } from '../utils.js';
 
 // --- Schemas (inlined from schemas/) ---
@@ -97,7 +98,9 @@ function parseStructuredResponse(content, schema) {
 
     let parsed;
     try {
-        parsed = JSON.parse(jsonContent);
+        // Use jsonrepair to handle common LLM JSON issues (unescaped control chars, etc)
+        const repaired = jsonrepair(jsonContent);
+        parsed = JSON.parse(repaired);
     } catch (e) {
         throw new Error(`JSON parse failed: ${e.message}`);
     }
@@ -133,7 +136,9 @@ export function parseExtractionResponse(content) {
 
     let parsed;
     try {
-        parsed = JSON.parse(jsonContent);
+        // Use jsonrepair to handle common LLM JSON issues (unescaped control chars, etc)
+        const repaired = jsonrepair(jsonContent);
+        parsed = JSON.parse(repaired);
     } catch (e) {
         throw new Error(`JSON parse failed: ${e.message}`);
     }

@@ -2675,3 +2675,52 @@ Inject community summaries into the prompt as world context alongside existing m
 | `package.json` | 4 | Add graphology dev dependencies |
 | `tests/extraction/structured.test.js` | 0, 1, 3, 4 | Add tests for new schemas |
 | `tests/prompts.test.js` | 0, 2, 3, 4 | Add tests for new prompts |
+
+---
+
+## Minor Adjustments 1
+
+**A. Refine `upsertEntity` deduplication (Task 1.2)**
+*   *Issue:* In your implementation snippet, you append descriptions blindly: `existing.description = existing.description + ' | ' + description;`. If the LLM repeatedly extracts the same static fact across different messages (e.g., "A fortress"), you'll end up with "A fortress | A fortress | A fortress".
+*   *Fix:* Add an `.includes()` check exactly like you did for `upsertRelationship`.
+*   *Change in Task 1.2 snippet:*
+    ```javascript
+    if (existing) {
+        if (!existing.description.includes(description)) {
+            existing.description = existing.description + ' | ' + description;
+        }
+        existing.mentions += 1;
+    }
+    ```
+
+**B. Use your existing ID generator (Task 3.4)**
+*   *Issue:* In `generateReflections`, you create IDs manually: `` id: `ref_${now}_${reflections.length}` ``. While this works, you already have a robust, collision-proof ID generator in `src/utils.js`.
+*   *Fix:* Import and use `generateId()` to keep your data structures perfectly uniform.
+*   *Change in Task 3.4 snippet:*
+    ```javascript
+    import { log, sortMemoriesBySequence, generateId } from '../utils.js'; // Add generateId
+
+    // Inside the loop:
+    reflections.push({
+        id: `ref_${generateId()}`, // Use generateId instead of manual string
+        type: 'reflection',
+        // ...
+    });
+    ```
+
+**C. Clarify the API profile for Communities (Task 4.1)**
+*   *Observation:* You map both Reflection and Community LLM calls to use `extractionProfile`. This is perfectly fine (and probably preferred since extraction models handle structured JSON well). Just ensuring you are aware that users won't see a separate API dropdown for Reflections/Lorebooks; they will use whatever the user set for background memory extraction. I think this is good UX (less clutter).
+
+**D. Handle potential "Island" communities in Graphology (Task 4.3)**
+*   *Observation:* Louvain handles disconnected graph islands fine, but sometimes returns isolated nodes as their own community. Since you require `findings: z.array(z.string()).min(1)`, passing an isolated node to the LLM might confuse it ("Why am I summarizing a community of 1 guy?").
+*   *Fix:* In Task 4.4 (`updateCommunitySummaries`), add a quick guard to only summarize communities that have at least 2 nodes.
+*   *Change in Task 4.4 snippet:*
+    ```javascript
+    for (const [communityId, group] of Object.entries(communityGroups)) {
+        // Skip solo nodes - they don't form a meaningful community
+        if (group.nodeKeys.length < 2) continue; 
+        
+        const key = `C${communityId}`;
+        // ... rest of the logic
+    }
+    ```

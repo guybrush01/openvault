@@ -25,6 +25,21 @@ describe('toGraphology', () => {
         expect(graph.hasNode('castle')).toBe(true);
         expect(graph.hasNode('king')).toBe(true);
     });
+
+    it('skips self-loop edges defensively', () => {
+        // Graph with a self-loop edge (should be prevented at insertion, but handle anyway)
+        const graphData = {
+            nodes: {
+                king: { name: 'King', type: 'PERSON', description: 'The ruler', mentions: 2 },
+            },
+            edges: {
+                king__king: { source: 'king', target: 'king', description: 'Self-loop', weight: 1 },
+            },
+        };
+        const graph = toGraphology(graphData);
+        expect(graph.order).toBe(1); // 1 node
+        expect(graph.size).toBe(0); // 0 edges (self-loop skipped)
+    });
 });
 
 describe('detectCommunities', () => {

@@ -87,6 +87,12 @@ export function upsertRelationship(graphData, source, target, description, cap =
     const srcKey = _resolveKey(graphData, source);
     const tgtKey = _resolveKey(graphData, target);
 
+    // Prevent self-loops
+    if (srcKey === tgtKey) {
+        log(`[graph] Edge skipped: ${source} -> ${target} — self-loops not allowed`);
+        return;
+    }
+
     if (!graphData.nodes[srcKey] || !graphData.nodes[tgtKey]) {
         log(`[graph] Edge skipped: ${source} (${srcKey}) -> ${target} (${tgtKey}) — missing node`);
         return;

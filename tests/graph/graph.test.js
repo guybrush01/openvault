@@ -188,6 +188,21 @@ describe('upsertRelationship', () => {
         expect(segments[0]).toBe('Desc 3');
         expect(segments[4]).toBe('Desc 7');
     });
+
+    it('prevents self-loop edges (same source and target)', () => {
+        // Try to create an edge where source and target resolve to the same node
+        upsertRelationship(graphData, 'King Aldric', 'King Aldric', 'Self-referential');
+        expect(Object.keys(graphData.edges)).toHaveLength(0);
+    });
+
+    it('prevents self-loops after merge redirect resolution', () => {
+        // Set up a merge redirect: "King" -> "King Aldric"
+        graphData._mergeRedirects = { king: 'king aldric' };
+
+        // Try to create an edge that would resolve to a self-loop after redirect
+        upsertRelationship(graphData, 'King Aldric', 'King', 'Redirected self-loop');
+        expect(Object.keys(graphData.edges)).toHaveLength(0);
+    });
 });
 
 describe('createEmptyGraph', () => {

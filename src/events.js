@@ -10,6 +10,7 @@ import { clearEmbeddingCache } from './embeddings.js';
 import { extractAllMessages, extractMemories } from './extraction/extract.js';
 import { getBackfillStats, getExtractedMessageIds, getNextBatch } from './extraction/scheduler.js';
 import { updateInjection } from './retrieval/retrieve.js';
+import { clearRetrievalDebug } from './retrieval/debug-cache.js';
 import {
     clearGenerationLock,
     isChatLoadingCooldown,
@@ -187,6 +188,7 @@ export function onChatChanged() {
 
     // Clear embedding cache to free memory when switching chats
     clearEmbeddingCache();
+    clearRetrievalDebug();
 
     // Reset memoryBrowserPage to prevent showing wrong page after chat switch
     resetMemoryBrowserPage();

@@ -495,7 +495,15 @@ export function calculateScore(memory, contextEmbedding, chatLength, constants, 
     // BM25 bonus = (1 - alpha) * boostWeight * normalizedBM25
     const bm25Bonus = (1 - alpha) * boostWeight * bm25Score;
 
-    const total = baseAfterFloor + vectorBonus + bm25Bonus;
+    let total = baseAfterFloor + vectorBonus + bm25Bonus;
+
+    // === Reflection Decay ===
+    // Reflections lose additional score with distance beyond threshold
+    if (memory.type === 'reflection' && distance > (constants.reflectionDecayThreshold ?? 500)) {
+        const threshold = constants.reflectionDecayThreshold ?? 500;
+        const decayFactor = Math.max(0.25, 1 - (distance - threshold) / (2 * threshold));
+        total *= decayFactor;
+    }
 
     return {
         total,

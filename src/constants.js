@@ -62,6 +62,9 @@ export const defaultSettings = {
     communityDetectionInterval: 50,
     // Entity settings
     entityDescriptionCap: 3,
+    // Reflection decay settings
+    reflectionDecayThreshold: 500,
+    maxReflectionsPerCharacter: 50,
 };
 
 // Embedding prefix defaults per model

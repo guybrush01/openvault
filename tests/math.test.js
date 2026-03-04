@@ -188,6 +188,88 @@ describe('math.js - IDF-aware entity boost', () => {
     });
 });
 
+describe('math.js - reflection decay', () => {
+    it('applies decay multiplier to old reflections beyond threshold', () => {
+        const constants = { BASE_LAMBDA: 0.05, IMPORTANCE_5_FLOOR: 5, reflectionDecayThreshold: 500 };
+        const settings = {
+            vectorSimilarityThreshold: 0.5,
+            alpha: 0.7,
+            combinedBoostWeight: 15,
+        };
+
+        // Reflection at distance 100 (within threshold - no decay)
+        const nearReflection = { type: 'reflection', importance: 5, message_ids: [900] };
+        const nearResult = calculateScore(nearReflection, null, 1000, constants, settings, 0);
+
+        // Same reflection at distance 1000 (beyond threshold - decay applies)
+        // distance = 1000, threshold = 500
+        // decayFactor = Math.max(0.25, 1 - (1000 - 500) / (2 * 500)) = Math.max(0.25, 1 - 0.5) = 0.5
+        const farReflection = { type: 'reflection', importance: 5, message_ids: [0] };
+        const farResult = calculateScore(farReflection, null, 1000, constants, settings, 0);
+
+        // Far reflection should score lower due to decay
+        expect(farResult.total).toBeLessThan(nearResult.total);
+
+        // The far reflection's total should be approximately the near reflection's base times decay factor
+        // With importance 5, the base is near the floor, so we can verify the decay is applied
+        // by checking far is meaningfully lower (at least 30% reduction)
+        expect(farResult.total / nearResult.total).toBeLessThan(0.7);
+    });
+
+    it('does not apply decay to non-reflection memories', () => {
+        const constants = { BASE_LAMBDA: 0.05, IMPORTANCE_5_FLOOR: 5, reflectionDecayThreshold: 500 };
+        const settings = {
+            vectorSimilarityThreshold: 0.5,
+            alpha: 0.7,
+            combinedBoostWeight: 15,
+        };
+
+        // Event memory at distance 1000 (no reflection decay should apply)
+        const eventMemory = { type: 'event', importance: 5, message_ids: [0] };
+        const eventResult = calculateScore(eventMemory, null, 1000, constants, settings, 0);
+
+        // Reflection at same distance and importance (reflection decay should apply)
+        const reflectionMemory = { type: 'reflection', importance: 5, message_ids: [0] };
+        const reflectionResult = calculateScore(reflectionMemory, null, 1000, constants, settings, 0);
+
+        // Reflection should score lower than event due to extra decay
+        expect(reflectionResult.total).toBeLessThan(eventResult.total);
+    });
+
+    it('caps reflection decay at minimum factor of 0.25', () => {
+        const constants = { BASE_LAMBDA: 0.05, IMPORTANCE_5_FLOOR: 5, reflectionDecayThreshold: 500 };
+        const settings = {
+            vectorSimilarityThreshold: 0.5,
+            alpha: 0.7,
+            combinedBoostWeight: 15,
+        };
+
+        // Reflection at extreme distance (2000) - decay formula gives negative but caps at 0.25
+        // decayFactor = Math.max(0.25, 1 - (2000 - 500) / (2 * 500)) = Math.max(0.25, 1 - 1.5) = 0.25
+        const reflection = { type: 'reflection', importance: 5, message_ids: [0] };
+        const result = calculateScore(reflection, null, 2000, constants, settings, 0);
+
+        // Score should be at least 0.25 times the floor value
+        expect(result.total).toBeGreaterThanOrEqual(constants.IMPORTANCE_5_FLOOR * 0.25);
+    });
+
+    it('does not apply decay when within threshold', () => {
+        const constants = { BASE_LAMBDA: 0.05, IMPORTANCE_5_FLOOR: 5, reflectionDecayThreshold: 500 };
+        const settings = {
+            vectorSimilarityThreshold: 0.5,
+            alpha: 0.7,
+            combinedBoostWeight: 15,
+        };
+
+        // Reflection at distance 400 (within threshold - no decay)
+        const reflection = { type: 'reflection', importance: 5, message_ids: [600] };
+        const result = calculateScore(reflection, null, 1000, constants, settings, 0);
+
+        // Reflection at distance 400 should get floor value (no extra decay)
+        expect(result.total).toBeCloseTo(constants.IMPORTANCE_5_FLOOR, 1);
+    });
+});
+
 describe('math.js - tokenization', () => {
     it('filters post-stem runt tokens (< 3 chars after stemming)', () => {
         // "боюсь" (5 chars) stems to "бо" (2 chars) via Russian Snowball

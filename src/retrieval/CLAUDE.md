@@ -8,7 +8,13 @@ Hybrid **Alpha-Blend** scoring:
 1. **Forgetfulness Curve**: Exponential decay by message distance. Importance 5 = floor.
 2. **BM25**: IDF-aware term frequency via `query-context.js`.
 3. **Vector**: Cosine similarity via WebGPU/Ollama.
+4. **Reflection Decay**: Reflections older than 500 messages get linear decay (floor 0.25×).
 - **Formula**: `Total = Base + (Alpha * Vector) + ((1 - Alpha) * BM25)`
+
+## HOW: Candidate Selection (`retrieve.js`)
+- **Hidden Memories**: Extracted from system messages only (visible messages already in context).
+- **Reflections**: Included alongside hidden memories (reflections have no `message_ids`).
+- **POV Filter**: Applied to combined candidate set via `filterMemoriesByPOV()`.
 
 ## HOW: World Context (`world-context.js`)
 - **Source**: GraphRAG community summaries from `src/graph/communities.js`.

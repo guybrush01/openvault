@@ -158,10 +158,10 @@ describe('formatting', () => {
 
     describe('formatContextForInjection', () => {
         // Basic structure tests
-        it('formats simplified header with chat length', () => {
+        it('formats simplified header with chat length and star legend', () => {
             const result = formatContextForInjection([], [], null, 'Alice', 1000, 50);
             expect(result).toContain('<scene_memory>');
-            expect(result).toContain('(#50 messages)');
+            expect(result).toContain('(#50 messages | ★=minor ★★★=notable ★★★★★=critical)');
             expect(result).not.toContain('Current chat has');
             expect(result).toContain('</scene_memory>');
         });
@@ -716,8 +716,8 @@ describe('formatting', () => {
                 expect(result).toContain('## Leading Up To This Moment');
                 expect(result).toContain('## Current Scene');
 
-                // Simplified header
-                expect(result).toContain('(#5000 messages)');
+                // Simplified header with star legend
+                expect(result).toContain('(#5000 messages | ★=minor ★★★=notable ★★★★★=critical)');
                 expect(result).not.toContain('Current chat has');
 
                 // Gap separator in old bucket (105 -> 800 = 695 gap)

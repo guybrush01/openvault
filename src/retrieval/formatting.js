@@ -127,7 +127,7 @@ export function formatContextForInjection(
     tokenBudget,
     chatLength = 0
 ) {
-    const lines = ['<scene_memory>', `(#${chatLength} messages)`, ''];
+    const lines = ['<scene_memory>', `(#${chatLength} messages | ★=minor ★★★=notable ★★★★★=critical)`, ''];
 
     // Assign memories to buckets
     const buckets = assignMemoriesToBuckets(memories, chatLength);

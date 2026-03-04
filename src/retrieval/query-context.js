@@ -75,6 +75,38 @@ const CYRILLIC_STARTERS = new Set([
     'Уже',
     'Вот',
     'Вон',
+    // Interjections & filler words
+    'Ага',
+    'Угу',
+    'Ого',
+    'Ура',
+    'Хм',
+    'Ну',
+    // Affirmations, negations, casual
+    'Да',
+    'Нет',
+    'Ладно',
+    'Хорошо',
+    'Ок',
+    // Expletives (common in RP)
+    'Блин',
+    'Блять',
+    'Бля',
+    // Discourse markers
+    'Значит',
+    'Типа',
+    'Короче',
+    'Просто',
+    'Конечно',
+    'Наверное',
+    'Возможно',
+    'Может',
+    // Informal speech common in RP
+    'Воны',
+    'Чё',
+    'Чо',
+    'Ваще',
+    'Щас',
 ]);
 
 /**

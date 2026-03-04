@@ -88,6 +88,24 @@ describe('query-context', () => {
                 expect(result.entities).toContain('Саша');
             });
 
+            it('filters Russian interjections and filler words', () => {
+                const messages = [
+                    { mes: 'Ага полностью. Воны какие-то. Ну ладно, Саша пошла.' },
+                    { mes: 'Да, Хорошо. Блин, забыл.' },
+                    { mes: 'Угу, Конечно.' },
+                ];
+                const result = extractQueryContext(messages);
+
+                expect(result.entities).not.toContain('Ага');
+                expect(result.entities).not.toContain('Воны');
+                expect(result.entities).not.toContain('Ладно');
+                expect(result.entities).not.toContain('Хорошо');
+                expect(result.entities).not.toContain('Блин');
+                expect(result.entities).not.toContain('Угу');
+                expect(result.entities).not.toContain('Конечно');
+                expect(result.entities).toContain('Саша');
+            });
+
             it('requires minimum 3 characters', () => {
                 const messages = [
                     { mes: 'Mr Jo went home. Sarah stayed.' },

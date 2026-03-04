@@ -54,9 +54,18 @@ import { parseExtractionResponse } from './structured.js';
  * Update character states based on extracted events
  * @param {Array} events - Extracted events
  * @param {Object} data - OpenVault data object
+ * @param {string[]} validCharNames - Known valid character names (e.g., [characterName, userName])
  */
-function updateCharacterStatesFromEvents(events, data) {
+export function updateCharacterStatesFromEvents(events, data, validCharNames = []) {
     data[CHARACTERS_KEY] = data[CHARACTERS_KEY] || {};
+
+    // Build valid set from known names + all characters_involved from current events
+    const validSet = new Set(validCharNames.map((n) => n.toLowerCase()));
+    for (const event of events) {
+        for (const char of event.characters_involved || []) {
+            validSet.add(char.toLowerCase());
+        }
+    }
 
     for (const event of events) {
         // Get message range for this event
@@ -67,6 +76,12 @@ function updateCharacterStatesFromEvents(events, data) {
         // Update emotional impact
         if (event.emotional_impact) {
             for (const [charName, emotion] of Object.entries(event.emotional_impact)) {
+                // Validate character name before creating state entry
+                if (!validSet.has(charName.toLowerCase())) {
+                    log(`Skipping invalid character name "${charName}" in emotional_impact`);
+                    continue;
+                }
+
                 if (!data[CHARACTERS_KEY][charName]) {
                     data[CHARACTERS_KEY][charName] = {
                         name: charName,
@@ -87,6 +102,12 @@ function updateCharacterStatesFromEvents(events, data) {
 
         // Add event to witnesses' knowledge
         for (const witness of event.witnesses || []) {
+            // Validate character name before creating state entry
+            if (!validSet.has(witness.toLowerCase())) {
+                log(`Skipping invalid character name "${witness}" in witnesses`);
+                continue;
+            }
+
             if (!data[CHARACTERS_KEY][witness]) {
                 data[CHARACTERS_KEY][witness] = {
                     name: witness,
@@ -373,7 +394,7 @@ export async function extractMemories(messageIds = null, targetChatId = null) {
             data[MEMORIES_KEY] = data[MEMORIES_KEY] || [];
             data[MEMORIES_KEY].push(...events);
 
-            updateCharacterStatesFromEvents(events, data);
+            updateCharacterStatesFromEvents(events, data, [characterName, userName]);
         }
 
         data[LAST_PROCESSED_KEY] = Math.max(data[LAST_PROCESSED_KEY] || -1, maxId);

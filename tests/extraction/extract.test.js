@@ -51,7 +51,7 @@ vi.mock('../../src/graph/communities.js', () => ({
     updateCommunitySummaries: vi.fn(async () => ({})),
 }));
 
-import { extractMemories } from '../../src/extraction/extract.js';
+import { extractMemories, updateCharacterStatesFromEvents } from '../../src/extraction/extract.js';
 import { buildCommunityGroups, detectCommunities, updateCommunitySummaries } from '../../src/graph/communities.js';
 
 describe('extractMemories graph integration', () => {
@@ -287,5 +287,99 @@ describe('extractMemories community detection', () => {
 
         // Should still complete extraction successfully
         expect(result.status).toBe('success');
+    });
+});
+
+describe('updateCharacterStatesFromEvents', () => {
+    let mockData;
+
+    beforeEach(() => {
+        mockData = {
+            character_states: {},
+        };
+    });
+
+    it('creates character states for valid characters in emotional_impact', () => {
+        const events = [
+            {
+                id: 'event_1',
+                emotional_impact: {
+                    'King Aldric': 'triumphant',
+                },
+                message_ids: [1, 2],
+            },
+        ];
+
+        updateCharacterStatesFromEvents(events, mockData, ['King Aldric', 'User']);
+
+        expect(mockData.character_states['King Aldric']).toBeDefined();
+        expect(mockData.character_states['King Aldric'].current_emotion).toBe('triumphant');
+    });
+
+    it('skips invalid character names in emotional_impact', () => {
+        const events = [
+            {
+                id: 'event_1',
+                emotional_impact: {
+                    'King Aldric': 'triumphant',
+                    'don': 'angry', // Invalid - not in validCharNames or characters_involved
+                },
+                message_ids: [1, 2],
+                characters_involved: ['King Aldric'],
+            },
+        ];
+
+        updateCharacterStatesFromEvents(events, mockData, ['King Aldric', 'User']);
+
+        expect(mockData.character_states['King Aldric']).toBeDefined();
+        expect(mockData.character_states['don']).toBeUndefined();
+    });
+
+    it('creates character states for valid characters in witnesses', () => {
+        const events = [
+            {
+                id: 'event_1',
+                witnesses: ['King Aldric', 'User'],
+                characters_involved: ['King Aldric', 'User'],
+            },
+        ];
+
+        updateCharacterStatesFromEvents(events, mockData, ['King Aldric', 'User']);
+
+        expect(mockData.character_states['King Aldric']).toBeDefined();
+        expect(mockData.character_states['User']).toBeDefined();
+        expect(mockData.character_states['King Aldric'].known_events).toContain('event_1');
+    });
+
+    it('skips invalid character names in witnesses', () => {
+        const events = [
+            {
+                id: 'event_1',
+                witnesses: ['King Aldric', 'Stranger'], // Stranger not in validCharNames
+                characters_involved: ['King Aldric'],
+            },
+        ];
+
+        updateCharacterStatesFromEvents(events, mockData, ['King Aldric', 'User']);
+
+        expect(mockData.character_states['King Aldric']).toBeDefined();
+        expect(mockData.character_states['Stranger']).toBeUndefined();
+    });
+
+    it('allows characters from characters_involved even if not in validCharNames', () => {
+        const events = [
+            {
+                id: 'event_1',
+                emotional_impact: {
+                    'Queen': 'worried',
+                },
+                characters_involved: ['Queen'], // Queen is in characters_involved
+            },
+        ];
+
+        updateCharacterStatesFromEvents(events, mockData, ['King Aldric', 'User']);
+
+        expect(mockData.character_states['Queen']).toBeDefined();
+        expect(mockData.character_states['Queen'].current_emotion).toBe('worried');
     });
 });

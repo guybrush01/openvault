@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock deps before import
 vi.mock('../../src/deps.js', () => ({
@@ -23,8 +23,21 @@ vi.mock('../../src/deps.js', () => ({
             chatMetadata: {
                 openvault: {
                     memories: [
-                        { id: '1', type: 'event', summary: 'Test', importance: 3, characters_involved: ['Alice'], embedding: new Float32Array(384) },
-                        { id: '2', type: 'reflection', summary: 'Insight', importance: 4, characters_involved: ['Alice'] },
+                        {
+                            id: '1',
+                            type: 'event',
+                            summary: 'Test',
+                            importance: 3,
+                            characters_involved: ['Alice'],
+                            embedding: new Float32Array(384),
+                        },
+                        {
+                            id: '2',
+                            type: 'reflection',
+                            summary: 'Insight',
+                            importance: 4,
+                            characters_involved: ['Alice'],
+                        },
                     ],
                     character_states: {
                         Alice: { name: 'Alice', current_emotion: 'happy', emotion_intensity: 5, known_events: ['1'] },
@@ -39,7 +52,13 @@ vi.mock('../../src/deps.js', () => ({
                         },
                     },
                     communities: {
-                        c1: { title: 'Alice World', summary: 'Summary', findings: ['f1'], nodes: ['alice', 'garden'], embedding: new Float32Array(384) },
+                        c1: {
+                            title: 'Alice World',
+                            summary: 'Summary',
+                            findings: ['f1'],
+                            nodes: ['alice', 'garden'],
+                            embedding: new Float32Array(384),
+                        },
                     },
                 },
             },

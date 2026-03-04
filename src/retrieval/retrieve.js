@@ -23,10 +23,10 @@ import { getDeps } from '../deps.js';
 import { getQueryEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
 import { filterMemoriesByPOV, getActiveCharacters, getPOVContext } from '../pov.js';
 import { getOpenVaultData, isAutomaticMode, isExtensionEnabled, log, safeSetExtensionPrompt } from '../utils.js';
+import { cacheRetrievalDebug } from './debug-cache.js';
 import { formatContextForInjection } from './formatting.js';
 import { selectRelevantMemories } from './scoring.js';
 import { retrieveWorldContext } from './world-context.js';
-import { cacheRetrievalDebug } from './debug-cache.js';
 
 /**
  * Get memories from hidden (system) messages that need retrieval

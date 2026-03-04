@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { cacheRetrievalDebug } from '../../src/retrieval/debug-cache.js';
 
 describe('debug cache import verification', () => {
     it('cacheRetrievalDebug is importable from retrieve.js dependencies', async () => {

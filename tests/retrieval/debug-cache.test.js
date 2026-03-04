@@ -1,5 +1,5 @@
-import { describe, expect, it, beforeEach } from 'vitest';
-import { cacheRetrievalDebug, getLastRetrievalDebug, clearRetrievalDebug } from '../../src/retrieval/debug-cache.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { cacheRetrievalDebug, clearRetrievalDebug, getLastRetrievalDebug } from '../../src/retrieval/debug-cache.js';
 
 describe('debug-cache', () => {
     beforeEach(() => {

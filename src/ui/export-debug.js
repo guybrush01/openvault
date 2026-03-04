@@ -4,13 +4,13 @@
  * Assembles and exports full system state + last retrieval debug data to clipboard.
  */
 
-import { extensionName, CHARACTERS_KEY, MEMORIES_KEY } from '../constants.js';
+import { CHARACTERS_KEY, extensionName, MEMORIES_KEY } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { isEmbeddingsEnabled } from '../embeddings.js';
 import { getLastRetrievalDebug } from '../retrieval/debug-cache.js';
 import { getOpenVaultData, showToast } from '../utils.js';
 
-const RECENT_CONTEXT_CAP = 2000;
+const _RECENT_CONTEXT_CAP = 2000;
 
 /**
  * Strip embedding arrays from an object (shallow clone).
@@ -74,7 +74,11 @@ function buildCharacterSummary(characterStates) {
  * @returns {Object}
  */
 function buildGraphExport(graph) {
-    if (!graph) return { summary: { nodeCount: 0, edgeCount: 0, typeBreakdown: {}, topEntitiesByMentions: [] }, raw: { nodes: {}, edges: {} } };
+    if (!graph)
+        return {
+            summary: { nodeCount: 0, edgeCount: 0, typeBreakdown: {}, topEntitiesByMentions: [] },
+            raw: { nodes: {}, edges: {} },
+        };
 
     const nodes = graph.nodes || {};
     const edges = graph.edges || {};
@@ -194,7 +198,7 @@ export async function exportToClipboard() {
         const json = JSON.stringify(payload, null, 2);
         await navigator.clipboard.writeText(json);
         showToast('success', `Copied ${(json.length / 1024).toFixed(1)}KB to clipboard`);
-    } catch (err) {
+    } catch (_err) {
         // Fallback for clipboard API failure
         try {
             const textarea = document.createElement('textarea');
@@ -206,7 +210,7 @@ export async function exportToClipboard() {
             document.execCommand('copy');
             document.body.removeChild(textarea);
             showToast('success', 'Copied to clipboard (fallback)');
-        } catch (fallbackErr) {
+        } catch (_fallbackErr) {
             showToast('error', 'Failed to copy to clipboard');
         }
     }

@@ -9,8 +9,8 @@ import { getDeps } from './deps.js';
 import { clearEmbeddingCache } from './embeddings.js';
 import { extractAllMessages, extractMemories } from './extraction/extract.js';
 import { getBackfillStats, getExtractedMessageIds, getNextBatch } from './extraction/scheduler.js';
-import { updateInjection } from './retrieval/retrieve.js';
 import { clearRetrievalDebug } from './retrieval/debug-cache.js';
+import { updateInjection } from './retrieval/retrieve.js';
 import {
     clearGenerationLock,
     isChatLoadingCooldown,

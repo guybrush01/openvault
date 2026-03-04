@@ -9,9 +9,9 @@ import { extensionName } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { getQueryEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
 import { log, sliceToTokenBudget } from '../utils.js';
+import { cacheRetrievalDebug } from './debug-cache.js';
 import { scoreMemories } from './math.js';
 import { buildBM25Tokens, buildEmbeddingQuery, extractQueryContext, parseRecentMessages } from './query-context.js';
-import { cacheRetrievalDebug } from './debug-cache.js';
 
 /**
  * Build scoring parameters from extension settings

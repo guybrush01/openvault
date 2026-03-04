@@ -35,6 +35,65 @@ vi.mock('../../src/retrieval/world-context.js', () => ({
 import { updateInjection } from '../../src/retrieval/retrieve.js';
 import { retrieveWorldContext } from '../../src/retrieval/world-context.js';
 
+describe('reflection retrieval', () => {
+    it('includes reflections in memories passed to scoring', async () => {
+        const { selectRelevantMemories } = await import('../../src/retrieval/scoring.js');
+        const localMockSetPrompt = vi.fn();
+
+        setDeps({
+            getContext: () => ({
+                chat: [
+                    { mes: 'Hello', is_user: true, is_system: true },
+                    { mes: 'Hi', is_user: false, is_system: false },
+                ],
+                name1: 'User',
+                name2: 'Alice',
+                chatMetadata: {
+                    openvault: {
+                        memories: [
+                            {
+                                id: 'ev1',
+                                summary: 'Event memory',
+                                importance: 3,
+                                message_ids: [0],
+                                characters_involved: ['Alice'],
+                                witnesses: ['Alice'],
+                                is_secret: false,
+                            },
+                            {
+                                id: 'ref1',
+                                type: 'reflection',
+                                summary: 'Alice fears abandonment',
+                                importance: 4,
+                                characters_involved: ['Alice'],
+                                witnesses: ['Alice'],
+                                is_secret: false,
+                                source_ids: ['ev1'],
+                                // NO message_ids — this is the key
+                            },
+                        ],
+                        graph: { nodes: {}, edges: {} },
+                        communities: {},
+                    },
+                },
+            }),
+            getExtensionSettings: () => ({
+                [extensionName]: { ...defaultSettings, autoMode: true },
+            }),
+            setExtensionPrompt: localMockSetPrompt,
+        });
+
+        await updateInjection();
+
+        // selectRelevantMemories should have received BOTH the event and the reflection
+        const calledWith = selectRelevantMemories.mock.calls[0]?.[0];
+        expect(calledWith).toBeDefined();
+        const ids = calledWith.map(m => m.id);
+        expect(ids).toContain('ev1');
+        expect(ids).toContain('ref1');
+    });
+});
+
 describe('updateInjection world context', () => {
     let mockSetPrompt;
 

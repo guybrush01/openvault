@@ -49,6 +49,20 @@ function _getHiddenMemories(chat, memories) {
 }
 
 /**
+ * Deduplicate memories by ID (reflections may share IDs with source memories)
+ * @param {Object[]} memories - Memories to deduplicate
+ * @returns {Object[]} Deduplicated memories
+ */
+function _deduplicateById(memories) {
+    const seen = new Set();
+    return memories.filter((m) => {
+        if (seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+    });
+}
+
+/**
  * Build retrieval context from current state
  * @param {Object} opts - Options
  * @param {string} [opts.pendingUserMessage] - User message not yet in chat
@@ -226,11 +240,14 @@ export async function retrieveAndInjectContext() {
 
         // Filter to memories from hidden messages only (visible messages are already in context)
         const hiddenMemories = _getHiddenMemories(chat, memories);
+        // Include reflections (which have no message_ids) in candidate set
+        const reflections = memories.filter((m) => m.type === 'reflection');
+        const candidateMemories = _deduplicateById([...hiddenMemories, ...reflections]);
 
         // Filter memories by POV
-        const accessibleMemories = filterMemoriesByPOV(hiddenMemories, povCharacters, data);
+        const accessibleMemories = filterMemoriesByPOV(candidateMemories, povCharacters, data);
         log(
-            `Retrieval filter: total=${memories.length}, hidden=${hiddenMemories.length}, pov=${accessibleMemories.length} (mode=${isGroupChat ? 'group' : 'narrator'}, chars=[${povCharacters.join(', ')}])`
+            `Retrieval filter: total=${memories.length}, hidden=${hiddenMemories.length}, reflections=${reflections.length}, pov=${accessibleMemories.length} (mode=${isGroupChat ? 'group' : 'narrator'}, chars=[${povCharacters.join(', ')}])`
         );
 
         // Cache filter stats for debug export
@@ -325,18 +342,21 @@ export async function updateInjection(pendingUserMessage = '') {
 
     // Filter to memories from hidden messages only (visible messages are already in context)
     const hiddenMemories = _getHiddenMemories(context.chat, memories);
+    // Include reflections (which have no message_ids) in candidate set
+    const reflections = memories.filter((m) => m.type === 'reflection');
+    const candidateMemories = _deduplicateById([...hiddenMemories, ...reflections]);
 
     // Filter memories by POV
-    const accessibleMemories = filterMemoriesByPOV(hiddenMemories, povCharacters, data);
+    const accessibleMemories = filterMemoriesByPOV(candidateMemories, povCharacters, data);
     log(
-        `POV filter: ${memories.length} total -> ${hiddenMemories.length} hidden -> ${accessibleMemories.length} accessible`
+        `POV filter: ${memories.length} total -> ${hiddenMemories.length} hidden + ${reflections.length} reflections -> ${accessibleMemories.length} accessible`
     );
 
-    // Fallback to hidden memories if POV filter is too strict
+    // Fallback to candidate memories if POV filter is too strict
     let memoriesToUse = accessibleMemories;
-    if (accessibleMemories.length === 0 && hiddenMemories.length > 0) {
-        log('Injection: POV filter returned 0, using all hidden memories as fallback');
-        memoriesToUse = hiddenMemories;
+    if (accessibleMemories.length === 0 && candidateMemories.length > 0) {
+        log('Injection: POV filter returned 0, using all candidate memories as fallback');
+        memoriesToUse = candidateMemories;
     }
 
     if (memoriesToUse.length === 0) {

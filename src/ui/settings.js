@@ -272,6 +272,10 @@ function bindUIElements() {
         saveSetting('debugMode', $(this).is(':checked'));
     });
 
+    $('#openvault_request_logging').on('change', function () {
+        saveSetting('requestLogging', $(this).is(':checked'));
+    });
+
     // Extraction settings
     $('#openvault_messages_per_extraction').on('input', function () {
         const value = parseInt($(this).val(), 10);
@@ -475,6 +479,7 @@ export function updateUI() {
     // Basic toggles
     $('#openvault_enabled').prop('checked', settings.enabled);
     $('#openvault_debug').prop('checked', settings.debugMode);
+    $('#openvault_request_logging').prop('checked', settings.requestLogging);
 
     // Extraction settings
     $('#openvault_messages_per_extraction').val(settings.messagesPerExtraction);

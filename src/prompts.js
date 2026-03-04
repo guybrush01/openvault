@@ -133,12 +133,12 @@ This is the MOST IMPORTANT rule. Duplicating memories already in established_mem
 BEFORE creating ANY event, you MUST check the <established_memories> section in the user message.
 
 If a scene is ALREADY recorded there, ONLY create a new event if ONE of these conditions is true:
-1. A fundamentally NEW type of act begins (example: foreplay escalated to vaginal penetration)
-2. A character reaches climax or orgasm
-3. A new kink, fetish, or toy is introduced that was not in the recorded memory
-4. A safeword or boundary is explicitly used
+1. A fundamentally NEW type of action begins (e.g., conversation → combat, foreplay → penetration)
+2. A major outcome occurs (climax, death, unconsciousness, escape, capture)
+3. A new element is introduced that changes the scene's nature (new character arrives, weapon drawn, secret revealed, new kink/toy introduced)
+4. An explicit boundary is set or broken (safeword, surrender, betrayal, promise)
 
-If NONE of those four conditions apply, the current messages are just a continuation of an existing scene.
+If NONE of those conditions apply, the current messages are continuing an existing scene.
 In that case, you MUST set "events" to an empty array [].
 
 When in doubt, output fewer events rather than duplicate existing memories.

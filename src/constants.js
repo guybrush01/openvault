@@ -65,6 +65,8 @@ export const defaultSettings = {
     // Reflection decay settings
     reflectionDecayThreshold: 500,
     maxReflectionsPerCharacter: 50,
+    // Community staleness settings
+    communityStalenessThreshold: 100,
 };
 
 // Embedding prefix defaults per model
@@ -122,4 +124,5 @@ export const UI_DEFAULT_HINTS = {
     reflectionThreshold: defaultSettings.reflectionThreshold,
     worldContextBudget: defaultSettings.worldContextBudget,
     communityDetectionInterval: defaultSettings.communityDetectionInterval,
+    communityStalenessThreshold: defaultSettings.communityStalenessThreshold,
 };

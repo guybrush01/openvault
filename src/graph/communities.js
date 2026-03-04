@@ -119,9 +119,12 @@ function sameMembers(a, b) {
  * @param {Object} graphData - Flat graph data
  * @param {Object} communityGroups - Output of buildCommunityGroups
  * @param {Object} existingCommunities - Current community summaries from state
+ * @param {number} currentMessageCount - Current graph message count for staleness detection
+ * @param {number} stalenessThreshold - Message count threshold for forced re-summarization
+ * @param {boolean} isSingleCommunity - Whether Louvain produced only one community
  * @returns {Promise<Object>} Updated communities object
  */
-export async function updateCommunitySummaries(_graphData, communityGroups, existingCommunities) {
+export async function updateCommunitySummaries(_graphData, communityGroups, existingCommunities, currentMessageCount = 0, stalenessThreshold = 100, isSingleCommunity = false) {
     const deps = getDeps();
     const updatedCommunities = {};
 
@@ -132,8 +135,18 @@ export async function updateCommunitySummaries(_graphData, communityGroups, exis
         const key = `C${communityId}`;
         const existing = existingCommunities[key];
 
-        // Skip if membership hasn't changed
-        if (existing && sameMembers(existing.nodeKeys, group.nodeKeys)) {
+        // Check if membership has changed
+        const membershipChanged = !existing || !sameMembers(existing.nodeKeys, group.nodeKeys);
+
+        // Check staleness: message count delta exceeds threshold
+        const messageDelta = currentMessageCount - (existing?.lastUpdatedMessageCount || 0);
+        const isStale = messageDelta >= stalenessThreshold;
+
+        // Special case: if only one community, always re-summarize at staleness interval
+        const singleCommunityForceRefresh = isSingleCommunity && isStale;
+
+        // Skip if membership hasn't changed AND not stale (unless single community forcing refresh)
+        if (!membershipChanged && !isStale && !singleCommunityForceRefresh) {
             updatedCommunities[key] = existing;
             continue;
         }
@@ -154,6 +167,7 @@ export async function updateCommunitySummaries(_graphData, communityGroups, exis
                 findings: parsed.findings,
                 embedding: embedding || [],
                 lastUpdated: deps.Date.now(),
+                lastUpdatedMessageCount: currentMessageCount,
             };
 
             log(`Community ${key}: "${parsed.title}" (${group.nodeKeys.length} nodes)`);

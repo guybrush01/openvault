@@ -11,6 +11,7 @@ import { getQueryEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
 import { log, sliceToTokenBudget } from '../utils.js';
 import { scoreMemories } from './math.js';
 import { buildBM25Tokens, buildEmbeddingQuery, extractQueryContext, parseRecentMessages } from './query-context.js';
+import { cacheRetrievalDebug } from './debug-cache.js';
 
 /**
  * Build scoring parameters from extension settings
@@ -68,6 +69,15 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit) {
     const userMessagesForEmbedding = parseRecentMessages(userMessages, 3);
     const embeddingQuery = buildEmbeddingQuery(userMessagesForEmbedding, queryContext);
     const bm25Tokens = buildBM25Tokens(userMessages, queryContext);
+
+    // Cache query context for debug export
+    cacheRetrievalDebug({
+        queryContext: {
+            entities: queryContext.entities,
+            embeddingQuery: embeddingQuery,
+            bm25TokenCount: Array.isArray(bm25Tokens) ? bm25Tokens.length : 0,
+        },
+    });
 
     // Log extracted entities for debugging
     if (queryContext.entities.length > 0 || embeddingQuery) {

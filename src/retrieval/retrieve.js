@@ -26,6 +26,7 @@ import { getOpenVaultData, isAutomaticMode, isExtensionEnabled, log, safeSetExte
 import { formatContextForInjection } from './formatting.js';
 import { selectRelevantMemories } from './scoring.js';
 import { retrieveWorldContext } from './world-context.js';
+import { cacheRetrievalDebug } from './debug-cache.js';
 
 /**
  * Get memories from hidden (system) messages that need retrieval
@@ -155,6 +156,12 @@ async function selectFormatAndInject(memoriesToUse, data, ctx) {
         injectContext(formattedContext);
     }
 
+    // Cache injected context for debug export
+    cacheRetrievalDebug({
+        injectedContext: formattedContext,
+        selectedCount: relevantMemories.length,
+    });
+
     // Inject world context from community summaries
     const worldCommunities = data.communities;
     if (worldCommunities && Object.keys(worldCommunities).length > 0) {
@@ -165,6 +172,10 @@ async function selectFormatAndInject(memoriesToUse, data, ctx) {
         if (worldQueryEmbedding) {
             const worldResult = retrieveWorldContext(worldCommunities, worldQueryEmbedding, ctx.worldContextBudget);
             safeSetExtensionPrompt(worldResult.text, 'openvault_world');
+            // Cache world context result for debug export
+            if (worldResult?.text) {
+                cacheRetrievalDebug({ injectedWorldContext: worldResult.text });
+            }
         } else {
             safeSetExtensionPrompt('', 'openvault_world');
         }
@@ -222,6 +233,16 @@ export async function retrieveAndInjectContext() {
             `Retrieval filter: total=${memories.length}, hidden=${hiddenMemories.length}, pov=${accessibleMemories.length} (mode=${isGroupChat ? 'group' : 'narrator'}, chars=[${povCharacters.join(', ')}])`
         );
 
+        // Cache filter stats for debug export
+        cacheRetrievalDebug({
+            filters: {
+                totalMemories: memories.length,
+                hiddenMemories: hiddenMemories.length,
+                afterPOVFilter: accessibleMemories.length,
+            },
+            povCharacters,
+        });
+
         // Fallback to hidden memories if POV filter is too strict
         let memoriesToUse = accessibleMemories;
         if (accessibleMemories.length === 0 && hiddenMemories.length > 0) {
@@ -236,6 +257,18 @@ export async function retrieveAndInjectContext() {
         }
 
         const ctx = buildRetrievalContext();
+
+        // Cache retrieval context for debug export
+        cacheRetrievalDebug({
+            retrievalContext: {
+                userMessages: ctx.userMessages,
+                chatLength: ctx.chatLength,
+                primaryCharacter: ctx.primaryCharacter,
+                activeCharacters: ctx.activeCharacters,
+                tokenBudget: ctx.finalTokens,
+                worldContextBudget: ctx.worldContextBudget,
+            },
+        });
 
         const result = await selectFormatAndInject(memoriesToUse, data, ctx);
 

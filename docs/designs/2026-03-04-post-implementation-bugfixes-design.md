@@ -25,7 +25,9 @@ After implementing the quality improvements design, debug export reveals:
 
 ### Bug A: Graph Edges Silently Dropped
 
-**Root Cause:** `mergeOrInsertEntity` (commit `6e0f857`) + `consolidateGraph` (commit `c43f84f`) delete old entity nodes during semantic merging. When `upsertRelationship` runs afterward, it checks `if (!graphData.nodes[srcKey] || !graphData.nodes[tgtKey]) return;` — silently skipping edges whose nodes were merged away.
+**Root Cause:** `mergeOrInsertEntity` (commit `6e0f857`) returns a resolved key when semantically merging entities (e.g., "Vova's Room" → "vova apartment"). However, `upsertRelationship` normalizes source/target names via `normalizeKey()` which does not account for merge redirects. When an edge references the original name "Vova's Room", it normalizes to "vova room" — a key that no longer exists in `graphData.nodes` because the entity was merged. The edge is silently dropped.
+
+**Note:** `consolidateGraph` (commit `c43f84f`) is not involved in this regression — it is never called from `extract.js`.
 
 **Fix:** Two changes:
 

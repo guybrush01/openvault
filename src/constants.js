@@ -65,6 +65,7 @@ export const defaultSettings = {
     // Entity settings
     entityDescriptionCap: 3,
     edgeDescriptionCap: 5,
+    entityMergeSimilarityThreshold: 0.80,
     // Reflection decay settings
     reflectionDecayThreshold: 500,
     maxReflectionsPerCharacter: 50,

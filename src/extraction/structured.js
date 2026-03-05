@@ -13,7 +13,7 @@ export const RelationshipImpactSchema = z.record(z.string(), z.string());
  * Schema for a single memory event
  */
 export const EventSchema = z.object({
-    summary: z.string().min(1, 'Summary is required'),
+    summary: z.string().min(30, 'Summary must be a complete descriptive sentence (min 30 characters)'),
     importance: z.number().int().min(1).max(5).default(3),
     characters_involved: z.array(z.string()).default([]),
     witnesses: z.array(z.string()).default([]),

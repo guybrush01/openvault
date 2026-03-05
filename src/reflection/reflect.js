@@ -52,27 +52,64 @@ export function accumulateImportance(reflectionState, newEvents) {
 
 /**
  * Filter out reflections that are too similar to existing reflections for the same character.
+ * Uses a 3-tier similarity threshold:
+ * - >= 90% (Reject): Too similar, discard new reflection
+ * - 80% - 89% (Replace): Similar theme with newer wording, replace old with new
+ * - < 80% (Add): Genuinely new insight, add to collection
+ *
  * @param {Array} newReflections - Newly generated reflections
  * @param {Array} existingMemories - All existing memories
- * @param {number} threshold - Cosine similarity threshold (default: 0.90)
- * @returns {Array} Filtered reflections
+ * @param {number} rejectThreshold - Cosine similarity threshold for rejection (default: 0.90)
+ * @param {number} replaceThreshold - Cosine similarity threshold for replacement (default: 0.80)
+ * @returns {{toAdd: Array, toArchiveIds: string[]}} Reflections to add and IDs to archive
  */
-export function filterDuplicateReflections(newReflections, existingMemories, threshold = 0.9) {
+export function filterDuplicateReflections(
+    newReflections,
+    existingMemories,
+    rejectThreshold = 0.90,
+    replaceThreshold = 0.80
+) {
     const existingReflections = existingMemories.filter((m) => m.type === 'reflection' && m.embedding);
+    const toAdd = [];
+    const toArchiveIds = new Set();
 
-    return newReflections.filter((ref) => {
-        if (!ref.embedding) return true;
+    for (const ref of newReflections) {
+        if (!ref.embedding) {
+            toAdd.push(ref);
+            continue;
+        }
 
         const sameCharReflections = existingReflections.filter((m) => m.character === ref.character);
+        let bestMatch = null;
+        let bestScore = 0;
+
         for (const existing of sameCharReflections) {
             const sim = cosineSimilarity(ref.embedding, existing.embedding);
-            if (sim >= threshold) {
-                log(`Reflection dedup: Skipping "${ref.summary}" (${(sim * 100).toFixed(1)}% similar to existing)`);
-                return false;
+            if (sim > bestScore) {
+                bestMatch = existing;
+                bestScore = sim;
             }
         }
-        return true;
-    });
+
+        if (bestMatch && bestScore >= rejectThreshold) {
+            // Tier 1: Reject - too similar
+            log(`Reflection rejected: "${ref.summary}" (${(bestScore * 100).toFixed(1)}% similar to existing "${bestMatch.summary}")`);
+            continue;
+        }
+
+        if (bestMatch && bestScore >= replaceThreshold) {
+            // Tier 2: Replace - same theme, newer wording
+            log(`Reflection replaced: OLD "${bestMatch.summary}" -> NEW "${ref.summary}" (${(bestScore * 100).toFixed(1)}% correlation)`);
+            toArchiveIds.add(bestMatch.id);
+            toAdd.push(ref);
+            continue;
+        }
+
+        // Tier 3: Add - genuinely new
+        toAdd.push(ref);
+    }
+
+    return { toAdd, toArchiveIds: Array.from(toArchiveIds) };
 }
 
 /**
@@ -179,15 +216,21 @@ export async function generateReflections(characterName, allMemories, characterS
     // Generate embeddings for reflections
     await enrichEventsWithEmbeddings(reflections);
 
-    // Dedup: filter reflections too similar to existing ones
+    // Dedup: 3-tier filter (reject/replace/add) reflections based on similarity
     const reflectionDedupThreshold = settings.reflectionDedupThreshold ?? 0.9;
-    const dedupedReflections = filterDuplicateReflections(reflections, allMemories, reflectionDedupThreshold);
-    if (dedupedReflections.length < reflections.length) {
-        log(
-            `Reflection dedup: Filtered ${reflections.length - dedupedReflections.length} duplicate reflections for ${characterName}`
-        );
+    const replaceThreshold = reflectionDedupThreshold - 0.1; // 0.80 when default is 0.90
+    const { toAdd, toArchiveIds } = filterDuplicateReflections(reflections, allMemories, reflectionDedupThreshold, replaceThreshold);
+
+    // Archive replaced reflections
+    if (toArchiveIds.length > 0) {
+        for (const memory of allMemories) {
+            if (toArchiveIds.includes(memory.id)) {
+                memory.archived = true;
+            }
+        }
+        log(`Reflection: Archived ${toArchiveIds.length} replaced reflections for ${characterName}`);
     }
 
-    log(`Reflection: Generated ${dedupedReflections.length} reflections for ${characterName}`);
-    return dedupedReflections;
+    log(`Reflection: Generated ${toAdd.length} reflections for ${characterName} (${reflections.length - toAdd.length} filtered)`);
+    return toAdd;
 }

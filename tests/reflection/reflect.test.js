@@ -209,31 +209,34 @@ describe('generateReflections', () => {
 describe('filterDuplicateReflections', () => {
     it('filters out reflections too similar to existing ones', () => {
         const existing = [
-            { type: 'reflection', character: 'Alice', embedding: [1, 0, 0], summary: 'Alice trusts Bob' },
+            { id: 'ref_001', type: 'reflection', character: 'Alice', embedding: [1, 0, 0], summary: 'Alice trusts Bob' },
         ];
         const newReflections = [
-            { type: 'reflection', character: 'Alice', embedding: [1, 0, 0], summary: 'Alice trusts Bob deeply' },
-            { type: 'reflection', character: 'Alice', embedding: [0, 1, 0], summary: 'Alice fears the dark' },
+            { id: 'ref_new_1', type: 'reflection', character: 'Alice', embedding: [1, 0, 0], summary: 'Alice trusts Bob deeply' },
+            { id: 'ref_new_2', type: 'reflection', character: 'Alice', embedding: [0, 1, 0], summary: 'Alice fears the dark' },
         ];
-        const filtered = filterDuplicateReflections(newReflections, existing, 0.9);
-        expect(filtered).toHaveLength(1);
-        expect(filtered[0].summary).toBe('Alice fears the dark');
+        const result = filterDuplicateReflections(newReflections, existing, 0.9);
+        expect(result.toAdd).toHaveLength(1);
+        expect(result.toAdd[0].summary).toBe('Alice fears the dark');
+        expect(result.toArchiveIds).toHaveLength(0);
     });
 
     it('keeps all reflections when none are similar', () => {
-        const existing = [{ type: 'reflection', character: 'Alice', embedding: [1, 0, 0], summary: 'Existing' }];
+        const existing = [{ id: 'ref_001', type: 'reflection', character: 'Alice', embedding: [1, 0, 0], summary: 'Existing' }];
         const newReflections = [
-            { type: 'reflection', character: 'Alice', embedding: [0, 1, 0], summary: 'New 1' },
-            { type: 'reflection', character: 'Alice', embedding: [0, 0, 1], summary: 'New 2' },
+            { id: 'ref_new_1', type: 'reflection', character: 'Alice', embedding: [0, 1, 0], summary: 'New 1' },
+            { id: 'ref_new_2', type: 'reflection', character: 'Alice', embedding: [0, 0, 1], summary: 'New 2' },
         ];
-        const filtered = filterDuplicateReflections(newReflections, existing, 0.9);
-        expect(filtered).toHaveLength(2);
+        const result = filterDuplicateReflections(newReflections, existing, 0.9);
+        expect(result.toAdd).toHaveLength(2);
+        expect(result.toArchiveIds).toHaveLength(0);
     });
 
     it('passes through reflections without embeddings', () => {
-        const existing = [{ type: 'reflection', character: 'Alice', embedding: [1, 0, 0], summary: 'Existing' }];
-        const newReflections = [{ type: 'reflection', character: 'Alice', summary: 'No embedding' }];
-        const filtered = filterDuplicateReflections(newReflections, existing, 0.9);
-        expect(filtered).toHaveLength(1);
+        const existing = [{ id: 'ref_001', type: 'reflection', character: 'Alice', embedding: [1, 0, 0], summary: 'Existing' }];
+        const newReflections = [{ id: 'ref_new_1', type: 'reflection', character: 'Alice', summary: 'No embedding' }];
+        const result = filterDuplicateReflections(newReflections, existing, 0.9);
+        expect(result.toAdd).toHaveLength(1);
+        expect(result.toArchiveIds).toHaveLength(0);
     });
 });

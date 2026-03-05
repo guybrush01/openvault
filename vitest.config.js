@@ -24,6 +24,8 @@ export default defineConfig({
             'https://esm.sh/zod': path.resolve(__dirname, 'node_modules/zod'),
             // Map https://esm.sh/snowball-stemmers to local package for tests
             'https://esm.sh/snowball-stemmers': path.resolve(__dirname, 'node_modules/snowball-stemmers'),
+            // Map https://esm.sh/stopword to local package for tests
+            'https://esm.sh/stopword': path.resolve(__dirname, 'node_modules/stopword'),
             // Map https://esm.sh/jsonrepair to local package for tests
             'https://esm.sh/jsonrepair': path.resolve(__dirname, 'node_modules/jsonrepair'),
             // Map https://esm.sh/graphology to local package for tests

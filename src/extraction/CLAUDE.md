@@ -7,7 +7,7 @@ Extracts events, entities, and relationships from chat. Converts raw messages in
 
 ## HOW: The Pipeline (`extract.js`)
 1. **Message Selection**: `scheduler.js` determines unextracted batches.
-2. **Stage A - Event Extraction**: `buildEventExtractionPrompt()` builds event-only prompt. LLM returns `EventExtractionSchema` (events + reasoning).
+2. **Stage A - Event Extraction**: `buildEventExtractionPrompt()` builds event-only prompt. LLM reasons in `<reasoning>` XML tags (stripped before parse), then returns `EventExtractionSchema` (events only).
 3. **Stage B - Graph Extraction**: If events found, `buildGraphExtractionPrompt()` builds graph prompt with extracted events as context. LLM returns `GraphExtractionSchema` (entities + relationships).
 4. **Processing**: `parseEventExtractionResponse()` / `parseGraphExtractionResponse()` strip tags, validate via Zod.
 5. **Graph Update**: Semantic entity merge via `mergeOrInsertEntity()`, relationships via `upsertRelationship()`.
@@ -18,7 +18,7 @@ Extracts events, entities, and relationships from chat. Converts raw messages in
 
 ## GOTCHAS & RULES
 - **Two-Stage Extraction**: Events extracted first (Stage A), then entities/relationships (Stage B) using events as context. Reduces LLM cognitive load and JSON failures.
-- **Split Schemas**: `EventExtractionSchema` (events + reasoning), `GraphExtractionSchema` (entities + relationships). No unified `ExtractionResponseSchema`.
+- **Split Schemas**: `EventExtractionSchema` (events only), `GraphExtractionSchema` (entities + relationships). No unified `ExtractionResponseSchema`. Reasoning happens outside JSON via `<reasoning>` XML tags, stripped by `stripThinkingTags()`.
 - **JSON Array Recovery**: If LLM returns malformed JSON (e.g., missing wrapping array), attempts to recover via regex before failing. Expected retry via backoff scheduler.
 - **Event Summary Minimum**: 30 characters strictly enforced via Zod schema. LLM failures here are expected — scheduler retries automatically.
 - **Entity Keys**: Always normalize via `normalizeKey()` (lowercase, strips possessives) before graph operations. LLM outputs original casing.

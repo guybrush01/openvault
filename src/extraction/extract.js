@@ -304,7 +304,6 @@ export async function extractMemories(messageIds = null, targetChatId = null) {
                 memories: existingMemories,
                 charDesc: characterDescription,
                 personaDesc: personaDescription,
-                extractionReasoning: settings.extractionReasoning ?? false,
             },
         });
 
@@ -336,7 +335,6 @@ export async function extractMemories(messageIds = null, targetChatId = null) {
             events,
             entities: graphResult.entities,
             relationships: graphResult.relationships,
-            reasoning: eventResult.reasoning,
         };
 
         // Enrich with metadata

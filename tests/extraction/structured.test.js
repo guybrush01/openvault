@@ -130,11 +130,11 @@ describe('CommunitySummarySchema', () => {
 });
 
 describe('getEventExtractionJsonSchema', () => {
-    it('returns schema with reasoning and events only', () => {
+    it('returns schema with events only', () => {
         const schema = getEventExtractionJsonSchema();
         expect(schema.name).toBe('EventExtraction');
         expect(schema.value.properties).toHaveProperty('events');
-        expect(schema.value.properties).toHaveProperty('reasoning');
+        expect(schema.value.properties).not.toHaveProperty('reasoning');
         expect(schema.value.properties).not.toHaveProperty('entities');
         expect(schema.value.properties).not.toHaveProperty('relationships');
     });
@@ -153,7 +153,6 @@ describe('getGraphExtractionJsonSchema', () => {
 describe('parseEventExtractionResponse', () => {
     it('parses valid event extraction JSON', () => {
         const json = JSON.stringify({
-            reasoning: 'test reasoning',
             events: [
                 {
                     summary: 'A significant event happened in the story today',
@@ -169,7 +168,6 @@ describe('parseEventExtractionResponse', () => {
         });
         const result = parseEventExtractionResponse(json);
         expect(result.events).toHaveLength(1);
-        expect(result.reasoning).toBe('test reasoning');
     });
 });
 

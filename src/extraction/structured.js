@@ -45,7 +45,6 @@ export const RelationshipSchema = z.object({
  * Schema for Stage 1: Event extraction only
  */
 export const EventExtractionSchema = z.object({
-    reasoning: z.string().nullable().default(null),
     events: z.array(EventSchema),
 });
 
@@ -145,7 +144,7 @@ export function getGraphExtractionJsonSchema() {
  * Parse event extraction response (Stage 1)
  *
  * @param {string} content - Raw LLM response
- * @returns {Object} Validated event extraction response with {events, reasoning}
+ * @returns {Object} Validated event extraction response with {events}
  */
 export function parseEventExtractionResponse(content) {
     const cleanedContent = stripThinkingTags(content);
@@ -161,7 +160,7 @@ export function parseEventExtractionResponse(content) {
 
     // Array recovery
     if (Array.isArray(parsed)) {
-        parsed = { events: parsed, reasoning: null };
+        parsed = { events: parsed };
     }
 
     const result = EventExtractionSchema.safeParse(parsed);

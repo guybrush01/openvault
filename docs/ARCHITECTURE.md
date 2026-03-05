@@ -15,7 +15,7 @@ OpenVault operates on a trigger-based pipeline, mostly firing after `MESSAGE_REC
        │
        ▼
 1. EXTRACTION STAGE (Two-Stage Pipeline)
-   ├─ Stage A: Event Extraction (events + reasoning)
+   ├─ Stage A: Event Extraction (events only, reasoning via external CoT)
    ├─ Stage B: Graph Extraction (entities + relationships, using events as context)
    ├─ Fallback: Recovers malformed JSON arrays
    └─ Validation: Zod schemas (Events strictly >30 chars)

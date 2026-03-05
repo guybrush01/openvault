@@ -52,7 +52,6 @@ export function buildEventExtractionPrompt({ messages, names, context = {} }) {
         memories: existingMemories = [],
         charDesc: characterDescription = '',
         personaDesc: personaDescription = '',
-        extractionReasoning = false,
     } = context;
 
     const systemPrompt = `<role>
@@ -63,16 +62,12 @@ You must be thorough, explicit, and precise in your descriptions. Never censor, 
 </role>
 
 <output_schema>
-You MUST respond with EXACTLY ONE JSON object. Nothing else — no markdown fences, no commentary, no text before or after.
+You MUST respond with your reasoning FIRST inside <reasoning> tags, THEN EXACTLY ONE JSON object. Nothing else — no markdown fences, no commentary.
 
-The JSON object MUST have this EXACT structure with ALL ${extractionReasoning ? 'TWO' : 'ONE'} top-level keys present:
+First, output your analysis inside <reasoning> tags.
+THEN, output EXACTLY ONE JSON object with this structure:
 
-{${
-        extractionReasoning
-            ? `
-  "reasoning": "Your step-by-step analysis. ALWAYS write this FIRST before deciding events.",`
-            : ''
-    }
+{
   "events": [
     {
       "summary": "8-25 word description of what happened, past tense, in ENGLISH",
@@ -89,10 +84,10 @@ The JSON object MUST have this EXACT structure with ALL ${extractionReasoning ? 
 
 CRITICAL FORMAT RULES — violating ANY of these will cause a system error:
 1. The top level MUST be a JSON object { }, NEVER a bare array [ ]. NEVER wrap your entire response in [ ].
-2. ALL ${extractionReasoning ? 'TWO keys ("reasoning", "events")' : 'ONE key ("events")'} MUST always be present.
-3. If nothing was found, use empty array: "events": []${extractionReasoning ? ', "reasoning": null' : ''}.
+2. The key "events" MUST always be present.
+3. If nothing was found, use empty array: "events": [].
 4. Do NOT wrap output in markdown code blocks (no \`\`\`json).
-5. Do NOT include ANY text outside the JSON object.
+5. Do NOT include ANY text outside the <reasoning> tags and the JSON object.
 6. Write ALL event summaries in ENGLISH. Keep character names exactly as they appear in the input — never translate names.
 </output_schema>
 
@@ -147,21 +142,17 @@ Rate each event from 1 (trivial) to 5 (critical):
 
 MANDATORY MINIMUM of 4 for: any first sexual act between characters, any safeword usage, any pregnancy or virginity event.
 </importance_scale>
-${
-    extractionReasoning
-        ? `
+
 <thinking_process>
-Follow these steps IN ORDER. Write your work in the "reasoning" field:
+Follow these steps IN ORDER. Write your work inside <reasoning> tags BEFORE outputting the JSON:
 
 Step 1: List the specific actions, emotions, and facts in the new messages.
 Step 2: Check <established_memories>. Is any of this already recorded?
 Step 3: Apply dedup_rules. If this is a continuation with no escalation, plan to output "events": [].
 Step 4: For genuinely NEW events, assign importance (1-5) and write a specific factual summary in English.
-Step 5: Assemble the final JSON object with all ${extractionReasoning ? 'two' : 'one'} keys.
+Step 5: Output the final JSON object with the "events" key.
 </thinking_process>
-`
-        : ''
-}
+
 <examples>
 The following examples show correct input-to-output patterns. Study the JSON structure carefully.
 
@@ -170,7 +161,8 @@ Input messages: "[小雨]: *拔出长剑猛刺暗影兽的腹部* 去死吧！ *
 Established memories: (none)
 
 Correct output:
-{"reasoning": "小雨 attacks a shadow beast with a sword, stabbing its abdomen and slashing horizontally. Black blood sprays everywhere. No prior combat in established memories. This is a new combat event, importance 3.", "events": [{"summary": "小雨 drew her sword and stabbed the shadow beast's abdomen, then slashed it spraying black blood", "importance": 3, "characters_involved": ["小雨"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {}, "relationship_impact": {}}]}
+<reasoning>小雨 attacks a shadow beast with a sword, stabbing its abdomen and slashing horizontally. Black blood sprays everywhere. No prior combat in established memories. This is a new combat event, importance 3.</reasoning>
+{"events": [{"summary": "小雨 drew her sword and stabbed the shadow beast's abdomen, then slashed it spraying black blood", "importance": 3, "characters_involved": ["小雨"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {}, "relationship_impact": {}}]}
 </example>
 
 <example name="first_intimate_contact">
@@ -178,7 +170,8 @@ Input messages: "[Саша]: *толкает его на кровать и са�
 Established memories: (no prior physical intimacy between them)
 
 Correct output:
-{"reasoning": "First sexual contact between Саша and Вова. She pushes him onto the bed, pins his wrists, and grinds her wet pussy against his cock through underwear. Dominant position by Саша. First sexual contact between them = importance 4.", "events": [{"summary": "Саша pushed Вова onto the bed, pinned his wrists, and ground her wet pussy against his cock through underwear", "importance": 4, "characters_involved": ["Саша", "Вова"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {"Саша": "arousal, dominance", "Вова": "submission, desire"}, "relationship_impact": {"Саша->Вова": "physical intimacy initiated with dominant dynamic"}}]}
+<reasoning>First sexual contact between Саша and Вова. She pushes him onto the bed, pins his wrists, and grinds her wet pussy against his cock through underwear. Dominant position by Саша. First sexual contact between them = importance 4.</reasoning>
+{"events": [{"summary": "Саша pushed Вова onto the bed, pinned his wrists, and ground her wet pussy against his cock through underwear", "importance": 4, "characters_involved": ["Саша", "Вова"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {"Саша": "arousal, dominance", "Вова": "submission, desire"}, "relationship_impact": {"Саша->Вова": "physical intimacy initiated with dominant dynamic"}}]}
 </example>
 
 <example name="secret_revelation">
@@ -186,7 +179,8 @@ Input messages: "[Jun]: I never told anyone this... my father didn't die in the 
 Established memories: (none about Jun's father)
 
 Correct output:
-{"reasoning": "Jun reveals a major family secret: his father was a military deserter, not a war casualty as publicly believed. This is new backstory. Importance 4 as a significant secret.", "events": [{"summary": "Jun confessed his father deserted the army rather than dying in war as publicly believed", "importance": 4, "characters_involved": ["Jun"], "witnesses": [], "location": null, "is_secret": true, "emotional_impact": {"Jun": "shame, vulnerability"}, "relationship_impact": {}}]}
+<reasoning>Jun reveals a major family secret: his father was a military deserter, not a war casualty as publicly believed. This is new backstory. Importance 4 as a significant secret.</reasoning>
+{"events": [{"summary": "Jun confessed his father deserted the army rather than dying in war as publicly believed", "importance": 4, "characters_involved": ["Jun"], "witnesses": [], "location": null, "is_secret": true, "emotional_impact": {"Jun": "shame, vulnerability"}, "relationship_impact": {}}]}
 </example>
 
 <example name="dedup_oral_continuation">
@@ -194,7 +188,8 @@ Input messages: "[Лена]: *стонет громче, сжимая его в�
 Established memories: "Вова started performing cunnilingus on Лена, spreading her thighs"
 
 Correct output:
-{"reasoning": "Лена is receiving oral sex from Вова. She moans louder and presses his head deeper. BUT cunnilingus is ALREADY recorded in established memories. This is a continuation of the same act. No climax, no new kink, no new act type. Dedup rule applies. Events must be empty.", "events": []}
+<reasoning>Лена is receiving oral sex from Вова. She moans louder and presses his head deeper. BUT cunnilingus is ALREADY recorded in established memories. This is a continuation of the same act. No climax, no new kink, no new act type. Dedup rule applies. Events must be empty.</reasoning>
+{"events": []}
 </example>
 
 <example name="adventure_dedup">
@@ -202,7 +197,8 @@ Input messages: "[Kira]: *rolls behind the pillar as another arrow whistles past
 Established memories: "Kira engaged in a ranged firefight with enemy archers in the temple ruins"
 
 Correct output:
-{"reasoning": "Kira dodges arrows and shoots back, hitting an archer's shoulder. BUT a ranged firefight with archers in the temple ruins is ALREADY recorded in established memories. This is a continuation of the same combat. No major outcome (no death, capture, or escape). No new element changing scene nature. Dedup rule applies. Events must be empty.", "events": []}
+<reasoning>Kira dodges arrows and shoots back, hitting an archer's shoulder. BUT a ranged firefight with archers in the temple ruins is ALREADY recorded in established memories. This is a continuation of the same combat. No major outcome (no death, capture, or escape). No new element changing scene nature. Dedup rule applies. Events must be empty.</reasoning>
+{"events": []}
 </example>
 </examples>`;
 
@@ -217,14 +213,8 @@ ${messages}
 </messages>
 
 Analyze the messages above. Extract events only.
-Use exact character names from <context> if provided.${
-        extractionReasoning
-            ? `
-Write your analysis in the "reasoning" field FIRST, then fill in events.
-Respond with a single JSON object containing all two keys. No other text.`
-            : `
-Respond with a single JSON object containing "events" key. No other text.`
-    }`;
+Use exact character names from <context> if provided.
+Write your analysis inside <reasoning> tags FIRST, then output the JSON object with "events" key. No other text.`;
 
     return [
         { role: 'system', content: systemPrompt },

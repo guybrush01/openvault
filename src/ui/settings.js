@@ -133,6 +133,32 @@ async function handleDeleteEmbeddings() {
     }
 }
 
+async function handleResetSettings() {
+    if (!confirm('Are you sure you want to reset all settings to their default values? This cannot be undone.')) {
+        return;
+    }
+
+    const extension_settings = getDeps().getExtensionSettings();
+    const currentSettings = extension_settings[extensionName] || {};
+
+    // Preserve extraction profile as it's connection-specific
+    const preservedProfile = currentSettings.extractionProfile || '';
+
+    // Reset to defaults
+    Object.assign(extension_settings[extensionName], defaultSettings);
+
+    // Restore extraction profile
+    extension_settings[extensionName].extractionProfile = preservedProfile;
+
+    // Save
+    getDeps().saveSettingsDebounced();
+
+    // Update UI
+    updateUI();
+
+    showToast('success', 'Settings reset to default values');
+}
+
 async function backfillEmbeddings() {
     if (!isEmbeddingsEnabled()) {
         showToast('warning', 'Configure Ollama URL and embedding model first');
@@ -540,6 +566,7 @@ function bindUIElements() {
     $('#openvault_extract_all_btn').on('click', handleExtractAll);
 
     // Danger zone buttons
+    $('#openvault_reset_settings_btn').on('click', handleResetSettings);
     $('#openvault_delete_chat_btn').on('click', handleDeleteChatData);
     $('#openvault_delete_embeddings_btn').on('click', handleDeleteEmbeddings);
     $('#openvault_export_debug_btn').on('click', exportToClipboard);

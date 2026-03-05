@@ -282,11 +282,24 @@ export function safeParseJSON(input) {
 
         const repaired = jsonrepair(cleanedInput);
         const parsed = JSON.parse(repaired);
+
         if (parsed === null || typeof parsed !== 'object') {
             getDeps().console.error('[OpenVault] JSON Parse returned non-object/array:', typeof parsed);
             getDeps().console.error('[OpenVault] Raw LLM response:', input);
             return null;
         }
+
+        // Graceful array recovery - if LLM returned a bare array of events
+        if (Array.isArray(parsed)) {
+            getDeps().console.warn('[OpenVault] LLM returned array instead of object, applying recovery wrapper');
+            return {
+                events: parsed,
+                entities: [],
+                relationships: [],
+                reasoning: null
+            };
+        }
+
         return parsed;
     } catch (e) {
         getDeps().console.error('[OpenVault] JSON Parse failed', e);

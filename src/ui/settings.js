@@ -471,6 +471,8 @@ function bindUIElements() {
         const value = parseFloat($(this).val());
         saveSetting('reflectionDedupThreshold', value);
         $('#openvault_reflection_dedup_threshold_value').text(value);
+        $('#openvault_reflection_dedup_threshold_adv_value').text(value.toFixed(2));
+        $('#openvault_reflection_dedup_threshold_adv').val(value);
     });
 
     $('#openvault_world_context_budget').on('input', function () {
@@ -681,6 +683,8 @@ export function updateUI() {
 
     $('#openvault_reflection_dedup_threshold').val(settings.reflectionDedupThreshold ?? 0.9);
     $('#openvault_reflection_dedup_threshold_value').text(settings.reflectionDedupThreshold ?? 0.9);
+    $('#openvault_reflection_dedup_threshold_adv').val(settings.reflectionDedupThreshold ?? 0.9);
+    $('#openvault_reflection_dedup_threshold_adv_value').text((settings.reflectionDedupThreshold ?? 0.9).toFixed(2));
 
     $('#openvault_world_context_budget').val(settings.worldContextBudget ?? 2000);
     $('#openvault_world_context_budget_value').text(settings.worldContextBudget ?? 2000);

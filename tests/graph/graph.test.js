@@ -8,6 +8,7 @@ import {
     upsertEntity,
     upsertRelationship,
 } from '../../src/graph/graph.js';
+import { getDocumentEmbedding } from '../../src/embeddings.js';
 
 // Mock embeddings module
 vi.mock('../../src/embeddings.js', () => ({
@@ -485,5 +486,22 @@ describe('consolidateGraph', () => {
         const edgeKeys = Object.keys(graphData.edges);
         expect(edgeKeys.some((k) => k.includes('house a'))).toBe(true);
         expect(edgeKeys.some((k) => k.includes('house b'))).toBe(false);
+    });
+});
+
+describe('mergeOrInsertEntity - description in embedding', () => {
+    let graphData;
+
+    beforeEach(() => {
+        graphData = createEmptyGraph();
+        vi.mocked(getDocumentEmbedding).mockReset();
+    });
+
+    it('passes type, name, AND description to getDocumentEmbedding', async () => {
+        vi.mocked(getDocumentEmbedding).mockResolvedValue([1, 0, 0]);
+
+        await mergeOrInsertEntity(graphData, 'Cotton Rope', 'OBJECT', 'A rough hemp rope used for bondage', 3, {});
+
+        expect(getDocumentEmbedding).toHaveBeenCalledWith('OBJECT: Cotton Rope - A rough hemp rope used for bondage');
     });
 });

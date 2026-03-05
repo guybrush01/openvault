@@ -235,7 +235,7 @@ export async function mergeOrInsertEntity(graphData, name, type, description, ca
     // Slow path: semantic match
     let newEmbedding;
     try {
-        newEmbedding = await getDocumentEmbedding(`${type}: ${name}`);
+        newEmbedding = await getDocumentEmbedding(`${type}: ${name} - ${description}`);
     } catch {
         newEmbedding = null;
     }
@@ -365,7 +365,7 @@ export async function consolidateGraph(graphData, settings) {
     for (const [_key, node] of Object.entries(graphData.nodes)) {
         if (!node.embedding) {
             try {
-                node.embedding = await getDocumentEmbedding(`${node.type}: ${node.name}`);
+                node.embedding = await getDocumentEmbedding(`${node.type}: ${node.name} - ${node.description}`);
                 if (node.embedding) embeddedCount++;
             } catch {
                 // Skip nodes that can't be embedded

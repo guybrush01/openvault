@@ -40,11 +40,12 @@ export function getScoringParams() {
  * @param {number} chatLength - Current chat length
  * @param {number} limit - Maximum results
  * @param {string|string[]} queryTokens - Query text or pre-tokenized array for BM25
+ * @param {string[]} [characterNames] - Main character names to filter from query tokens
  * @returns {{memories: Object[], scoredResults: Array<{memory: Object, score: number, breakdown: Object}>}}
  */
-function scoreMemoriesDirect(memories, contextEmbedding, chatLength, limit, queryTokens) {
+function scoreMemoriesDirect(memories, contextEmbedding, chatLength, limit, queryTokens, characterNames = []) {
     const { constants, settings } = getScoringParams();
-    const scored = scoreMemories(memories, contextEmbedding, chatLength, constants, settings, queryTokens);
+    const scored = scoreMemories(memories, contextEmbedding, chatLength, constants, settings, queryTokens, characterNames);
     const topScored = scored.slice(0, limit);
     return {
         memories: topScored.map((r) => r.memory),
@@ -98,7 +99,7 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit) {
         contextEmbedding = await getQueryEmbedding(embeddingQuery);
     }
 
-    return scoreMemoriesDirect(memories, contextEmbedding, chatLength, limit, bm25Tokens);
+    return scoreMemoriesDirect(memories, contextEmbedding, chatLength, limit, bm25Tokens, activeCharacters || []);
 }
 
 /**

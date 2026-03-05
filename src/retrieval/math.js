@@ -262,9 +262,10 @@ export function calculateScore(memory, contextEmbedding, chatLength, constants, 
  * @param {Object} constants - Scoring constants
  * @param {Object} settings - Scoring settings
  * @param {string|string[]} [queryTokens] - Query text or pre-tokenized array for BM25 scoring
+ * @param {string[]} [characterNames] - Main character names to filter from query tokens (dynamic stopwords)
  * @returns {Array<{memory: Object, score: number, breakdown: Object}>} Scored and sorted memories
  */
-export function scoreMemories(memories, contextEmbedding, chatLength, constants, settings, queryTokens) {
+export function scoreMemories(memories, contextEmbedding, chatLength, constants, settings, queryTokens, characterNames = []) {
     const start = performance.now();
 
     // Precompute BM25 data if query tokens provided
@@ -276,6 +277,14 @@ export function scoreMemories(memories, contextEmbedding, chatLength, constants,
     if (queryTokens) {
         // If queryTokens is array, use directly; if string, tokenize
         tokens = Array.isArray(queryTokens) ? queryTokens : tokenize(queryTokens);
+
+        // Filter out main character name stems — they appear in nearly every memory
+        // and have near-zero IDF, wasting BM25 weight on non-discriminative tokens
+        if (characterNames.length > 0) {
+            const charStems = new Set(characterNames.flatMap(name => tokenize(name.toLowerCase())));
+            tokens = tokens.filter(t => !charStems.has(t));
+        }
+
         if (tokens.length > 0) {
             // Pre-tokenize all memories
             memoryTokensList = memories.map((m) => tokenize(m.summary || ''));

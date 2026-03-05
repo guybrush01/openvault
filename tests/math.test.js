@@ -311,3 +311,34 @@ describe('math.js - tokenization', () => {
         expect(tokens).toContain('princess');
     });
 });
+
+describe('scoreMemories - dynamic character stopwords', () => {
+    it('filters character names from BM25 tokens when characterNames provided', () => {
+        // Create memories where "suzy" appears in every one but content differs
+        const memories = [
+            { importance: 3, message_ids: [10], embedding: null, summary: 'Suzy walked to the park with her dog' },
+            { importance: 3, message_ids: [20], embedding: null, summary: 'Suzy bought a red dress at the mall' },
+            { importance: 3, message_ids: [30], embedding: null, summary: 'Suzy cooked pasta for dinner tonight' },
+        ];
+
+        const constants = { BASE_LAMBDA: 0.05, IMPORTANCE_5_FLOOR: 5 };
+        const settings = { vectorSimilarityThreshold: 0.5, alpha: 0.7, combinedBoostWeight: 15 };
+
+        // Query: "suzy park dog" — "suzy" is in every memory so has zero discriminative value
+        // With character stopwords, BM25 should focus on "park" and "dog"
+        const resultWith = scoreMemories(memories, null, 50, constants, settings, 'suzy park dog', ['suzy']);
+        const resultWithout = scoreMemories(memories, null, 50, constants, settings, 'suzy park dog', []);
+
+        // With filtering, the park/dog memory should score higher relative to others
+        // because "suzy" no longer inflates all scores equally
+        const parkMemoryWith = resultWith.find(r => r.memory.summary.includes('park'));
+        const pastaMemoryWith = resultWith.find(r => r.memory.summary.includes('pasta'));
+        const parkMemoryWithout = resultWithout.find(r => r.memory.summary.includes('park'));
+        const pastaMemoryWithout = resultWithout.find(r => r.memory.summary.includes('pasta'));
+
+        // The gap between park and pasta should be larger with filtering
+        const gapWith = parkMemoryWith.score - pastaMemoryWith.score;
+        const gapWithout = parkMemoryWithout.score - pastaMemoryWithout.score;
+        expect(gapWith).toBeGreaterThan(gapWithout);
+    });
+});

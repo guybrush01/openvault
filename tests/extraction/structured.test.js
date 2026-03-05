@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
     getExtractionJsonSchema,
+    getEventExtractionJsonSchema,
+    getGraphExtractionJsonSchema,
     parseCommunitySummaryResponse,
     parseEvent,
     parseExtractionResponse,
+    parseEventExtractionResponse,
+    parseGraphExtractionResponse,
     parseInsightExtractionResponse,
     parseSalientQuestionsResponse,
 } from '../../src/extraction/structured.js';
@@ -302,5 +306,59 @@ describe('CommunitySummarySchema', () => {
         const result = parseCommunitySummaryResponse(content);
         expect(result.title).toBe('Test');
         expect(result.findings).toHaveLength(1);
+    });
+});
+
+describe('getEventExtractionJsonSchema', () => {
+    it('returns schema with reasoning and events only', () => {
+        const schema = getEventExtractionJsonSchema();
+        expect(schema.name).toBe('EventExtraction');
+        expect(schema.value.properties).toHaveProperty('events');
+        expect(schema.value.properties).toHaveProperty('reasoning');
+        expect(schema.value.properties).not.toHaveProperty('entities');
+        expect(schema.value.properties).not.toHaveProperty('relationships');
+    });
+});
+
+describe('getGraphExtractionJsonSchema', () => {
+    it('returns schema with entities and relationships only', () => {
+        const schema = getGraphExtractionJsonSchema();
+        expect(schema.name).toBe('GraphExtraction');
+        expect(schema.value.properties).toHaveProperty('entities');
+        expect(schema.value.properties).toHaveProperty('relationships');
+        expect(schema.value.properties).not.toHaveProperty('events');
+    });
+});
+
+describe('parseEventExtractionResponse', () => {
+    it('parses valid event extraction JSON', () => {
+        const json = JSON.stringify({
+            reasoning: 'test reasoning',
+            events: [{
+                summary: 'A significant event happened in the story today',
+                importance: 3,
+                characters_involved: ['Alice'],
+                witnesses: [],
+                location: null,
+                is_secret: false,
+                emotional_impact: {},
+                relationship_impact: {},
+            }],
+        });
+        const result = parseEventExtractionResponse(json);
+        expect(result.events).toHaveLength(1);
+        expect(result.reasoning).toBe('test reasoning');
+    });
+});
+
+describe('parseGraphExtractionResponse', () => {
+    it('parses valid graph extraction JSON', () => {
+        const json = JSON.stringify({
+            entities: [{ name: 'Alice', type: 'PERSON', description: 'A character' }],
+            relationships: [{ source: 'Alice', target: 'Bob', description: 'Friends' }],
+        });
+        const result = parseGraphExtractionResponse(json);
+        expect(result.entities).toHaveLength(1);
+        expect(result.relationships).toHaveLength(1);
     });
 });

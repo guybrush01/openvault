@@ -52,6 +52,22 @@ export const ExtractionResponseSchema = z.object({
 });
 
 /**
+ * Schema for Stage 1: Event extraction only
+ */
+export const EventExtractionSchema = z.object({
+    reasoning: z.string().nullable().default(null),
+    events: z.array(EventSchema),
+});
+
+/**
+ * Schema for Stage 2: Graph extraction only
+ */
+export const GraphExtractionSchema = z.object({
+    entities: z.array(EntitySchema).default([]),
+    relationships: z.array(RelationshipSchema).default([]),
+});
+
+/**
  * Convert Zod schema to ConnectionManager jsonSchema format
  * Uses Zod v4's native toJSONSchema with jsonSchema4 target
  *
@@ -135,6 +151,22 @@ export function getExtractionJsonSchema() {
 }
 
 /**
+ * Get jsonSchema for Stage 1: Event extraction
+ * @returns {Object} ConnectionManager jsonSchema object
+ */
+export function getEventExtractionJsonSchema() {
+    return toJsonSchema(EventExtractionSchema, 'EventExtraction');
+}
+
+/**
+ * Get jsonSchema for Stage 2: Graph extraction
+ * @returns {Object} ConnectionManager jsonSchema object
+ */
+export function getGraphExtractionJsonSchema() {
+    return toJsonSchema(GraphExtractionSchema, 'GraphExtraction');
+}
+
+/**
  * Parse extraction response with tag sanitization and full validation
  *
  * @param {string} content - Raw LLM response
@@ -171,6 +203,61 @@ export function parseExtractionResponse(content) {
         throw new Error(`Schema validation failed: ${result.error.message}`);
     }
 
+    return result.data;
+}
+
+/**
+ * Parse event extraction response (Stage 1)
+ *
+ * @param {string} content - Raw LLM response
+ * @returns {Object} Validated event extraction response with {events, reasoning}
+ */
+export function parseEventExtractionResponse(content) {
+    const cleanedContent = stripThinkingTags(content);
+    const jsonContent = stripMarkdown(cleanedContent);
+
+    let parsed;
+    try {
+        const repaired = jsonrepair(jsonContent);
+        parsed = JSON.parse(repaired);
+    } catch (e) {
+        throw new Error(`JSON parse failed: ${e.message}`);
+    }
+
+    // Array recovery
+    if (Array.isArray(parsed)) {
+        parsed = { events: parsed, reasoning: null };
+    }
+
+    const result = EventExtractionSchema.safeParse(parsed);
+    if (!result.success) {
+        throw new Error(`Schema validation failed: ${result.error.message}`);
+    }
+    return result.data;
+}
+
+/**
+ * Parse graph extraction response (Stage 2)
+ *
+ * @param {string} content - Raw LLM response
+ * @returns {Object} Validated graph extraction response with {entities, relationships}
+ */
+export function parseGraphExtractionResponse(content) {
+    const cleanedContent = stripThinkingTags(content);
+    const jsonContent = stripMarkdown(cleanedContent);
+
+    let parsed;
+    try {
+        const repaired = jsonrepair(jsonContent);
+        parsed = JSON.parse(repaired);
+    } catch (e) {
+        throw new Error(`JSON parse failed: ${e.message}`);
+    }
+
+    const result = GraphExtractionSchema.safeParse(parsed);
+    if (!result.success) {
+        throw new Error(`Schema validation failed: ${result.error.message}`);
+    }
     return result.data;
 }
 

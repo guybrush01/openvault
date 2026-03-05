@@ -9,105 +9,7 @@ import { extensionName, QUERY_CONTEXT_DEFAULTS } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { getOptimalChunkSize } from '../embeddings.js';
 import { tokenize } from './math.js';
-
-// Common sentence starters to exclude (Latin)
-const LATIN_STARTERS = new Set([
-    'The',
-    'This',
-    'That',
-    'Then',
-    'There',
-    'These',
-    'Those',
-    'When',
-    'Where',
-    'What',
-    'Which',
-    'While',
-    'Who',
-    'Why',
-    'How',
-    'Here',
-    'Now',
-    'Just',
-    'But',
-    'And',
-    'Yet',
-    'Still',
-    'Also',
-    'Only',
-    'Even',
-    'Well',
-    'Much',
-    'Very',
-    'Some',
-]);
-
-// Common sentence starters to exclude (Cyrillic/Russian)
-const CYRILLIC_STARTERS = new Set([
-    'После',
-    'Когда',
-    'Потом',
-    'Затем',
-    'Тогда',
-    'Здесь',
-    'Там',
-    'Это',
-    'Эта',
-    'Этот',
-    'Эти',
-    'Что',
-    'Как',
-    'Где',
-    'Куда',
-    'Почему',
-    'Зачем',
-    'Кто',
-    'Чей',
-    'Какой',
-    'Какая',
-    'Какое',
-    'Пока',
-    'Если',
-    'Хотя',
-    'Также',
-    'Ещё',
-    'Уже',
-    'Вот',
-    'Вон',
-    // Interjections & filler words
-    'Ага',
-    'Угу',
-    'Ого',
-    'Ура',
-    'Хм',
-    'Ну',
-    // Affirmations, negations, casual
-    'Да',
-    'Нет',
-    'Ладно',
-    'Хорошо',
-    'Ок',
-    // Expletives (common in RP)
-    'Блин',
-    'Блять',
-    'Бля',
-    // Discourse markers
-    'Значит',
-    'Типа',
-    'Короче',
-    'Просто',
-    'Конечно',
-    'Наверное',
-    'Возможно',
-    'Может',
-    // Informal speech common in RP
-    'Воны',
-    'Чё',
-    'Чо',
-    'Ваще',
-    'Щас',
-]);
+import { ALL_STOPWORDS } from '../utils/stopwords.js';
 
 /**
  * Extract entities from a single text
@@ -122,7 +24,7 @@ function extractFromText(text) {
     // Capitalized words - Latin alphabet (3+ chars)
     const latinMatches = text.match(/\b[A-Z][a-z]{2,}\b/g) || [];
     for (const match of latinMatches) {
-        if (!LATIN_STARTERS.has(match)) {
+        if (!ALL_STOPWORDS.has(match.toLowerCase())) {
             entities.push(match);
         }
     }
@@ -133,7 +35,7 @@ function extractFromText(text) {
     for (const match of cyrillicMatches) {
         // Clean up the match (remove leading non-Cyrillic char)
         const cleaned = match.replace(/^[^А-ЯЁ]+/, '');
-        if (cleaned && !CYRILLIC_STARTERS.has(cleaned)) {
+        if (cleaned && !ALL_STOPWORDS.has(cleaned.toLowerCase())) {
             entities.push(cleaned);
         }
     }

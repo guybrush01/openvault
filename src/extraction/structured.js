@@ -105,6 +105,17 @@ function parseStructuredResponse(content, schema) {
         throw new Error(`JSON parse failed: ${e.message}`);
     }
 
+    // Array recovery - if LLM returned a bare array instead of expected object
+    if (Array.isArray(parsed)) {
+        console.warn('[OpenVault] LLM returned array instead of object, applying recovery wrapper');
+        parsed = {
+            events: parsed,
+            entities: [],
+            relationships: [],
+            reasoning: null,
+        };
+    }
+
     const result = schema.safeParse(parsed);
     if (!result.success) {
         throw new Error(`Schema validation failed: ${result.error.message}`);
@@ -141,6 +152,17 @@ export function parseExtractionResponse(content) {
         parsed = JSON.parse(repaired);
     } catch (e) {
         throw new Error(`JSON parse failed: ${e.message}`);
+    }
+
+    // Array recovery - if LLM returned a bare array of events instead of full object
+    if (Array.isArray(parsed)) {
+        console.warn('[OpenVault] LLM returned array instead of object, applying recovery wrapper');
+        parsed = {
+            events: parsed,
+            entities: [],
+            relationships: [],
+            reasoning: null,
+        };
     }
 
     // Validate against schema

@@ -9,7 +9,8 @@ Finds relevant memories (events + reflections) and community summaries. Formats 
 Hybrid **Alpha-Blend** scoring:
 1. **Forgetfulness Curve**: Exponential decay by message distance. Importance 5 = soft floor (1.0, not hard 5.0).
 2. **BM25**: IDF-aware term frequency via `query-context.js`.
-   - **IDF-Aware Query Adjustment**: Query tokens weighted by inverse document frequency BEFORE scoring. Prevents common named entities (e.g., main character's name) from artificially inflating scores when repeated.
+   - **IDF-Aware Query Adjustment**: Query tokens weighted by inverse document frequency BEFORE scoring. Prevents common named entities from artificially inflating scores.
+   - **Character Stopwords**: `scoreMemories()` accepts `characterNames` param — filters character name tokens from BM25 query since they appear in nearly every memory and have near-zero IDF.
 3. **Vector**: Cosine similarity via WebGPU/Ollama.
 4. **Reflection Decay**: Reflections older than 500 messages get linear decay (floor 0.25×).
 - **Formula**: `Total = Base + (Alpha * Vector) + ((1 - Alpha) * BM25)`

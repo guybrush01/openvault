@@ -104,7 +104,8 @@ To prevent "Reflection Saturation" (wasting tokens and LLM calls on repetitive i
   * `< 80%`: **Add** (Genuinely new insight).
 
 ### 3.3. GraphRAG Communities (`src/graph/communities.js`)
-Runs the Louvain algorithm to detect densely connected entity clusters (e.g., "The Royal Court", "The Rebel Camp"). 
+Runs the Louvain algorithm to detect densely connected entity clusters (e.g., "The Royal Court", "The Rebel Camp").
+* **Main Character Pruning**: Temporarily removes edges involving User/Char before Louvain to prevent "hairball" where all secondary entities only connect through protagonists.
 * Summaries are embedded and queried via pure Vector search.
 * Injected into the prompt as a dynamic lorebook, providing high-level world state.
 
@@ -130,8 +131,9 @@ Cosine similarity between the Memory Embedding and the Query Embedding (last 3 u
 * Scales the similarity strictly above the threshold into points multiplied by `combinedBoostWeight` (default `15`).
 
 #### Component 3: BM25 Keyword Search (`BM25Bonus`)
-TF-IDF based keyword matching. 
-* Includes **IDF-Aware Query Token Adjustment**: Before scoring, the query tokens are weighted by their inverse document frequency. This prevents common named entities (like the main character's name) from artificially inflating scores when repeated.
+TF-IDF based keyword matching.
+* Includes **IDF-Aware Query Token Adjustment**: Before scoring, the query tokens are weighted by their inverse document frequency.
+* **Dynamic Character Stopwords**: Main character names are filtered from BM25 query tokens since they appear in nearly every memory and have near-zero IDF, allowing BM25 weight to focus on discriminative action verbs and objects.
 
 ---
 

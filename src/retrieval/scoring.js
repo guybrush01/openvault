@@ -8,7 +8,8 @@
 import { extensionName } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { getQueryEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
-import { log, sliceToTokenBudget } from '../utils.js';
+import { log } from '../utils/logging.js';
+import { sliceToTokenBudget } from '../utils/text.js';
 import { cacheRetrievalDebug, cacheScoringDetails } from './debug-cache.js';
 import { scoreMemories } from './math.js';
 import { buildBM25Tokens, buildEmbeddingQuery, extractQueryContext, parseRecentMessages } from './query-context.js';

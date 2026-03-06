@@ -23,7 +23,9 @@ import { CHARACTERS_KEY, extensionName, MEMORIES_KEY } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { getQueryEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
 import { filterMemoriesByPOV, getActiveCharacters, getPOVContext } from '../pov.js';
-import { getOpenVaultData, isAutomaticMode, isExtensionEnabled, log, safeSetExtensionPrompt } from '../utils.js';
+import { getOpenVaultData } from '../utils/data.js';
+import { log } from '../utils/logging.js';
+import { isExtensionEnabled, safeSetExtensionPrompt } from '../utils/st-helpers.js';
 import { cacheRetrievalDebug } from './debug-cache.js';
 import { formatContextForInjection } from './formatting.js';
 import { selectRelevantMemories } from './scoring.js';
@@ -314,7 +316,7 @@ export async function retrieveAndInjectContext() {
  */
 export async function updateInjection(pendingUserMessage = '') {
     // Clear injection if disabled or not in automatic mode
-    if (!isAutomaticMode()) {
+    if (!isExtensionEnabled()) {
         safeSetExtensionPrompt('');
         safeSetExtensionPrompt('', 'openvault_world');
         return;

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultSettings, extensionName } from '../../src/constants.js';
-import { resetDeps, setDeps } from '../../src/deps.js';
+import { resetDeps } from '../../src/deps.js';
 
 // Mock embeddings
 vi.mock('../../src/embeddings.js', () => ({
@@ -101,14 +100,11 @@ describe('extractMemories graph integration', () => {
             powerUserSettings: {},
         };
 
-        setDeps({
-            getContext: () => mockContext,
-            getExtensionSettings: () => ({
-                [extensionName]: { ...defaultSettings, enabled: true },
-            }),
-            saveChatConditional: vi.fn(async () => true),
-            console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
-            Date: { now: () => 1000000 },
+        setupTestContext({
+            deps: {
+                getContext: () => mockContext,
+                saveChatConditional: vi.fn(async () => true),
+            },
         });
     });
 
@@ -179,14 +175,11 @@ describe('extractMemories reflection integration', () => {
             powerUserSettings: {},
         };
 
-        setDeps({
-            getContext: () => mockContext,
-            getExtensionSettings: () => ({
-                [extensionName]: { ...defaultSettings, enabled: true },
-            }),
-            saveChatConditional: vi.fn(async () => true),
-            console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
-            Date: { now: () => 1000000 },
+        setupTestContext({
+            deps: {
+                getContext: () => mockContext,
+                saveChatConditional: vi.fn(async () => true),
+            },
         });
 
         vi.clearAllMocks();
@@ -257,14 +250,11 @@ describe('extractMemories community detection', () => {
             powerUserSettings: {},
         };
 
-        setDeps({
-            getContext: () => mockContext,
-            getExtensionSettings: () => ({
-                [extensionName]: { ...defaultSettings, enabled: true },
-            }),
-            saveChatConditional: vi.fn(async () => true),
-            console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
-            Date: { now: () => 1000000 },
+        setupTestContext({
+            deps: {
+                getContext: () => mockContext,
+                saveChatConditional: vi.fn(async () => true),
+            },
         });
 
         vi.clearAllMocks();
@@ -501,14 +491,11 @@ describe('two-stage extraction pipeline', () => {
             powerUserSettings: {},
         };
 
-        setDeps({
-            getContext: () => mockContext,
-            getExtensionSettings: () => ({
-                [extensionName]: { ...defaultSettings, enabled: true },
-            }),
-            saveChatConditional: vi.fn(async () => true),
-            console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
-            Date: { now: () => 1000000 },
+        setupTestContext({
+            deps: {
+                getContext: () => mockContext,
+                saveChatConditional: vi.fn(async () => true),
+            },
         });
 
         // callLLM mock is already set up at module level with config-based dispatch
@@ -600,14 +587,11 @@ describe('two-phase extraction with intermediate save', () => {
             powerUserSettings: {},
         };
 
-        setDeps({
-            getContext: () => mockContext,
-            getExtensionSettings: () => ({
-                [extensionName]: { ...defaultSettings, enabled: true },
-            }),
-            saveChatConditional: vi.fn(async () => true),
-            console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
-            Date: { now: () => 1000000 },
+        setupTestContext({
+            deps: {
+                getContext: () => mockContext,
+                saveChatConditional: vi.fn(async () => true),
+            },
         });
     });
 

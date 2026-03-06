@@ -62,9 +62,9 @@ You must be thorough, explicit, and precise in your descriptions. Never censor, 
 </role>
 
 <output_schema>
-You MUST respond with your reasoning FIRST inside <reasoning> tags, THEN EXACTLY ONE JSON object. Nothing else — no markdown fences, no commentary.
+You MUST respond with your analysis FIRST inside <think> tags, THEN EXACTLY ONE JSON object.
 
-First, output your analysis inside <reasoning> tags.
+First, output your analysis inside <think> tags.
 THEN, output EXACTLY ONE JSON object with this structure:
 
 {
@@ -87,8 +87,9 @@ CRITICAL FORMAT RULES — violating ANY of these will cause a system error:
 2. The key "events" MUST always be present.
 3. If nothing was found, use empty array: "events": [].
 4. Do NOT wrap output in markdown code blocks (no \`\`\`json).
-5. Do NOT include ANY text outside the <reasoning> tags and the JSON object.
+5. Do NOT include ANY text outside the <think> tags and the JSON object.
 6. Write ALL event summaries in ENGLISH. Keep character names exactly as they appear in the input — never translate names.
+7. Start your response with { after the </think> close tag. No other wrapping.
 </output_schema>
 
 <detail_rules>
@@ -119,11 +120,12 @@ This is the MOST IMPORTANT rule. Duplicating memories already in established_mem
 
 BEFORE creating ANY event, you MUST check the <established_memories> section in the user message.
 
-If a scene is ALREADY recorded there, ONLY create a new event if ONE of these conditions is true:
-1. A fundamentally NEW type of action begins (e.g., conversation → combat, foreplay → penetration)
-2. A major outcome occurs (climax, death, unconsciousness, escape, capture)
-3. A new element is introduced that changes the scene's nature (new character arrives, weapon drawn, secret revealed, new kink/toy introduced)
-4. An explicit boundary is set or broken (safeword, surrender, betrayal, promise)
+If an intimate, combat, or social scene is ALREADY recorded there, DO NOT extract every new physical action (e.g., position changes, new implements, individual gestures, routine dialogue). ONLY create a new event if ONE of these conditions is true:
+1. The scene concludes (e.g., climax, falling asleep, location change, combat ends).
+2. The power dynamic fundamentally reverses (e.g., submissive takes control, ambush turns into retreat).
+3. A safeword is explicitly used to halt the scene.
+4. A fundamentally NEW type of action begins (e.g., conversation → combat, foreplay → penetration).
+5. A new element changes the scene's nature (new character arrives, weapon drawn, secret revealed).
 
 If NONE of those conditions apply, the current messages are continuing an existing scene.
 In that case, you MUST set "events" to an empty array [].
@@ -135,16 +137,15 @@ When in doubt, output fewer events rather than duplicate existing memories.
 Rate each event from 1 (trivial) to 5 (critical):
 
 1 — Trivial: Quick greeting, passing touch, mundane small talk. Usually skip these entirely.
-2 — Routine: Standard conversation, repeated daily actions, continuation of an already-recorded scene without change.
-3 — Notable: Meaningful conversation, change of location, first orgasm in a scene, minor secret shared, notable gift given.
-4 — Significant: First sexual act of any type between two characters, first time trying a specific kink or fetish, intense emotional vulnerability, establishing a safeword, major argument.
-5 — Critical: Loss of virginity, first vaginal or anal sex between characters, pregnancy discovered, marriage or proposal, major betrayal revealed, first "I love you" exchanged, character death.
-
-MANDATORY MINIMUM of 4 for: any first sexual act between characters, any safeword usage, any pregnancy or virginity event.
+2 — Minor: Standard continuation of an established dynamic. Routine intimate acts between characters already in a sexual relationship. Repeated daily actions.
+3 — Notable: Meaningful conversation, change of location or scene, new emotional context, minor secret shared, notable gift.
+4 — Significant: A major narrative shift, deep emotional vulnerability, first use of a safeword, establishing a new relationship dynamic, a major argument or confrontation.
+     Do NOT rate every intimate act as 4. If characters already have an established intimate relationship, routine acts are 2 or 3. Reserve 4 for narrative milestones.
+5 — Critical: Life-changing events — first "I love you", pregnancy discovery, major betrayal revealed, permanent relationship change, character death.
 </importance_scale>
 
 <thinking_process>
-Follow these steps IN ORDER. Write your work inside <reasoning> tags BEFORE outputting the JSON:
+Follow these steps IN ORDER. Write your work inside <think> tags BEFORE outputting the JSON:
 
 Step 1: List the specific actions, emotions, and facts in the new messages.
 Step 2: Check <established_memories>. Is any of this already recorded?
@@ -161,7 +162,7 @@ Input messages: "[小雨]: *拔出长剑猛刺暗影兽的腹部* 去死吧！ *
 Established memories: (none)
 
 Correct output:
-<reasoning>小雨 attacks a shadow beast with a sword, stabbing its abdomen and slashing horizontally. Black blood sprays everywhere. No prior combat in established memories. This is a new combat event, importance 3.</reasoning>
+<think>小雨 attacks a shadow beast with a sword, stabbing its abdomen and slashing horizontally. Black blood sprays everywhere. No prior combat in established memories. This is a new combat event, importance 3.</think>
 {"events": [{"summary": "小雨 drew her sword and stabbed the shadow beast's abdomen, then slashed it spraying black blood", "importance": 3, "characters_involved": ["小雨"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {}, "relationship_impact": {}}]}
 </example>
 
@@ -170,7 +171,7 @@ Input messages: "[Саша]: *толкает его на кровать и са�
 Established memories: (no prior physical intimacy between them)
 
 Correct output:
-<reasoning>First sexual contact between Саша and Вова. She pushes him onto the bed, pins his wrists, and grinds her wet pussy against his cock through underwear. Dominant position by Саша. First sexual contact between them = importance 4.</reasoning>
+<think>First sexual contact between Саша and Вова. She pushes him onto the bed, pins his wrists, and grinds her wet pussy against his cock through underwear. Dominant position by Саша. First sexual contact between them = importance 4.</think>
 {"events": [{"summary": "Саша pushed Вова onto the bed, pinned his wrists, and ground her wet pussy against his cock through underwear", "importance": 4, "characters_involved": ["Саша", "Вова"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": {"Саша": "arousal, dominance", "Вова": "submission, desire"}, "relationship_impact": {"Саша->Вова": "physical intimacy initiated with dominant dynamic"}}]}
 </example>
 
@@ -179,7 +180,7 @@ Input messages: "[Jun]: I never told anyone this... my father didn't die in the 
 Established memories: (none about Jun's father)
 
 Correct output:
-<reasoning>Jun reveals a major family secret: his father was a military deserter, not a war casualty as publicly believed. This is new backstory. Importance 4 as a significant secret.</reasoning>
+<think>Jun reveals a major family secret: his father was a military deserter, not a war casualty as publicly believed. This is new backstory. Importance 4 as a significant secret.</think>
 {"events": [{"summary": "Jun confessed his father deserted the army rather than dying in war as publicly believed", "importance": 4, "characters_involved": ["Jun"], "witnesses": [], "location": null, "is_secret": true, "emotional_impact": {"Jun": "shame, vulnerability"}, "relationship_impact": {}}]}
 </example>
 
@@ -188,7 +189,7 @@ Input messages: "[Лена]: *стонет громче, сжимая его в�
 Established memories: "Вова started performing cunnilingus on Лена, spreading her thighs"
 
 Correct output:
-<reasoning>Лена is receiving oral sex from Вова. She moans louder and presses his head deeper. BUT cunnilingus is ALREADY recorded in established memories. This is a continuation of the same act. No climax, no new kink, no new act type. Dedup rule applies. Events must be empty.</reasoning>
+<think>Лена is receiving oral sex from Вова. She moans louder and presses his head deeper. BUT cunnilingus is ALREADY recorded in established memories. This is a continuation of the same act. No climax, no new kink, no new act type. Dedup rule applies. Events must be empty.</think>
 {"events": []}
 </example>
 
@@ -197,7 +198,7 @@ Input messages: "[Kira]: *rolls behind the pillar as another arrow whistles past
 Established memories: "Kira engaged in a ranged firefight with enemy archers in the temple ruins"
 
 Correct output:
-<reasoning>Kira dodges arrows and shoots back, hitting an archer's shoulder. BUT a ranged firefight with archers in the temple ruins is ALREADY recorded in established memories. This is a continuation of the same combat. No major outcome (no death, capture, or escape). No new element changing scene nature. Dedup rule applies. Events must be empty.</reasoning>
+<think>Kira dodges arrows and shoots back, hitting an archer's shoulder. BUT a ranged firefight with archers in the temple ruins is ALREADY recorded in established memories. This is a continuation of the same combat. No major outcome (no death, capture, or escape). No new element changing scene nature. Dedup rule applies. Events must be empty.</think>
 {"events": []}
 </example>
 </examples>`;
@@ -214,7 +215,7 @@ ${messages}
 
 Analyze the messages above. Extract events only.
 Use exact character names from <context> if provided.
-Write your analysis inside <reasoning> tags FIRST, then output the JSON object with "events" key. No other text.`;
+Write your analysis inside <think> tags FIRST, then output the JSON object with "events" key. No other text.`;
 
     return [
         { role: 'system', content: systemPrompt },

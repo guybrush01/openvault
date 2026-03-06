@@ -145,6 +145,71 @@ describe('buildEventExtractionPrompt', () => {
     });
 });
 
+describe('buildEventExtractionPrompt output conventions', () => {
+    const baseArgs = {
+        messages: '[TestUser]: Hello world',
+        names: { char: 'TestChar', user: 'TestUser' },
+        context: {},
+    };
+
+    it('uses <think> tags instead of <reasoning>', () => {
+        const result = buildEventExtractionPrompt(baseArgs);
+        const sys = result[0].content;
+        expect(sys).toContain('<think>');
+        expect(sys).not.toMatch(/<reasoning>/);
+    });
+
+    it('instructs scene continuation suppression in dedup rules', () => {
+        const result = buildEventExtractionPrompt(baseArgs);
+        const sys = result[0].content;
+        expect(sys).toContain('scene concludes');
+        expect(sys).toContain('power dynamic fundamentally reverses');
+        expect(sys).toContain('safeword is explicitly used');
+    });
+
+    it('does not mandate minimum importance of 4 for routine intimate acts', () => {
+        const result = buildEventExtractionPrompt(baseArgs);
+        const sys = result[0].content;
+        // Old: "MANDATORY MINIMUM of 4 for: any first sexual act"
+        expect(sys).not.toContain('MANDATORY MINIMUM');
+    });
+
+    it('instructs raw JSON output without markdown', () => {
+        const result = buildEventExtractionPrompt(baseArgs);
+        const sys = result[0].content;
+        expect(sys).toContain('Start your response with {');
+    });
+});
+
+describe('all prompts use raw JSON instruction', () => {
+    it('graph extraction prompt forbids markdown wrapping', () => {
+        const result = buildGraphExtractionPrompt({
+            messages: '[TestUser]: Hello',
+            names: { char: 'TestChar', user: 'TestUser' },
+        });
+        const sys = result[0].content;
+        expect(sys).toContain('Do NOT wrap output in markdown code blocks');
+    });
+
+    it('salient questions prompt forbids markdown wrapping', () => {
+        const result = buildSalientQuestionsPrompt('TestChar', [{ summary: 'test', importance: 3 }]);
+        const sys = result[0].content;
+        expect(sys).toContain('Do NOT wrap output in markdown code blocks');
+    });
+
+    it('insight extraction prompt forbids markdown wrapping', () => {
+        const result = buildInsightExtractionPrompt('TestChar', 'test?', [{ id: 'ev_1', summary: 'test' }]);
+        const sys = result[0].content;
+        expect(sys).toContain('Do NOT wrap output in markdown code blocks');
+    });
+
+    it('community summary prompt forbids markdown wrapping', () => {
+        const result = buildCommunitySummaryPrompt(['Node A'], ['A -> B']);
+        const sys = result[0].content;
+        expect(sys).toContain('Do NOT wrap output in markdown code blocks');
+    });
+});
+
 describe('buildGraphExtractionPrompt', () => {
     it('returns message array with system and user roles', () => {
         const result = buildGraphExtractionPrompt({

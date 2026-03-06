@@ -2,8 +2,8 @@
  * Tests for src/pov.js
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CHARACTERS_KEY, extensionName, MEMORIES_KEY } from '../src/constants.js';
-import { resetDeps, setDeps } from '../src/deps.js';
+import { CHARACTERS_KEY, MEMORIES_KEY } from '../src/constants.js';
+import { resetDeps } from '../src/deps.js';
 import {
     detectPresentCharactersFromMessages,
     filterMemoriesByPOV,
@@ -30,10 +30,11 @@ describe('pov', () => {
             chat: [],
             chatMetadata: {},
         };
-        setDeps({
-            console: mockConsole,
-            getContext: () => mockContext,
-            getExtensionSettings: () => ({ [extensionName]: { debugMode: false } }),
+        setupTestContext({
+            deps: {
+                console: mockConsole,
+                getContext: () => mockContext,
+            },
         });
     });
 

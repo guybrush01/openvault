@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { extensionName } from '../../src/constants.js';
-import { setDeps } from '../../src/deps.js';
 import { filterDuplicateReflections } from '../../src/reflection/reflect.js';
 
 describe('filterDuplicateReflections - 3-Tier Replacement', () => {
@@ -8,12 +6,7 @@ describe('filterDuplicateReflections - 3-Tier Replacement', () => {
 
     beforeEach(() => {
         // Mock dependencies with debugMode enabled to enable logging
-        setDeps({
-            console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
-            getExtensionSettings: () => ({
-                [extensionName]: { debugMode: true },
-            }),
-        });
+        setupTestContext({ settings: { debugMode: true } });
 
         existingMemories = [
             {

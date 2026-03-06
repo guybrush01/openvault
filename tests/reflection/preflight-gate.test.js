@@ -1,16 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { extensionName } from '../../src/constants.js';
-import { setDeps } from '../../src/deps.js';
 import { shouldSkipReflectionGeneration } from '../../src/reflection/reflect.js';
 
 describe('shouldSkipReflectionGeneration', () => {
     beforeEach(() => {
-        setDeps({
-            console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
-            getExtensionSettings: () => ({
-                [extensionName]: { debugMode: true },
-            }),
-        });
+        setupTestContext({ settings: { debugMode: true } });
     });
 
     it('should return { shouldSkip: false, reason: null } when recentMemories is empty', () => {

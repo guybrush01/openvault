@@ -307,6 +307,30 @@ describe('mergeOrInsertEntity', () => {
         expect(key).toBe('fortress');
         expect(Object.keys(graphData.nodes)).toHaveLength(2);
     });
+
+    it('persists alias when semantic merge occurs', async () => {
+        const { getDocumentEmbedding } = await import('../../src/embeddings.js');
+        getDocumentEmbedding.mockResolvedValue([0.9, 0.1, 0]);
+
+        upsertEntity(graphData, 'Vova', 'PERSON', 'A young man');
+        graphData.nodes.vova.embedding = [0.9, 0.1, 0];
+
+        await mergeOrInsertEntity(graphData, 'Vova (aka Lily)', 'PERSON', 'Also Vova', 3, mockSettings);
+
+        expect(graphData.nodes.vova.aliases).toBeDefined();
+        expect(graphData.nodes.vova.aliases).toContain('Vova (aka Lily)');
+    });
+
+    it('does not add alias on exact key match (fast path)', async () => {
+        const { getDocumentEmbedding } = await import('../../src/embeddings.js');
+        getDocumentEmbedding.mockResolvedValue(null);
+
+        upsertEntity(graphData, 'Castle', 'PLACE', 'A fortress');
+        await mergeOrInsertEntity(graphData, 'castle', 'PLACE', 'Updated', 3, mockSettings);
+
+        // Fast path: same key, no alias needed
+        expect(graphData.nodes.castle.aliases).toBeUndefined();
+    });
 });
 
 describe('redirectEdges', () => {
@@ -490,6 +514,26 @@ describe('consolidateGraph', () => {
         const edgeKeys = Object.keys(graphData.edges);
         expect(edgeKeys.some((k) => k.includes('house a'))).toBe(true);
         expect(edgeKeys.some((k) => k.includes('house b'))).toBe(false);
+    });
+
+    it('persists alias during consolidation merge', async () => {
+        const { getDocumentEmbedding } = await import('../../src/embeddings.js');
+        getDocumentEmbedding.mockResolvedValue([1, 0, 0]);
+
+        const graphData = { nodes: {}, edges: {} };
+        upsertEntity(graphData, "Vova's House", 'PLACE', 'Home');
+        upsertEntity(graphData, "Vova's Apartment", 'PLACE', 'Flat');
+        graphData.nodes['vova house'].embedding = [1, 0, 0];
+        graphData.nodes['vova apartment'].embedding = [1, 0, 0];
+        // Give "vova house" more mentions so it survives
+        graphData.nodes['vova house'].mentions = 5;
+
+        await consolidateGraph(graphData, { entityMergeSimilarityThreshold: 0.8, entityDescriptionCap: 3 });
+
+        // The surviving node should have the removed node's name as alias
+        const survivor = graphData.nodes['vova house'];
+        expect(survivor).toBeDefined();
+        expect(survivor.aliases).toContain("Vova's Apartment");
     });
 });
 

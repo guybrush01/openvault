@@ -275,6 +275,9 @@ export async function mergeOrInsertEntity(graphData, name, type, description, ca
             `[graph] Entity merged: "${name}" (${key}) → "${graphData.nodes[bestMatch].name}" (${bestMatch}), similarity: ${bestScore.toFixed(3)}`
         );
         upsertEntity(graphData, graphData.nodes[bestMatch].name, type, description, cap);
+        // Persist alias for retrieval-time alternate name matching
+        if (!graphData.nodes[bestMatch].aliases) graphData.nodes[bestMatch].aliases = [];
+        graphData.nodes[bestMatch].aliases.push(name);
         // Record redirect so upsertRelationship can resolve
         if (!graphData._mergeRedirects) graphData._mergeRedirects = {};
         if (key !== bestMatch) {
@@ -429,6 +432,10 @@ export async function consolidateGraph(graphData, settings) {
             removedNode.description,
             entityCap
         );
+
+        // Persist alias for retrieval-time alternate name matching
+        if (!graphData.nodes[keepKey].aliases) graphData.nodes[keepKey].aliases = [];
+        graphData.nodes[keepKey].aliases.push(removedNode.name);
 
         // Redirect edges
         redirectEdges(graphData, removeKey, keepKey);

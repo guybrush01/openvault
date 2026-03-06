@@ -32,5 +32,6 @@ Flat-JSON entity/relationship storage with semantic deduplication and Louvain co
 
 ## GOTCHAS & RULES
 - **Orphaned Edges**: If `source`/`target` not in nodes, `upsertRelationship` silently skips.
+- **Embedding Rounding**: All embedding assignments in `graph.js` and `communities.js` use `maybeRoundEmbedding()` from `embeddings.js`. Rounds to 4 decimal places when `settings.embeddingRounding` is enabled (disabled by default).
 - **CDN Imports**: `https://esm.sh/graphology`, `graphology-communities-louvain`, `graphology-operators`.
 - **State Init**: Use `initGraphState(data)` to ensure all fields exist (non-destructive).

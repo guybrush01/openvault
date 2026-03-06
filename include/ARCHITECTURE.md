@@ -36,7 +36,7 @@ The background worker (`src/extraction/worker.js`) is single-instance (boolean g
    ├─ Stage A: Event Extraction (events only, reasoning via <think> tags)
    ├─ Stage B: Graph Extraction (entities + relationships, using events as context)
    ├─ Fallback: Recovers malformed JSON arrays
-   └─ Validation: Zod schemas (Events strictly >30 chars)
+   └─ Validation: Zod schemas (Events validated individually — one bad event doesn't reject the batch)
        │
        ▼
 2. GRAPH UPDATE STAGE (GraphRAG)
@@ -85,11 +85,12 @@ All OpenVault data is stored entirely within the SillyTavern chat file under `ch
 {
   memories: [
     // Mixed array of both extracted events and generated reflections
-    { 
-      id: "event_123" | "ref_456", 
-      type: "event" | "reflection", 
-      summary: string, 
-      importance: 1-5, 
+    {
+      id: "event_123" | "ref_456",
+      type: "event" | "reflection",
+      summary: string,
+      importance: 1-5,
+      tokens: string[],     // Pre-computed BM25 tokens (stemmed). Old memories may lack this field.
       message_ids: number[], // Events only
       source_ids: string[],  // Reflections only (IDs of evidence memories)
       characters_involved: string[],

@@ -277,7 +277,7 @@ export function scoreMemories(
 
         if (tokens.length > 0) {
             // Pre-tokenize all memories
-            memoryTokensList = memories.map((m) => tokenize(m.summary || ''));
+            memoryTokensList = memories.map((m) => m.tokens || tokenize(m.summary || ''));
             const idfData = calculateIDF(memories, new Map(memoryTokensList.map((t, i) => [i, t])));
             idfMap = idfData.idfMap;
             avgDL = idfData.avgDL;

@@ -481,5 +481,8 @@ export async function deleteCurrentChatEmbeddings() {
  * @returns {Promise<void>}
  */
 export function yieldToMain() {
-    return scheduler.yield();
+    if (typeof scheduler !== 'undefined' && scheduler.yield) {
+        return scheduler.yield();
+    }
+    return new Promise((resolve) => setTimeout(resolve, 0));
 }

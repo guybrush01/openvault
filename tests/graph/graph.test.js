@@ -15,6 +15,7 @@ import {
 // Mock embeddings module
 vi.mock('../../src/embeddings.js', () => ({
     getDocumentEmbedding: vi.fn(),
+    maybeRoundEmbedding: vi.fn((emb) => emb),
 }));
 
 describe('upsertEntity', () => {

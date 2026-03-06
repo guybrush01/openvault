@@ -20,7 +20,7 @@ import { parseInsightExtractionResponse, parseSalientQuestionsResponse } from '.
 import { callLLM, LLM_CONFIGS } from '../llm.js';
 import { filterMemoriesByPOV } from '../pov.js';
 import { buildInsightExtractionPrompt, buildSalientQuestionsPrompt } from '../prompts.js';
-import { cosineSimilarity } from '../retrieval/math.js';
+import { cosineSimilarity, tokenize } from '../retrieval/math.js';
 import { generateId, log, sortMemoriesBySequence } from '../utils.js';
 
 const REFLECTION_THRESHOLD = 40;
@@ -276,6 +276,7 @@ export async function generateReflections(characterName, allMemories, characterS
                 id: `ref_${generateId()}`,
                 type: 'reflection',
                 summary: insight,
+                tokens: tokenize(insight || ''),
                 importance: 4,
                 sequence: now,
                 characters_involved: [characterName],

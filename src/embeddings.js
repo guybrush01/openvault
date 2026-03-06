@@ -9,6 +9,19 @@ import { extensionName } from './constants.js';
 import { getDeps } from './deps.js';
 import { log } from './utils.js';
 
+/**
+ * Round embedding vector to 4 decimal places if embeddingRounding is enabled.
+ * Reduces JSON serialization size ~60% with negligible cosine similarity impact.
+ * @param {number[]} embedding - Raw embedding vector
+ * @returns {number[]} Rounded or original embedding
+ */
+function maybeRoundEmbedding(embedding) {
+    if (!embedding) return embedding;
+    const settings = getDeps().getExtensionSettings()[extensionName];
+    if (!settings?.embeddingRounding) return embedding;
+    return embedding.map((v) => Math.round(v * 10000) / 10000);
+}
+
 // =============================================================================
 // Strategy Classes (from src/embeddings/strategies.js)
 // =============================================================================
@@ -603,7 +616,7 @@ export async function generateEmbeddingsForMemories(memories) {
     let count = 0;
     for (let i = 0; i < validMemories.length; i++) {
         if (embeddings[i]) {
-            validMemories[i].embedding = embeddings[i];
+            validMemories[i].embedding = maybeRoundEmbedding(embeddings[i]);
             count++;
         }
     }
@@ -643,7 +656,7 @@ export async function enrichEventsWithEmbeddings(events) {
     let count = 0;
     for (let i = 0; i < validEvents.length; i++) {
         if (embeddings[i]) {
-            validEvents[i].embedding = embeddings[i];
+            validEvents[i].embedding = maybeRoundEmbedding(embeddings[i]);
             count++;
         }
     }
@@ -657,3 +670,4 @@ export async function enrichEventsWithEmbeddings(events) {
 
 export { TRANSFORMERS_MODELS };
 export { getOptimalChunkSize };
+export { maybeRoundEmbedding };

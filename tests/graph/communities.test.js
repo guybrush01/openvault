@@ -171,6 +171,7 @@ vi.mock('../../src/llm.js', () => ({
 // Mock embeddings
 vi.mock('../../src/embeddings.js', () => ({
     getQueryEmbedding: vi.fn(async (_text) => [0.1, 0.2, 0.3]),
+    maybeRoundEmbedding: vi.fn((emb) => emb),
 }));
 
 // Mock prompts

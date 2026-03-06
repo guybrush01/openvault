@@ -171,11 +171,27 @@ export function parseEventExtractionResponse(content) {
         parsed = { events: parsed };
     }
 
-    const result = EventExtractionSchema.safeParse(parsed);
-    if (!result.success) {
-        throw new Error(`Schema validation failed: ${result.error.message}`);
+    // Per-event validation: salvage valid events instead of rejecting the entire batch
+    const rawEvents = parsed?.events;
+    if (!Array.isArray(rawEvents) || rawEvents.length === 0) {
+        throw new Error('Schema validation failed: events array is missing or empty');
     }
-    return result.data;
+
+    const validEvents = [];
+    for (const raw of rawEvents) {
+        const result = EventSchema.safeParse(raw);
+        if (result.success) {
+            validEvents.push(result.data);
+        }
+    }
+
+    if (validEvents.length === 0) {
+        // Re-run full schema parse to get a descriptive Zod error
+        const fullResult = EventExtractionSchema.safeParse(parsed);
+        throw new Error(`Schema validation failed: ${fullResult.error?.message || 'all events invalid'}`);
+    }
+
+    return { events: validEvents };
 }
 
 /**

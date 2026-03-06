@@ -8,7 +8,7 @@ import Graph from 'https://esm.sh/graphology';
 import louvain from 'https://esm.sh/graphology-communities-louvain';
 import { toUndirected } from 'https://esm.sh/graphology-operators';
 import { getDeps } from '../deps.js';
-import { getQueryEmbedding } from '../embeddings.js';
+import { getQueryEmbedding, maybeRoundEmbedding } from '../embeddings.js';
 import { parseCommunitySummaryResponse } from '../extraction/structured.js';
 import { callLLM, LLM_CONFIGS } from '../llm.js';
 import { buildCommunitySummaryPrompt } from '../prompts.js';
@@ -230,7 +230,7 @@ export async function updateCommunitySummaries(
                 title: parsed.title,
                 summary: parsed.summary,
                 findings: parsed.findings,
-                embedding: embedding || [],
+                embedding: maybeRoundEmbedding(embedding) || [],
                 lastUpdated: deps.Date.now(),
                 lastUpdatedMessageCount: currentMessageCount,
             };

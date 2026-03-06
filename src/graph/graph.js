@@ -5,7 +5,7 @@
  * All data stored in chatMetadata.openvault.graph as { nodes, edges }.
  */
 
-import { getDocumentEmbedding } from '../embeddings.js';
+import { getDocumentEmbedding, maybeRoundEmbedding } from '../embeddings.js';
 import { cosineSimilarity } from '../retrieval/math.js';
 import { ALL_STOPWORDS } from '../utils/stopwords.js';
 import { log } from '../utils.js';
@@ -311,7 +311,7 @@ export async function mergeOrInsertEntity(graphData, name, type, description, ca
 
     // No match: create new node with embedding
     upsertEntity(graphData, name, type, description, cap);
-    graphData.nodes[key].embedding = newEmbedding;
+    graphData.nodes[key].embedding = maybeRoundEmbedding(newEmbedding);
     return key;
 }
 
@@ -391,7 +391,9 @@ export async function consolidateGraph(graphData, settings) {
     for (const [_key, node] of Object.entries(graphData.nodes)) {
         if (!node.embedding) {
             try {
-                node.embedding = await getDocumentEmbedding(`${node.type}: ${node.name} - ${node.description}`);
+                node.embedding = maybeRoundEmbedding(
+                    await getDocumentEmbedding(`${node.type}: ${node.name} - ${node.description}`)
+                );
                 if (node.embedding) embeddedCount++;
             } catch {
                 // Skip nodes that can't be embedded

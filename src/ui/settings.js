@@ -331,11 +331,13 @@ function bindUIElements() {
     // Extraction settings
     bindSetting('messages_per_extraction', 'messagesPerExtraction');
     bindSetting('extraction_rearview', 'extractionRearviewTokens', 'int', (v) =>
-        updateWordsDisplay(v, 'openvault_extraction_rearview_words'));
+        updateWordsDisplay(v, 'openvault_extraction_rearview_words')
+    );
 
     // Retrieval pipeline settings
     bindSetting('final_budget', 'retrievalFinalTokens', 'int', (v) =>
-        updateWordsDisplay(v, 'openvault_final_budget_words'));
+        updateWordsDisplay(v, 'openvault_final_budget_words')
+    );
 
     // Auto-hide settings
     bindSetting('auto_hide', 'autoHideEnabled', 'bool');
@@ -416,9 +418,11 @@ function bindUIElements() {
     bindSetting('reflection_threshold', 'reflectionThreshold');
     bindSetting('max_insights', 'maxInsightsPerReflection');
     bindSetting('reflection_dedup_threshold', 'reflectionDedupThreshold', 'float', (v) =>
-        updateReflectionDedupDisplay(v));
+        updateReflectionDedupDisplay(v)
+    );
     bindSetting('world_context_budget', 'worldContextBudget', 'int', (v) =>
-        updateWordsDisplay(v, 'openvault_world_context_budget_words'));
+        updateWordsDisplay(v, 'openvault_world_context_budget_words')
+    );
     bindSetting('community_interval', 'communityDetectionInterval');
 
     // Forgetfulness curve settings

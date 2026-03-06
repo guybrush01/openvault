@@ -42,3 +42,39 @@ global.toastr = {
     warning: () => ({}),
     error: () => ({}),
 };
+
+// ── Shared test context helper ──
+import { setDeps } from '../src/deps.js';
+import { defaultSettings, extensionName } from '../src/constants.js';
+
+/**
+ * Standard test context setup. Replaces per-file setDeps boilerplate.
+ *
+ * @param {Object} [overrides]
+ * @param {Object} [overrides.context]  - Merged into getContext() return
+ * @param {Object} [overrides.settings] - Merged into openvault extension settings
+ * @param {Object} [overrides.deps]     - Merged directly into deps (Date, saveChatConditional, etc.)
+ */
+global.setupTestContext = (overrides = {}) => {
+    setDeps({
+        console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
+        getContext: () => ({
+            chat: [],
+            name1: 'User',
+            name2: 'Alice',
+            chatId: 'test-chat-123',
+            chatMetadata: { openvault: {} },
+            ...overrides.context,
+        }),
+        getExtensionSettings: () => ({
+            [extensionName]: {
+                ...defaultSettings,
+                enabled: true,
+                debugMode: false,
+                ...overrides.settings,
+            },
+        }),
+        Date: { now: () => 1000000 },
+        ...overrides.deps,
+    });
+};

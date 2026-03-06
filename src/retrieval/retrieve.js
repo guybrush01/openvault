@@ -16,6 +16,7 @@
  * @property {string[]} activeCharacters - All active characters in scene
  * @property {string} headerName - Header for injection ("Scene" or character name)
  * @property {number} finalTokens - Final context token budget
+ * @property {Object} graphNodes - Graph entity nodes for entity detection
  */
 
 import { CHARACTERS_KEY, extensionName, MEMORIES_KEY } from '../constants.js';
@@ -97,6 +98,8 @@ export function buildRetrievalContext(opts = {}) {
 
     const primaryCharacter = isGroupChat ? povCharacters[0] : context.name2;
 
+    const data = getOpenVaultData();
+
     return {
         recentContext,
         userMessages,
@@ -106,6 +109,7 @@ export function buildRetrievalContext(opts = {}) {
         headerName: isGroupChat ? povCharacters[0] : 'Scene',
         finalTokens: settings.retrievalFinalTokens || 12000,
         worldContextBudget: settings.worldContextBudget || 2000,
+        graphNodes: data?.graph?.nodes || {},
     };
 }
 

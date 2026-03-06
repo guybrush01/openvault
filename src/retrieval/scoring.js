@@ -77,7 +77,7 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit) {
 
     // Extract context from recent messages for enriched queries
     const recentMessages = parseRecentMessages(recentContext, 10);
-    const queryContext = extractQueryContext(recentMessages, activeCharacters);
+    const queryContext = extractQueryContext(recentMessages, activeCharacters, ctx.graphNodes || {});
 
     // Build enriched queries
     // Use user messages only for embedding (intent matching)

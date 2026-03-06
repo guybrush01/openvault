@@ -12,7 +12,8 @@ import { getQueryEmbedding, maybeRoundEmbedding } from '../embeddings.js';
 import { parseCommunitySummaryResponse } from '../extraction/structured.js';
 import { callLLM, LLM_CONFIGS } from '../llm.js';
 import { buildCommunitySummaryPrompt } from '../prompts.js';
-import { log, yieldToMain } from '../utils.js';
+import { log } from '../utils/logging.js';
+import { yieldToMain } from '../utils/st-helpers.js';
 
 /**
  * Convert flat graph data to a graphology instance.

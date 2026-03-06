@@ -9,6 +9,13 @@
 
 **Goal:** Extract `stemWord()` from `math.js` into `src/utils/stemmer.js`, add `stemName()`.
 
+> **Design deviation:** The design doc section 3.1 shows a naive `stemWord` that passes Cyrillic
+> directly to Snowball. This causes over-stemming of short Russian proper nouns: `елена` → `ел`
+> (Snowball strips `-а` then `-ен` in two passes) while `елену` → `елен` (single `-у` strip).
+> The implementation adds a **Cyrillic over-stem guard**: if the stem shrank by more than 3 chars,
+> Snowball over-stripped — fall back to removing just the final character (structurally correct for
+> Russian nominative `-а/-я` endings). See `tmp/task.md` for full analysis.
+
 **Step 1: Write the Failing Test**
 - File: `tests/utils/stemmer.test.js`
 - Code:
@@ -22,9 +29,29 @@
           expect(stemWord('castles')).toBe('castl');
       });
 
-      it('stems Russian words', () => {
+      it('stems Russian words — inflected forms produce same stem', () => {
           expect(stemWord('елену')).toBe(stemWord('елена'));
           expect(stemWord('москвы')).toBe(stemWord('москва'));
+      });
+
+      it('over-stem guard: елена does not collapse to ел', () => {
+          const stem = stemWord('елена');
+          // Without guard: Snowball returns 'ел' (2 chars). With guard: 'елен' (4 chars).
+          expect(stem).toBe('елен');
+          expect(stem.length).toBeGreaterThanOrEqual(3);
+      });
+
+      it('over-stem guard: longer forms stem normally', () => {
+          // еленой (instrumental, 6 chars) → елен (4 chars), diff=2, within tolerance
+          expect(stemWord('еленой')).toBe('елен');
+          // елену (accusative, 5 chars) → елен (4 chars), diff=1, within tolerance
+          expect(stemWord('елену')).toBe('елен');
+      });
+
+      it('does not trigger guard for masculine names (no over-stem)', () => {
+          // Masculine names like иван, алдрик have minimal stripping
+          const stem = stemWord('иванов');
+          expect(stem.length).toBeGreaterThanOrEqual(3);
       });
 
       it('passes through non-Latin/Cyrillic unchanged', () => {
@@ -72,14 +99,58 @@
 
 **Step 3: Implementation (Green)**
 - File: `src/utils/stemmer.js`
-- Action: Create new file with `stemWord()` and `stemName()` as specified in the design doc section 3.1.
+- Action: Create new file with the following content:
+  ```javascript
+  import snowball from 'https://esm.sh/snowball-stemmers';
+
+  const ruStemmer = snowball.newStemmer('russian');
+  const enStemmer = snowball.newStemmer('english');
+
+  const CYRILLIC_RE = /\p{Script=Cyrillic}/u;
+  const LATIN_RE = /\p{Script=Latin}/u;
+
+  /**
+   * Stem a word using the appropriate language stemmer based on script detection.
+   * Cyrillic → Russian, Latin → English, other → unchanged.
+   *
+   * Includes an over-stem guard for Cyrillic: if Snowball's multi-pass stripping
+   * removes more than 3 chars (e.g. елена → ел), falls back to removing just the
+   * final character — structurally correct for Russian nominative -а/-я endings.
+   */
+  export function stemWord(word) {
+      if (CYRILLIC_RE.test(word)) {
+          const stem = ruStemmer.stem(word);
+          // Over-stem guard: stem must be ≥3 chars AND within 3 chars of input length.
+          // If violated, Snowball stripped too aggressively — strip only the final char.
+          if (stem.length < Math.max(3, word.length - 3)) {
+              const minimal = word.slice(0, -1);
+              return minimal.length > 2 ? minimal : word;
+          }
+          return stem;
+      }
+      if (LATIN_RE.test(word)) return enStemmer.stem(word);
+      return word;
+  }
+
+  /**
+   * Stem a multi-word name into a Set of stems.
+   * No stopword filtering — entity names should not be filtered.
+   * @param {string} name - Entity name (e.g. "King Aldric")
+   * @returns {Set<string>} Set of stems (e.g. {"king", "aldric"})
+   */
+  export function stemName(name) {
+      if (!name) return new Set();
+      const words = name.toLowerCase().match(/[\p{L}0-9]+/gu) || [];
+      return new Set(words.filter(w => w.length > 2).map(stemWord).filter(w => w.length > 2));
+  }
+  ```
 
 **Step 4: Verify (Green)**
 - Command: `npx vitest run tests/utils/stemmer.test.js`
 - Expect: PASS
 
 **Step 5: Git Commit**
-- `git add src/utils/stemmer.js tests/utils/stemmer.test.js && git commit -m "feat: shared stemmer utility (stemWord + stemName)"`
+- `git add src/utils/stemmer.js tests/utils/stemmer.test.js && git commit -m "feat: shared stemmer utility (stemWord + stemName) with Cyrillic over-stem guard"`
 
 ---
 

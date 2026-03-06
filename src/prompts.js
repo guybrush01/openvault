@@ -10,7 +10,7 @@
  * no jailbreak-signature phrases, safe examples before harder ones.
  */
 
-import { sortMemoriesBySequence } from './utils.js';
+import { sortMemoriesBySequence } from './utils/text.js';
 
 // =============================================================================
 // ANTI-REFUSAL PREAMBLE (Chinese)

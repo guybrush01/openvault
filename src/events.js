@@ -22,7 +22,10 @@ import {
 } from './state.js';
 import { refreshAllUI, resetMemoryBrowserPage } from './ui/render.js';
 import { setStatus } from './ui/status.js';
-import { getOpenVaultData, isAutomaticMode, log, safeSetExtensionPrompt, showToast, withTimeout } from './utils.js';
+import { getOpenVaultData } from './utils/data.js';
+import { showToast } from './utils/dom.js';
+import { log } from './utils/logging.js';
+import { isExtensionEnabled, safeSetExtensionPrompt, withTimeout } from './utils/st-helpers.js';
 
 // =============================================================================
 // Auto-Hide Old Messages (inlined from auto-hide.js)
@@ -98,7 +101,7 @@ async function autoHideOldMessages() {
  */
 export async function onBeforeGeneration(type, _options, dryRun = false) {
     // Skip if disabled, manual mode, or dry run
-    if (!isAutomaticMode() || dryRun) {
+    if (!isExtensionEnabled() || dryRun) {
         return;
     }
 
@@ -175,7 +178,7 @@ export function onGenerationEnded() {
  * Handle chat changed event
  */
 export function onChatChanged() {
-    if (!isAutomaticMode()) return;
+    if (!isExtensionEnabled()) return;
 
     log('Chat changed, clearing injection, cache and setting load cooldown');
 
@@ -215,7 +218,7 @@ export function onChatChanged() {
  * @param {number} messageId - The message ID
  */
 export function onMessageReceived(messageId) {
-    if (!isAutomaticMode()) return;
+    if (!isExtensionEnabled()) return;
 
     if (isChatLoadingCooldown()) {
         log(`Skipping extraction for message ${messageId} - chat load cooldown active`);
@@ -261,7 +264,7 @@ export function updateEventListeners(_skipInitialization = false) {
     // Cleanup and register in one loop
     EVENT_MAP.forEach(([type, handler]) => {
         eventSource.removeListener(eventTypes[type], handler);
-        if (isAutomaticMode()) {
+        if (isExtensionEnabled()) {
             eventSource.on(eventTypes[type], handler);
             if (type === 'GENERATION_AFTER_COMMANDS') {
                 eventSource.makeFirst(eventTypes[type], handler);
@@ -269,8 +272,8 @@ export function updateEventListeners(_skipInitialization = false) {
         }
     });
 
-    if (isAutomaticMode()) {
-        log('Automatic mode enabled - event listeners registered');
+    if (isExtensionEnabled()) {
+        log('Extension enabled - event listeners registered');
     } else {
         // Clear injection when disabled/manual
         safeSetExtensionPrompt('');

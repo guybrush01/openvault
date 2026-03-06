@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defaultSettings, extensionName } from '../../src/constants.js';
 import { resetDeps } from '../../src/deps.js';
 import {
     buildCommunityGroups,

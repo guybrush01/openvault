@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { filterDuplicateReflections } from '../../src/reflection/reflect.js';
 
 describe('filterDuplicateReflections - 3-Tier Replacement', () => {

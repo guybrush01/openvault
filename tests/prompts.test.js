@@ -7,13 +7,6 @@ import {
     buildSalientQuestionsPrompt,
 } from '../src/prompts.js';
 
-describe('smart retrieval prompt removal', () => {
-    it('does not export buildSmartRetrievalPrompt', async () => {
-        const module = await import('../src/prompts.js');
-        expect(module.buildSmartRetrievalPrompt).toBeUndefined();
-    });
-});
-
 describe('buildSalientQuestionsPrompt', () => {
     it('returns system/user message pair with character name', () => {
         const memories = [

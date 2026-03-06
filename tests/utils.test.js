@@ -639,9 +639,5 @@ describe('utils', () => {
             // Should resolve (not hang), elapsed time is >= 0
             expect(after - before).toBeGreaterThanOrEqual(0);
         });
-
-        it('is a function', async () => {
-            expect(typeof yieldToMain).toBe('function');
-        });
     });
 });

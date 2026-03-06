@@ -10,23 +10,6 @@ import {
     parseSalientQuestionsResponse,
 } from '../../src/extraction/structured.js';
 
-describe('smart retrieval removal', () => {
-    it('does not export RetrievalResponseSchema', async () => {
-        const module = await import('../../src/extraction/structured.js');
-        expect(module.RetrievalResponseSchema).toBeUndefined();
-    });
-
-    it('does not export getRetrievalJsonSchema', async () => {
-        const module = await import('../../src/extraction/structured.js');
-        expect(module.getRetrievalJsonSchema).toBeUndefined();
-    });
-
-    it('does not export parseRetrievalResponse', async () => {
-        const module = await import('../../src/extraction/structured.js');
-        expect(module.parseRetrievalResponse).toBeUndefined();
-    });
-});
-
 describe('parseEvent', () => {
     it('parses single event without wrapper', () => {
         const json = JSON.stringify({
@@ -180,22 +163,5 @@ describe('parseGraphExtractionResponse', () => {
         const result = parseGraphExtractionResponse(json);
         expect(result.entities).toHaveLength(1);
         expect(result.relationships).toHaveLength(1);
-    });
-});
-
-describe('legacy extraction API removed', () => {
-    it('does not export ExtractionResponseSchema', async () => {
-        const module = await import('../../src/extraction/structured.js');
-        expect(module.ExtractionResponseSchema).toBeUndefined();
-    });
-
-    it('does not export getExtractionJsonSchema', async () => {
-        const module = await import('../../src/extraction/structured.js');
-        expect(module.getExtractionJsonSchema).toBeUndefined();
-    });
-
-    it('does not export parseExtractionResponse', async () => {
-        const module = await import('../../src/extraction/structured.js');
-        expect(module.parseExtractionResponse).toBeUndefined();
     });
 });

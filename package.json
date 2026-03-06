@@ -11,7 +11,7 @@
         "test": "node scripts/test.js",
         "sync-version": "node scripts/sync-version.js",
         "repomix": "npm run repomix:source && npm run repomix:tests",
-        "repomix:source": "npx repomix --style markdown --output repomix-source.md --ignore \"tests/**,**/*.test.js,**/*.spec.ts,node_modules/**,repomix-*.md,docs/designs/**,docs/plans/**,docs/smallvile/**,docs/st/**,docs/stopword.md,.worktrees/**,logs/**,tmp/**,package-lock.json\"",
+        "repomix:source": "npx repomix --style markdown --output repomix-source.md --include \"README.md,CLAUDE.md,index.js,style.css,manifest.json,package.json,biome.json,vitest.config.js,src/**,include/**,scripts/**,templates/**\"",
         "repomix:tests": "npx repomix --style markdown --output repomix-tests.md --include \"tests/**/*.js\""
     },
     "devDependencies": {

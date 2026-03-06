@@ -1,14 +1,22 @@
+# Dependencies
 /node_modules/
-/repomix-output.txt
-/tmp/
-.worktrees/
 
-/repomix*.xml
-/repomix*
-
-# Biome ignores
-/src/vendor/
+# Build output
 /dist/
 /coverage/
-/*.md
-/templates/
+
+# Vendored source
+/src/vendor/
+
+# Repomix generated bundles
+/repomix-source.md
+/repomix-tests.md
+/repomix-output.txt
+/repomix*.xml
+
+# Runtime & temporary
+/tmp/
+/logs/
+
+# Git worktrees
+/.worktrees/

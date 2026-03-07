@@ -8,6 +8,7 @@
 import { getDocumentEmbedding, maybeRoundEmbedding } from '../embeddings.js';
 import { cosineSimilarity } from '../retrieval/math.js';
 import { log } from '../utils/logging.js';
+import { stemWord } from '../utils/stemmer.js';
 import { ALL_STOPWORDS } from '../utils/stopwords.js';
 
 /**
@@ -215,7 +216,7 @@ export function hasSufficientTokenOverlap(tokensA, tokensB, minOverlapRatio = 0.
     }
 
     // Fuzzy substring: significant common prefix/suffix (e.g., "alice" vs "alicia")
-    if (keyA && keyB && keyA.length > 3 && keyB.length > 3) {
+    if (keyA && keyB && keyA.length > 2 && keyB.length > 2) {
         const commonLen = longestCommonSubstring(keyA, keyB);
         const minLen = Math.min(keyA.length, keyB.length);
         if (commonLen / minLen >= 0.6) {
@@ -242,6 +243,19 @@ export function hasSufficientTokenOverlap(tokensA, tokensB, minOverlapRatio = 0.
 
     const minSize = Math.min(significantA.size, significantB.size);
     const overlapRatio = overlapCount / minSize;
+
+    // Check 4: Stem-based comparison (catches Russian morphological variants)
+    const stemmedA = new Set([...significantA].map((t) => stemWord(t)).filter((s) => s.length >= 2));
+    const stemmedB = new Set([...significantB].map((t) => stemWord(t)).filter((s) => s.length >= 2));
+    if (stemmedA.size > 0 && stemmedB.size > 0) {
+        let stemOverlap = 0;
+        for (const s of stemmedA) {
+            if (stemmedB.has(s)) stemOverlap++;
+        }
+        if (stemOverlap / Math.min(stemmedA.size, stemmedB.size) >= minOverlapRatio) {
+            return true;
+        }
+    }
 
     return overlapRatio >= minOverlapRatio;
 }

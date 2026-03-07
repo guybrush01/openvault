@@ -139,15 +139,18 @@ describe('buildEventExtractionPrompt', () => {
         expect(result[1].role).toBe('user');
     });
 
-    it('does NOT mention entities or relationships in system prompt', () => {
+    it('does NOT include entities or relationships in output_schema', () => {
         const result = buildEventExtractionPrompt({
             messages: '[Alice]: Hello',
             names: { char: 'Alice', user: 'Bob' },
             context: {},
         });
         const systemContent = result[0].content;
-        expect(systemContent).not.toContain('"entities"');
-        expect(systemContent).not.toContain('"relationships"');
+        const outputSchemaMatch = systemContent.match(/<output_schema>([\s\S]*?)<\/output_schema>/);
+        expect(outputSchemaMatch).not.toBeNull();
+        const outputSchema = outputSchemaMatch[1];
+        expect(outputSchema).not.toContain('"entities"');
+        expect(outputSchema).not.toContain('"relationships"');
     });
 });
 
@@ -479,5 +482,60 @@ describe('resolveExtractionPrefill', () => {
 
     it('falls back to <think> for null settings', () => {
         expect(resolveExtractionPrefill(null)).toBe('<think>\n');
+    });
+});
+
+describe('multilingual prompt compliance', () => {
+    const eventResult = buildEventExtractionPrompt({
+        messages: '[A]: test',
+        names: { char: 'A', user: 'B' },
+        context: {},
+    });
+    const graphResult = buildGraphExtractionPrompt({
+        messages: '[A]: test',
+        names: { char: 'A', user: 'B' },
+    });
+    const salientResult = buildSalientQuestionsPrompt('A', [{ summary: 'test', importance: 3 }]);
+    const insightResult = buildInsightExtractionPrompt('A', 'q?', [{ id: '1', summary: 't' }]);
+    const communityResult = buildCommunitySummaryPrompt([], []);
+
+    it('all prompts contain mirror language rules', () => {
+        for (const result of [eventResult, graphResult, salientResult, insightResult, communityResult]) {
+            expect(result[0].content).toContain('LANGUAGE RULES');
+            expect(result[0].content).toContain('SAME LANGUAGE');
+        }
+    });
+
+    it('no prompt contains "Write in ENGLISH" or "Write ALL summaries in ENGLISH"', () => {
+        for (const result of [eventResult, graphResult, salientResult, insightResult, communityResult]) {
+            const sys = result[0].content;
+            const user = result[1].content;
+            expect(sys).not.toContain('Write in ENGLISH');
+            expect(sys).not.toContain('summaries in ENGLISH');
+            expect(sys).not.toContain('Write all questions in English');
+            expect(sys).not.toContain('Write all insights in English');
+            expect(sys).not.toContain('Write in English');
+            expect(user).not.toContain('in ENGLISH');
+        }
+    });
+
+    it('all prompts contain bilingual few-shot examples', () => {
+        for (const result of [eventResult, graphResult, salientResult, insightResult, communityResult]) {
+            const sys = result[0].content;
+            // Bilingual examples must contain Cyrillic text
+            expect(sys).toMatch(/[\u0400-\u04FF]/);
+            // Must use numbered example format
+            expect(sys).toContain('<example_1>');
+        }
+    });
+
+    it('event prompt contains think blocks in examples', () => {
+        expect(eventResult[0].content).toContain('<think>');
+        expect(eventResult[0].content).toContain('</think>');
+    });
+
+    it('graph prompt contains nominative normalization rule', () => {
+        expect(graphResult[0].content).toContain('Nominative');
+        expect(graphResult[0].content).toContain('ошейник');
     });
 });

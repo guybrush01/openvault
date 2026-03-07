@@ -28,14 +28,13 @@ export const defaultSettings = {
     debugMode: false,
     requestLogging: false,
     // Extraction settings
-    messagesPerExtraction: 30,
-    extractionBuffer: 5, // Recent messages to exclude from auto-extraction
+    extractionTokenBudget: 16000, // Token threshold for extraction batches
     extractionRearviewTokens: 12000, // Token budget for extraction memory context
     // Retrieval pipeline settings (token-based)
     retrievalFinalTokens: 10000, // Final context budget
     // Auto-hide settings
     autoHideEnabled: true,
-    autoHideThreshold: 40,
+    visibleChatBudget: 16000, // Maximum tokens visible in chat history
     // Backfill settings
     backfillMaxRPM: 20,
     // Embedding settings (Local RAG)
@@ -108,11 +107,11 @@ export const QUERY_CONTEXT_DEFAULTS = {
 // Used to populate "(default: X)" hints in settings_panel.html
 export const UI_DEFAULT_HINTS = {
     // Extraction
-    messagesPerExtraction: defaultSettings.messagesPerExtraction,
+    extractionTokenBudget: defaultSettings.extractionTokenBudget,
 
     // Context budget
     retrievalFinalTokens: defaultSettings.retrievalFinalTokens,
-    autoHideThreshold: defaultSettings.autoHideThreshold,
+    visibleChatBudget: defaultSettings.visibleChatBudget,
 
     // Retrieval weights (new alpha-blend)
     alpha: defaultSettings.alpha,

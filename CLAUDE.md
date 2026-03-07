@@ -1,40 +1,30 @@
 # OpenVault - SillyTavern Extension
 
-## WHAT: The Project
-OpenVault is an agentic memory extension for SillyTavern. It provides POV-aware memory, witness tracking, relationship dynamics, and emotional continuity for roleplay conversations. It stores all data strictly within SillyTavern's `chatMetadata`.
+## WHAT & WHY
+Agentic memory extension for SillyTavern providing POV-aware memory, witness tracking, relationships, and emotional continuity. 
+- **Zero External DBs**: All state lives strictly in `context.chatMetadata.openvault`.
+- **Local RAG**: Transformers.js (WebGPU/WASM) or Ollama.
+- **LLM Agnostic**: Optimized for structured output (Zod schemas) using `<think>` tags.
 
-## WHY: The Architecture
-- **No external DBs**: All state is saved to `context.chatMetadata.openvault`.
-- **Testability**: SillyTavern globals (`getContext`, `eventSource`, etc.) are injected via `src/deps.js`. **Never access ST globals directly; always use `getDeps()`.**
-- **LLM Agnostic**: Optimized for structured output (Zod schemas) using medium-strength models.
-- **Local RAG**: Uses Transformers.js (WebGPU/WASM) or Ollama for embeddings.
+## CRITICAL RULES (HOW)
+- **ESM & No Bundler**: Runs directly in-browser. NO bare specifiers (`import { z } from 'zod'`). 
+- **CDN Imports Only**: Use `https://esm.sh/...`. Never pin versions (`@version`). Do NOT add new dependencies without permission.
+- **Test Aliasing**: If adding a CDN dependency, you MUST `npm install` it and map the URL to `node_modules/` in `vitest.config.js`.
+- **SillyTavern Globals**: NEVER access ST globals (`getContext`, `eventSource`) directly. Always use `getDeps()` from `src/deps.js`.
+- **Pre-commit**: Biome lints/formats automatically. DO NOT format manually. `npm run test` uses Vitest + JSDOM.
 
-## DEPENDENCIES & IMPORTS (ESM)
-**CRITICAL RULE:** This extension runs directly in the browser *without a bundler* (no Webpack/Vite for production). 
-- **No bare specifiers**: You CANNOT use `import { z } from 'zod'` in `src/`. The browser will crash.
-- **CDN Imports**: External libraries MUST be imported via CDN URLs (e.g., `import { z } from 'https://esm.sh/zod';`). **Never pin versions** (no `@version` suffix).
-- **No new dependencies**: Do NOT add new `https://esm.sh/...` imports to the app unless explicitly instructed by the user. Keep dependencies to an absolute minimum.
-- **Test Aliasing**: If instructed to add a new CDN dependency, you MUST also `npm install` the package and add an alias in `vitest.config.js` mapping the `https://...` URL to the local `node_modules/` path, or the test suite will break.
+## GOTCHAS & DEBUG SAUCE
+- **`<think>` Tags**: LLMs often return reasoning before JSON. ALWAYS pass output through `stripThinkingTags()` (`src/utils.js`) before parsing.
+- **Payload Calculator**: `PAYLOAD_CALC` in `src/constants.js` is the single source of truth for LLM context overhead (12k tokens). Don't hardcode it elsewhere.
+- **Thread Yielding**: Use `yieldToMain()` (`src/utils/st-helpers.js`). It polyfills `scheduler.yield()` with `setTimeout(0)` fallback.
+- **State Locks**: `operationState.extractionInProgress` (`src/state.js`) is for MANUAL backfill only. Background worker uses `isRunning` (`worker.js`). They mutually exclude.
 
-## HOW: Commands & Tools
-- **Testing**: `npm run test` (Vitest with JSDOM). Tests use stubbed ST dependencies.
-- **Linting/Formatting**: `npm run lint` and `npm run format`. We use Biome. **Do not format code manually**, rely on the linter.
-- **Sync Version**: `npm run sync-version` (syncs package.json to manifest.json).
-- **Pre-commit Hook**: Automatically runs `biome check --write --unsafe` on staged files and re-stages them. **STOP: Never run tests/format after git commit — biome's pre-commit hook handles this.**
-
-## MAP: Progressive Disclosure
-Detailed instructions are lazily loaded when you visit these directories:
-- `/include/ARCHITECTURE.md` - Full architecture.
-- `/src/extraction/CLAUDE.md` - Event extraction, entity/relationship graph CRUD.
-- `/src/retrieval/CLAUDE.md` - Alpha-Blend (BM25 + Vector) scoring, world context.
-- `/src/graph/CLAUDE.md` - Entity graph storage, GraphRAG communities.
-- `/src/reflection/CLAUDE.md` - Per-character reflection pipeline (Smallville).
-- `/src/ui/CLAUDE.md` - UI rendering, jQuery conventions, drawer patterns, payload calculator.
-- `/src/utils/CLAUDE.md` - Shared utilities (stemmer, stopwords, imperatives).
-- `/tests/CLAUDE.md` - Vitest conventions, stubs, and mock injection.
-
-## GOTCHAS
-- **Always strip `<think>` tags**: Models often return reasoning tags before JSON. Use `stripThinkingTags()` from `src/utils.js` before parsing any LLM output.
-- **`PAYLOAD_CALC` constants**: Single source of truth for LLM context overhead in settings UI. Import from `src/constants.js`. Do NOT hardcode 12k overhead values elsewhere.
-- **`yieldToMain()` polyfill**: Uses `scheduler.yield()` with fallback to `setTimeout(resolve, 0)` for browsers lacking the Scheduler API. Never call `scheduler.yield()` directly.
-- **State Locks**: `operationState.extractionInProgress` in `src/state.js` is used ONLY by manual backfill (`extractAllMessages`). The background worker uses its own `isRunning` flag in `src/extraction/worker.js`. These two systems have mutual exclusion: worker yields if manual backfill starts, manual backfill button rejects if worker is running.
+## ARCHITECTURE MAP (Lazy Loaded Context)
+- `include/ARCHITECTURE.md` - Global pipeline, Data Schema, Retrieval Math.
+- `src/extraction/CLAUDE.md` - 2-phase async worker, JSON validation, Zod schemas.
+- `src/retrieval/CLAUDE.md` - Alpha-Blend scoring, Forgetfulness curve.
+- `src/graph/CLAUDE.md` - Flat JSON graph, Semantic Merge, GraphRAG Louvain communities.
+- `src/reflection/CLAUDE.md` - Per-character insight pipeline, 3-tier replacement.
+- `src/ui/CLAUDE.md` - jQuery UI patterns, Settings bindings.
+- `src/utils/CLAUDE.md` - Shared utils (stemmer, stopwords).
+- `tests/CLAUDE.md` - Vitest mocking constraints via `deps.js`.

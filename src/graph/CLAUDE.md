@@ -1,37 +1,29 @@
 # Graph & GraphRAG Subsystem
 
-> For the big picture of how this fits into the whole app, see `docs/ARCHITECTURE.md`.
-
 ## WHAT
-Flat-JSON entity/relationship storage with semantic deduplication and Louvain community detection. Data lives in `chatMetadata.openvault.graph` and `.communities`.
+Flat-JSON entity and relationship storage with rigorous semantic deduplication and Louvain-based community detection.
 
-## HOW: Storage (`graph.js`)
-- **Structure**: `{ nodes: { key: { name, type, description, mentions, embedding } }, edges: { ... }, _mergeRedirects: {} }`
-- **Keys**: Nodes keyed by `normalizeKey(name)` (lowercase, strips possessives, collapses whitespace). Edges: `${source}__${target}`.
-- **Entity Upsert**: `upsertEntity` merges descriptions with ` | `, caps at 3 segments (FIFO), increments mentions.
-- **Relationship Upsert**: `upsertRelationship` increments weight, merges descriptions, caps at 5 segments.
-- **Semantic Merge**: `mergeOrInsertEntity` — fast path for exact key match, slow path uses embedding similarity (threshold 0.94) to dedupe same-type entities. Embeddings include `type`, `name`, AND `description` to prevent false merges (e.g., "Cotton rope" vs "White cotton panties").
-  - **Token Overlap Guard**: Breaks keys into word tokens, strips RP stopwords (via `stopword` lib + custom dicts: "the", "red", "large", "burgundy", etc.), requires >=50% token overlap OR direct substring match.
-  - **Why**: Prevents "Burgundy panties" from merging with "Burgundy candle" despite high cosine similarity from the shared adjective.
-  - **Alias Persistence**: When entities merge, the old name is preserved as an `aliases` array on the surviving node. Enables retrieval-time matching of previously-used entity names (e.g., "Vova (aka Lily)" → "Vova").
-- **Key Resolution**: `_resolveKey()` consults `_mergeRedirects` map to handle entity merge redirects when creating edges.
+## STORAGE STRUCTURE (`graph.js`)
+- **Keys**: Normalized (`normalizeKey()`) — lowercased, possessives stripped ("Vova's" -> "vova"), whitespace collapsed.
+- **Nodes**: `{ [key]: { name, type, description, mentions, embedding, aliases? } }`. Descriptions append with `|` (FIFO capped).
+- **Edges**: `{ "source__target": { source, target, description, weight } }`.
 
-## HOW: Consolidation (`consolidateGraph`)
-- Retroactive one-time merge for existing graphs with accumulated duplicates.
-- Embeds all nodes lacking embeddings, pairwise-compares within each type.
-- Merges nodes above threshold, redirects edges via `redirectEdges()`, removes old nodes.
+## SEMANTIC MERGE LOGIC
+Prevents duplicate nodes (e.g., "The King" vs "King Aldric").
+1. **Fast Path**: Exact key match -> basic upsert.
+2. **Slow Path**: Embeds `Type: Name - Description`. If Cosine Sim >= `0.94`, proceeds to Guard.
+3. **Token Overlap Guard**: Extracts tokens, strips RP stopwords (via `stopword` lib + custom lists like "burgundy", "red", "large"). Requires >= 50% overlap OR direct substring match.
+   - *Why?*: Prevents "Burgundy panties" merging with "Burgundy candle".
+4. **Aliases**: If merged, the absorbed name is pushed to the surviving node's `aliases` array for future retrieval matching.
+5. **Redirects**: Transient `_mergeRedirects` map ensures edges pointing to the old node route to the merged one.
 
-## HOW: Communities (`communities.js`)
-- **Library**: `graphology` via esm.sh. Test alias required in vitest.config.js.
-- **Detection**: Louvain algorithm on undirected graph. Skip if < 3 nodes.
-- **Main Character Pruning**: Temporarily removes edges involving `mainCharacterKeys` (User + Char) before running Louvain. Prevents "hairball" where all secondary entities only connect through protagonist. Re-assigns main chars to strongest neighbor's community after.
-- **Alias Expansion**: `expandMainCharacterKeys(baseKeys, graphNodes)` expands base User/Char keys with aliases from graph node data before pruning. Prevents alter-ego nodes from forming false secondary communities.
-- **Summarization**: LLM generates title/summary/findings per community. Only re-summarize if node membership changed.
-- **Island Guard**: Skip communities with < 2 nodes.
-- **Trigger**: Every 50 messages in extraction pipeline.
+## GRAPHRAG COMMUNITIES (`communities.js`)
+- **Trigger**: Every 50 messages during extraction.
+- **Algorithm**: `graphology-communities-louvain` on an undirected graph.
+- **Hairball Pruning**: Edges involving main characters (User/Char + their aliases) are temporarily removed. Prevents the "protagonist hairball" where all entities group into one giant cluster. Nodes re-assigned to strongest neighbor's community after.
+- **Summarization**: LLM generates Title, Summary, and Findings. Injected into ST context.
 
 ## GOTCHAS & RULES
-- **Orphaned Edges**: If `source`/`target` not in nodes, `upsertRelationship` silently skips.
-- **Embedding Rounding**: All embedding assignments in `graph.js` and `communities.js` use `maybeRoundEmbedding()` from `embeddings.js`. Rounds to 4 decimal places when `settings.embeddingRounding` is enabled (disabled by default).
-- **CDN Imports**: `https://esm.sh/graphology`, `graphology-communities-louvain`, `graphology-operators`.
-- **State Init**: Use `initGraphState(data)` to ensure all fields exist (non-destructive).
+- **Embedding Rounding**: Embeddings are rounded to 4 decimal places via `maybeRoundEmbedding()` to reduce `chatMetadata` JSON bloat by ~60%.
+- **Orphaned Edges**: `upsertRelationship` quietly skips if source/target nodes don't exist.
+- **ESM Libraries**: Relies on `https://esm.sh/graphology`. Mapped in `vitest.config.js`.

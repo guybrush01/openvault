@@ -1,40 +1,32 @@
-# Reflection Engine
-
-> For the big picture of how this fits into the whole app, see `docs/ARCHITECTURE.md`.
+# Agentic Reflection Engine
 
 ## WHAT
-Per-character synthesis of raw events into high-level insights (Smallville paper). Reflections are stored as memories with `type: 'reflection'`.
+Synthesizes raw event memories into high-level psychological insights, adapting concepts from the Generative Agents (Smallville) paper. 
 
-## HOW: The Pipeline (`reflect.js`)
-1. **Accumulate**: After each extraction, add event importance to per-character accumulators.
-2. **Trigger Check**: `shouldReflect()` returns true when `importance_sum >= 40` (configurable via `reflectionThreshold`).
-3. **Generate** (3 steps):
-   - Step 1: LLM generates 3 salient questions from recent memories.
-   - Step 2: For each question, retrieve relevant memories via cosine similarity, extract insights (3 parallel LLM calls, max 3 insights per question).
-   - Step 3: Store reflections as memory objects with embeddings. Dedup against existing reflections (threshold 0.9).
-4. **Reset**: Clear accumulator after reflection.
+## THE PIPELINE (`reflect.js`)
+1. **Accumulate**: Each extracted event adds its `importance` to the involved characters' `importance_sum`.
+2. **Trigger**: When `importance_sum >= 40`, reflection begins.
+3. **Pre-flight Gate**: Aborts if top recent events are >85% similar to existing reflections (prevents wasting tokens on repetitive insights).
+4. **Generate**: 
+   - *Step 1*: LLM generates 3 salient questions about the character's recent narrative arc.
+   - *Step 2*: For each question, retrieves memories & extracts insights (3 parallel LLM calls).
+5. **3-Tier Dedup & Embed**: (See below).
+6. **Reset**: Clears accumulator to 0.
 
-## HOW: Reflections Differ from Events
-- `type: 'reflection'` — distinguishes from `type: 'event'`.
-- `character: string` — which character generated this.
-- `source_ids: string[]` — evidence memory IDs.
-- `witnesses: [characterName]` — only the reflecting character.
-- `importance: 4` — fixed default (retrievable like events).
-- Retrieved and injected alongside events via same pipeline.
+## REFLECTION SCHEMA
+- `type: 'reflection'` (distinguishes from events).
+- `source_ids`: Array of evidence memory IDs.
+- `witnesses`: Only the reflecting character (internal thought).
+- `importance`: Fixed default of 4.
+
+## 3-TIER DEDUP LIFECYCLE
+Compares new reflection embeddings vs existing ones for that character:
+- **>= 90%**: **Reject**. Concept already exists.
+- **80% - 89%**: **Replace**. Theme matches but evidence evolved. Old reflection marked `archived: true` (ignored by retrieval), new one added.
+- **< 80%**: **Add**. Genuinely new insight.
 
 ## GOTCHAS & RULES
-- **POV Filtering**: Use `filterMemoriesByPOV()` at generation time. Character only reflects on accessible memories.
-- **Parallel Step 2**: The 3 insight-extraction calls MUST use `Promise.all()`. Critical for performance.
-- **Recursive Reflections**: Reflections can cite other reflections as evidence. This is intentional (hierarchical abstraction).
-- **LLM Configs**: Uses `extractionProfile` (reuses user's extraction API settings).
-
-## RETRIEVAL SCORING
-- Reflections included in retrieval alongside events (see `src/retrieval/retrieve.js`).
-- **Reflection Decay**: In `math.js`, reflections older than 500 messages get linear decay (floor 0.25×). Prevents stale insights from dominating.
-
-## LIFECYCLE & DEDUPLICATION
-- **Pre-flight Gate**: Before spending 4 LLM calls, checks if top 3 recent events align (>85% cosine) with existing reflections. Aborts if no meaningful change detected.
-- **3-Tier Replacement Strategy** (applied after generating new reflections):
-  - `>= 90%`: **Reject** — Exact duplicate concept, discard new reflection.
-  - `80% - 89%`: **Replace** — Same theme, updated evidence. Old reflection marked `archived: true`, new one added.
-  - `< 80%`: **Add** — Genuinely new insight, append to memories.
+- **Parallel Execution**: Step 2 (Insights) MUST use `Promise.all()`. Critical for performance.
+- **Recursive Linking**: Reflections can cite other older reflections as evidence in `source_ids`. This hierarchical abstraction is intentional.
+- **POV Strictness**: Uses `filterMemoriesByPOV()` before Step 1. A character can only reflect on things they know.
+- **Decay**: To prevent early insights from dominating late-game context, reflections > 750 messages old suffer linear decay down to 0.25x score in `math.js`.

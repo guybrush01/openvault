@@ -1,37 +1,32 @@
 # Memory Retrieval & Scoring Subsystem
 
-> For the big picture of how this fits into the whole app, see `docs/ARCHITECTURE.md`.
-
 ## WHAT
-Finds relevant memories (events + reflections) and community summaries. Formats for prompt injection via named slots: `openvault_memory` and `openvault_world`.
+Selects optimal memories (events + reflections) and community summaries, then formats them for prompt injection via ST named slots (`openvault_memory`, `openvault_world`).
 
-## HOW: The Math (`math.js` & `scoring.js`)
-Hybrid **Alpha-Blend** scoring:
-1. **Forgetfulness Curve**: Exponential decay by message distance. Importance 5 = soft floor (1.0, not hard 5.0).
-2. **BM25**: IDF-aware term frequency via `query-context.js`.
-   - **Token Caching**: `scoreMemories()` reads pre-computed `m.tokens` from memory objects (set at extraction time). Falls back to `tokenize(m.summary)` for legacy memories missing the field.
-   - **Graph-Anchored Entity Detection**: `extractQueryContext()` builds a `stem → entity` map from graph nodes (including aliases) and active characters. Message words are stemmed and matched against this map. No regex — all entities come from the graph or known characters.
-   - **IDF-Aware Query Adjustment**: Query tokens weighted by inverse document frequency BEFORE scoring. Prevents common named entities from artificially inflating scores.
-   - **Character Stopwords**: `scoreMemories()` accepts `characterNames` param — filters character name tokens from BM25 query since they appear in nearly every memory and have near-zero IDF.
-   - **Frequency Filter**: Entities appearing in >50% of scanned messages are excluded (too generic).
-   - **Recency Weighting**: Recent messages weighted higher in entity scoring.
-3. **Vector**: Cosine similarity via WebGPU/Ollama.
-4. **Reflection Decay**: Reflections older than 500 messages get linear decay (floor 0.25×).
-- **Formula**: `Total = Base + (Alpha * Vector) + ((1 - Alpha) * BM25)`
+## RETRIEVAL PIPELINE (`retrieve.js`)
+1. **Candidate Pool**: Hidden memories (visible ones are already in ST context) + Reflections (no message IDs).
+2. **POV Filter**: Strict filter. Characters only recall what they witnessed or are told (`known_events`).
+3. **Budgeting**: Top-scored results sliced to `retrievalFinalTokens` limit.
+4. **Formatting**: Grouped into temporal buckets: *The Story So Far*, *Leading Up To This Moment*, *Current Scene*.
 
-## HOW: Candidate Selection (`retrieve.js`)
-- **Hidden Memories**: Extracted from system messages only (visible messages already in context).
-- **Reflections**: Included alongside hidden memories (reflections have no `message_ids`).
-- **POV Filter**: Applied to combined candidate set via `filterMemoriesByPOV()`.
+## SCORING MATH (Alpha-Blend in `math.js`)
+**Formula**: `Total = Base + (Alpha * VectorBonus) + ((1 - Alpha) * BM25Bonus)`
 
-## HOW: World Context (`world-context.js`)
-- **Source**: GraphRAG community summaries from `src/graph/communities.js`.
-- **Retrieval**: Pure Vector similarity (cosine) ONLY — bypasses BM25 entirely. Token budget from `settings.worldContextBudget` (default 2000).
-- **Format**: `<world_context>` XML tag with title/summary/findings.
-- **Injection**: Named slot `openvault_world` (higher in prompt than memories).
+- **Forgetfulness Curve (Base)**: Exponential decay by narrative distance.
+  - Higher importance = slower decay. Importance 5 has a soft floor of `1.0`.
+  - *Reflection Decay*: Reflections older than 750 messages suffer linear penalty (floor 0.25x) to prevent stale insights.
+- **BM25 Keyword Matching**:
+  - *Token Caching*: Pre-computed `m.tokens` (stemmed) to save CPU.
+  - *Graph-Anchored*: Extracts query entities directly from Graph Nodes (no regex guessing).
+  - *IDF-Aware*: Query tokens weighted by Inverse Document Frequency.
+  - *Dynamic Stopwords*: Main character names are stripped from BM25 queries since they have near-zero IDF and waste scoring weight.
+- **Vector Similarity**: Cosine similarity against last 3 user messages + top entities.
+
+## WORLD CONTEXT (`world-context.js`)
+- Retrieves GraphRAG community summaries.
+- Uses **Pure Vector Similarity** (bypasses BM25 entirely).
+- Injects via `<world_context>` XML tag high up in the prompt (`openvault_world` slot).
 
 ## GOTCHAS & RULES
-- **Pure Functions**: `math.js` ONLY. No `deps.js`, no DOM. Worker-safe.
-- **Named Slots**: Use `safeSetExtensionPrompt(content, name)` — `openvault_memory` or `openvault_world`.
-- **Formatting Buckets**: `formatting.js` divides into `Old`, `Mid`, `Recent` buckets. Old bucket capped at 50% of memory budget to prevent creep.
-- **POV Filtering**: Filter through `src/pov.js` before scoring. Only inject witnessed/known memories.
+- **Pure Math**: `math.js` contains ZERO DOM/deps imports. Fully worker-safe.
+- **Bucket Limits**: The *Old* bucket ("The Story So Far") is hard-capped at 50% of the memory budget to prevent ancient history from drowning out recent context.

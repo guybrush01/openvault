@@ -135,7 +135,7 @@ function buildLanguageReminder(text) {
     const latinLetters = allLetters.filter((c) => /[a-zA-Z]/.test(c)).length;
     const nonLatinLetters = allLetters.length - latinLetters;
     if (nonLatinLetters > latinLetters * 0.5) {
-        return '\nIMPORTANT — LANGUAGE: The text above is NOT in English. Per Language Rules, ALL output string values (summaries, descriptions, emotions, relationship impacts) MUST be in the SAME language as the narrative text. Do NOT translate to English. JSON keys stay English.\n';
+        return '\nIMPORTANT — LANGUAGE: The text above is NOT in English. Per Language Rules, ALL output string values (summaries, descriptions, emotions, relationship impacts) MUST be in the SAME language as the narrative text. Do NOT translate to English. JSON keys stay English. EXCEPTION: Character names MUST stay in their original script exactly as written — do NOT transliterate (e.g., Suzy stays Suzy even in Russian text, NOT Сузи).\n';
     }
     return '';
 }
@@ -290,7 +290,7 @@ ${messages}
 </messages>
 ${buildLanguageReminder(messages)}
 Analyze the messages above. Extract events only.
-Use exact character names from <context> if provided.
+Use EXACT character names: ${characterName}, ${userName}. Never transliterate these names into another script.
 Write your analysis inside <think> tags FIRST, then output the JSON object with "events" key. No other text.`;
 
     return buildMessages(systemPrompt, userPrompt, prefill ?? '<think>\n', preamble);
@@ -371,6 +371,7 @@ ${messages}
 
 ${eventsSection}${buildLanguageReminder(messages)}
 Based on the messages${extractedEvents.length > 0 ? ' and extracted events above' : ''}, extract named entities and relationships.
+Use EXACT character names: ${characterName}, ${userName}. Never transliterate these names into another script.
 Respond with a single JSON object containing 'entities' and 'relationships' keys. No other text.`;
 
     return buildMessages(systemPrompt, userPrompt, '{', preamble);

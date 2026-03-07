@@ -12,6 +12,7 @@ import {
     extensionFolderPath,
     extensionName,
     MEMORIES_KEY,
+    PAYLOAD_CALC,
     QUERY_CONTEXT_DEFAULTS,
     UI_DEFAULT_HINTS,
 } from '../constants.js';
@@ -98,6 +99,43 @@ function updateReflectionDedupDisplay(rejectThreshold) {
     $('#openvault_reflection_replace_low').text(replaceThreshold);
     $('#openvault_reflection_replace_high').text(replaceHigh);
     $('#openvault_reflection_add_display').text(addDisplay);
+}
+
+/**
+ * Update the payload calculator readout.
+ * Reads current slider values, adds PAYLOAD_CALC.OVERHEAD, sets emoji + color class.
+ */
+function updatePayloadCalculator() {
+    const budget = Number($('#openvault_extraction_token_budget').val()) || 12000;
+    const rearview = Number($('#openvault_extraction_rearview').val()) || 8000;
+    const total = budget + rearview + PAYLOAD_CALC.OVERHEAD;
+
+    $('#openvault_payload_total').text(total.toLocaleString());
+
+    // Breakdown: show each component so user understands
+    const bStr = Math.round(budget / 1000) + 'k';
+    const rStr = Math.round(rearview / 1000) + 'k';
+    const oStr = Math.round(PAYLOAD_CALC.OVERHEAD / 1000) + 'k';
+    $('#openvault_payload_breakdown').text(`(${bStr} batch + ${rStr} rearview + ${oStr} overhead)`);
+
+    // Color thresholds — all from PAYLOAD_CALC, no magic numbers here
+    const $calc = $('#openvault_payload_calculator');
+    $calc.removeClass('payload-safe payload-caution payload-warning payload-danger');
+    let emoji;
+    if (total <= PAYLOAD_CALC.THRESHOLD_GREEN) {
+        $calc.addClass('payload-safe');
+        emoji = '✅';
+    } else if (total <= PAYLOAD_CALC.THRESHOLD_YELLOW) {
+        $calc.addClass('payload-caution');
+        emoji = '⚠️';
+    } else if (total <= PAYLOAD_CALC.THRESHOLD_ORANGE) {
+        $calc.addClass('payload-warning');
+        emoji = '🟠';
+    } else {
+        $calc.addClass('payload-danger');
+        emoji = '🔴';
+    }
+    $('#openvault_payload_emoji').text(emoji);
 }
 
 function getSettings() {
@@ -333,10 +371,11 @@ function bindUIElements() {
     bindSetting('embedding_rounding', 'embeddingRounding', 'bool');
 
     // Extraction settings
-    bindSetting('extraction_token_budget', 'extractionTokenBudget');
-    bindSetting('extraction_rearview', 'extractionRearviewTokens', 'int', (v) =>
-        updateWordsDisplay(v, 'openvault_extraction_rearview_words')
-    );
+    bindSetting('extraction_token_budget', 'extractionTokenBudget', 'int', () => updatePayloadCalculator());
+    bindSetting('extraction_rearview', 'extractionRearviewTokens', 'int', (v) => {
+        updateWordsDisplay(v, 'openvault_extraction_rearview_words');
+        updatePayloadCalculator();
+    });
 
     // Token budget settings
     bindSetting('visible_chat_budget', 'visibleChatBudget');
@@ -498,8 +537,8 @@ export function updateUI() {
     $('#openvault_embedding_rounding').prop('checked', settings.embeddingRounding);
 
     // Extraction settings
-    $('#openvault_extraction_token_budget').val(settings.extractionTokenBudget ?? 16000);
-    $('#openvault_extraction_token_budget_value').text(settings.extractionTokenBudget ?? 16000);
+    $('#openvault_extraction_token_budget').val(settings.extractionTokenBudget ?? 12000);
+    $('#openvault_extraction_token_budget_value').text(settings.extractionTokenBudget ?? 12000);
 
     $('#openvault_extraction_rearview').val(settings.extractionRearviewTokens);
     $('#openvault_extraction_rearview_value').text(settings.extractionRearviewTokens);
@@ -615,6 +654,9 @@ export function updateUI() {
     // Jaccard dedup threshold — token-overlap filter for near-duplicates
     $('#openvault_dedup_jaccard').val(settings.dedupJaccardThreshold ?? 0.6);
     $('#openvault_dedup_jaccard_value').text(settings.dedupJaccardThreshold ?? 0.6);
+
+    // Payload calculator — must run after sliders are synced
+    updatePayloadCalculator();
 
     // Refresh all UI components
     refreshAllUI();

@@ -571,100 +571,6 @@
                  TAB 4: ADVANCED
                  ================================================================ -->
             <div class="openvault-tab-content" data-tab="advanced">
-                <!-- Scoring & Weights -->
-                <div class="openvault-settings-group">
-                    <div class="openvault-settings-group-header">
-                        <i class="fa-solid fa-scale-balanced"></i>
-                        <span>Scoring & Weights</span>
-                    </div>
-
-                    <label for="openvault_alpha">
-                        Vector vs Keyword Balance: <span id="openvault_alpha_value">0.7</span>
-                        <small class="openvault-default-hint" data-default-key="alpha"></small>
-                    </label>
-                    <input type="range" id="openvault_alpha" min="0" max="1" step="0.01" value="0.7" />
-                    <small class="openvault-hint">1.0 = semantic vibes only · 0.5 = balanced · 0.0 = keywords only</small>
-
-                    <div style="height: 8px;"></div>
-
-                    <label for="openvault_combined_weight">
-                        Retrieval Boost Strength: <span id="openvault_combined_weight_value">15</span>
-                        <small class="openvault-default-hint" data-default-key="combinedBoostWeight"></small>
-                    </label>
-                    <input type="range" id="openvault_combined_weight" min="1" max="30" step="1" value="15" />
-                    <small class="openvault-hint">Maximum boost points for semantic+keyword matching</small>
-                </div>
-
-                <!-- Decay Math -->
-                <div class="openvault-settings-group">
-                    <div class="openvault-settings-group-header">
-                        <i class="fa-solid fa-chart-line"></i>
-                        <span>Decay Math</span>
-                    </div>
-
-                    <!-- Forgetfulness Base Lambda (NEW) -->
-                    <label for="openvault_forgetfulness_lambda">
-                        Decay Rate (Lambda): <span id="openvault_forgetfulness_lambda_value">0.05</span>
-                        <small class="openvault-default-hint" data-default-key="forgetfulnessBaseLambda"></small>
-                    </label>
-                    <input type="range" id="openvault_forgetfulness_lambda" min="0.01" max="0.20" step="0.01" value="0.05" />
-                    <small class="openvault-hint">How fast memories fade. Lower = memories last longer. 0.05 = moderate, 0.01 = near-permanent.</small>
-
-                    <div style="height: 8px;"></div>
-
-                    <!-- Importance-5 Floor (NEW) -->
-                    <label for="openvault_importance5_floor">
-                        Importance-5 Floor: <span id="openvault_importance5_floor_value">5</span>
-                        <small class="openvault-default-hint" data-default-key="forgetfulnessImportance5Floor"></small>
-                    </label>
-                    <input type="range" id="openvault_importance5_floor" min="1" max="20" step="1" value="5" />
-                    <small class="openvault-hint">Minimum score for max-importance memories. Higher = critical memories stay relevant.</small>
-                </div>
-
-                <!-- Similarity Thresholds -->
-                <div class="openvault-settings-group">
-                    <div class="openvault-settings-group-header">
-                        <i class="fa-solid fa-bullseye"></i>
-                        <span>Similarity Thresholds</span>
-                    </div>
-
-                    <label for="openvault_vector_threshold">
-                        Semantic Threshold: <span id="openvault_vector_threshold_value">0.5</span>
-                        <small class="openvault-default-hint" data-default-key="vectorSimilarityThreshold"></small>
-                    </label>
-                    <input type="range" id="openvault_vector_threshold" min="0" max="1" step="0.01" value="0.5" />
-                    <small class="openvault-hint">Noise filter. 0.7+ = strict (only close matches), 0.3- = loose</small>
-
-                    <div style="height: 8px;"></div>
-
-                    <label for="openvault_dedup_threshold">
-                        Cosine Dedup Threshold: <span id="openvault_dedup_threshold_value">0.92</span>
-                        <small class="openvault-default-hint" data-default-key="dedupSimilarityThreshold"></small>
-                    </label>
-                    <input type="range" id="openvault_dedup_threshold" min="0.80" max="0.98" step="0.01" value="0.92" />
-                    <small class="openvault-hint">0.85 = permissive (keeps more) · 0.92 = default · 0.96 = strict (only exact paraphrases)</small>
-
-                    <div style="height: 8px;"></div>
-
-                    <!-- Jaccard Dedup Threshold (NEW) -->
-                    <label for="openvault_dedup_jaccard">
-                        Jaccard Dedup Threshold: <span id="openvault_dedup_jaccard_value">0.60</span>
-                        <small class="openvault-default-hint" data-default-key="dedupJaccardThreshold"></small>
-                    </label>
-                    <input type="range" id="openvault_dedup_jaccard" min="0.30" max="0.90" step="0.01" value="0.60" />
-                    <small class="openvault-hint">Token-overlap filter for near-duplicates. Lower = more aggressive dedup.</small>
-
-                    <div style="height: 8px;"></div>
-
-
-                    <label for="openvault_entity_merge_threshold">
-                        Entity Merge Threshold: <span id="openvault_entity_merge_threshold_value">0.80</span>
-                        <small class="openvault-default-hint" data-default-key="entityMergeSimilarityThreshold"></small>
-                    </label>
-                    <input type="range" id="openvault_entity_merge_threshold" min="0.5" max="1" step="0.01" value="0.80" />
-                    <small class="openvault-hint">Semantic similarity to merge entities. Higher = fewer merges.</small>
-                </div>
-
                 <!-- System -->
                 <div class="openvault-settings-group">
                     <div class="openvault-settings-group-header">
@@ -699,6 +605,90 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Scoring & Weights -->
+                <details class="openvault-details">
+                    <summary><i class="fa-solid fa-scale-balanced"></i> Scoring & Weights</summary>
+                    <div class="openvault-settings-group">
+                        <label for="openvault_alpha">
+                            Vector vs Keyword Balance: <span id="openvault_alpha_value">0.7</span>
+                            <small class="openvault-default-hint" data-default-key="alpha"></small>
+                        </label>
+                        <input type="range" id="openvault_alpha" min="0" max="1" step="0.01" value="0.7" />
+                        <small class="openvault-hint">1.0 = semantic vibes only · 0.5 = balanced · 0.0 = keywords only</small>
+
+                        <div style="height: 8px;"></div>
+
+                        <label for="openvault_combined_weight">
+                            Retrieval Boost Strength: <span id="openvault_combined_weight_value">15</span>
+                            <small class="openvault-default-hint" data-default-key="combinedBoostWeight"></small>
+                        </label>
+                        <input type="range" id="openvault_combined_weight" min="1" max="30" step="1" value="15" />
+                        <small class="openvault-hint">Maximum boost points for semantic+keyword matching</small>
+                    </div>
+                </details>
+
+                <!-- Decay Math -->
+                <details class="openvault-details">
+                    <summary><i class="fa-solid fa-chart-line"></i> Decay Math</summary>
+                    <div class="openvault-settings-group">
+                        <label for="openvault_forgetfulness_lambda">
+                            Decay Rate (Lambda): <span id="openvault_forgetfulness_lambda_value">0.05</span>
+                            <small class="openvault-default-hint" data-default-key="forgetfulnessBaseLambda"></small>
+                        </label>
+                        <input type="range" id="openvault_forgetfulness_lambda" min="0.01" max="0.20" step="0.01" value="0.05" />
+                        <small class="openvault-hint">How fast memories fade. Lower = memories last longer. 0.05 = moderate, 0.01 = near-permanent.</small>
+
+                        <div style="height: 8px;"></div>
+
+                        <label for="openvault_importance5_floor">
+                            Importance-5 Floor: <span id="openvault_importance5_floor_value">5</span>
+                            <small class="openvault-default-hint" data-default-key="forgetfulnessImportance5Floor"></small>
+                        </label>
+                        <input type="range" id="openvault_importance5_floor" min="1" max="20" step="1" value="5" />
+                        <small class="openvault-hint">Minimum score for max-importance memories. Higher = critical memories stay relevant.</small>
+                    </div>
+                </details>
+
+                <!-- Similarity Thresholds -->
+                <details class="openvault-details">
+                    <summary><i class="fa-solid fa-bullseye"></i> Similarity Thresholds</summary>
+                    <div class="openvault-settings-group">
+                        <label for="openvault_vector_threshold">
+                            Semantic Threshold: <span id="openvault_vector_threshold_value">0.5</span>
+                            <small class="openvault-default-hint" data-default-key="vectorSimilarityThreshold"></small>
+                        </label>
+                        <input type="range" id="openvault_vector_threshold" min="0" max="1" step="0.01" value="0.5" />
+                        <small class="openvault-hint">Noise filter. 0.7+ = strict (only close matches), 0.3- = loose</small>
+
+                        <div style="height: 8px;"></div>
+
+                        <label for="openvault_dedup_threshold">
+                            Cosine Dedup Threshold: <span id="openvault_dedup_threshold_value">0.92</span>
+                            <small class="openvault-default-hint" data-default-key="dedupSimilarityThreshold"></small>
+                        </label>
+                        <input type="range" id="openvault_dedup_threshold" min="0.80" max="0.98" step="0.01" value="0.92" />
+                        <small class="openvault-hint">0.85 = permissive (keeps more) · 0.92 = default · 0.96 = strict (only exact paraphrases)</small>
+
+                        <div style="height: 8px;"></div>
+
+                        <label for="openvault_dedup_jaccard">
+                            Jaccard Dedup Threshold: <span id="openvault_dedup_jaccard_value">0.60</span>
+                            <small class="openvault-default-hint" data-default-key="dedupJaccardThreshold"></small>
+                        </label>
+                        <input type="range" id="openvault_dedup_jaccard" min="0.30" max="0.90" step="0.01" value="0.60" />
+                        <small class="openvault-hint">Token-overlap filter for near-duplicates. Lower = more aggressive dedup.</small>
+
+                        <div style="height: 8px;"></div>
+
+                        <label for="openvault_entity_merge_threshold">
+                            Entity Merge Threshold: <span id="openvault_entity_merge_threshold_value">0.80</span>
+                            <small class="openvault-default-hint" data-default-key="entityMergeSimilarityThreshold"></small>
+                        </label>
+                        <input type="range" id="openvault_entity_merge_threshold" min="0.5" max="1" step="0.01" value="0.80" />
+                        <small class="openvault-hint">Semantic similarity to merge entities. Higher = fewer merges.</small>
+                    </div>
+                </details>
 
                 <!-- Footer -->
                 <div class="openvault-footer">

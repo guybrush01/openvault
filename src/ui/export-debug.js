@@ -4,7 +4,7 @@
  * Assembles and exports full system state + last retrieval debug data to clipboard.
  */
 
-import { CHARACTERS_KEY, extensionName, MEMORIES_KEY } from '../constants.js';
+import { CHARACTERS_KEY, defaultSettings, extensionName, MEMORIES_KEY } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { isEmbeddingsEnabled } from '../embeddings.js';
 import { getCachedScoringDetails, getLastRetrievalDebug } from '../retrieval/debug-cache.js';
@@ -250,18 +250,18 @@ export function buildExportPayload() {
             communities: buildCommunitiesExport(communities),
         },
 
-        settings: {
-            alpha: settings.alpha,
-            vectorSimilarityThreshold: settings.vectorSimilarityThreshold,
-            combinedBoostWeight: settings.combinedBoostWeight,
-            forgetfulnessBaseLambda: settings.forgetfulnessBaseLambda,
-            forgetfulnessImportance5Floor: settings.forgetfulnessImportance5Floor,
-            retrievalFinalTokens: settings.retrievalFinalTokens,
-            worldContextBudget: settings.worldContextBudget,
+        // Dump all settings dynamically using defaultSettings keys as source of truth
+        // This ensures any new settings added to defaultSettings are auto-included
+        settings: Object.fromEntries(
+            Object.keys(defaultSettings).map((key) => {
+                // Special case: 'enabled' is exported as 'autoMode' for clarity
+                if (key === 'enabled') return ['autoMode', settings[key]];
+                return [key, settings[key]];
+            })
+        ),
+        // Runtime-computed values (not in defaultSettings)
+        runtime: {
             embeddingsEnabled: isEmbeddingsEnabled(),
-            embeddingSource: settings.embeddingSource,
-            autoMode: settings.enabled,
-            debugMode: settings.debugMode,
         },
     };
 }

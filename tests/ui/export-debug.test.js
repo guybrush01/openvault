@@ -1,20 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Import defaultSettings to use as template for mock
+const { defaultSettings } = await import('../../src/constants.js');
+
 // Mock deps before import
 vi.mock('../../src/deps.js', () => ({
     getDeps: () => ({
         getExtensionSettings: () => ({
             openvault: {
+                ...defaultSettings,
+                // Override a few for testing
                 alpha: 0.7,
-                vectorSimilarityThreshold: 0.5,
-                combinedBoostWeight: 15,
-                forgetfulnessBaseLambda: 0.05,
-                forgetfulnessImportance5Floor: 5,
-                retrievalFinalTokens: 10000,
-                worldContextBudget: 2000,
-                embeddingSource: 'multilingual-e5-small',
-                debugMode: false,
                 enabled: true,
+                debugMode: false,
             },
         }),
         getContext: () => ({
@@ -117,10 +115,19 @@ describe('buildExportPayload', () => {
         expect(payload.state.communities.details.c1.embedding).toBeUndefined();
     });
 
-    it('includes settings', () => {
+    it('includes all settings dynamically from defaultSettings', () => {
         const payload = buildExportPayload();
+        // Should have all defaultSetting keys (with 'enabled' -> 'autoMode')
         expect(payload.settings.alpha).toBe(0.7);
-        expect(payload.settings.embeddingsEnabled).toBe(true);
+        expect(payload.settings.autoMode).toBe(true); // 'enabled' mapped to 'autoMode'
+        expect(payload.settings.debugMode).toBe(false);
+        // Check that we have roughly the right number of settings (default has ~40)
+        expect(Object.keys(payload.settings).length).toBeGreaterThanOrEqual(40);
+    });
+
+    it('includes runtime computed values', () => {
+        const payload = buildExportPayload();
+        expect(payload.runtime.embeddingsEnabled).toBe(true);
     });
 
     it('includes lastRetrieval when cached', () => {

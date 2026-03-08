@@ -21,7 +21,7 @@ describe('MIRROR_LANGUAGE_RULES', () => {
         // Rule 6: Ignore instruction language
         expect(MIRROR_LANGUAGE_RULES).toContain('<messages>');
         // Rule 7: Think in English
-        expect(MIRROR_LANGUAGE_RULES).toContain('thinking>');
+        expect(MIRROR_LANGUAGE_RULES).toContain('reasoning blocks');
         expect(MIRROR_LANGUAGE_RULES).toContain('English');
     });
 

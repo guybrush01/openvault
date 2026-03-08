@@ -6,12 +6,6 @@
 
 import { extensionName, MEMORIES_KEY, RETRIEVAL_TIMEOUT_MS } from './constants.js';
 import { getDeps } from './deps.js';
-import { clearEmbeddingCache } from './embeddings.js';
-import { cleanupCharacterStates } from './extraction/extract.js';
-import { getExtractedMessageIds } from './extraction/scheduler.js';
-import { wakeUpBackgroundWorker } from './extraction/worker.js';
-import { clearRetrievalDebug } from './retrieval/debug-cache.js';
-import { updateInjection } from './retrieval/retrieve.js';
 import {
     clearGenerationLock,
     isChatLoadingCooldown,
@@ -26,7 +20,6 @@ import { getOpenVaultData } from './utils/data.js';
 import { showToast } from './utils/dom.js';
 import { log } from './utils/logging.js';
 import { isExtensionEnabled, safeSetExtensionPrompt, withTimeout } from './utils/st-helpers.js';
-import { getMessageTokenCount, getTokenSum, snapToTurnBoundary } from './utils/tokens.js';
 
 // =============================================================================
 // Auto-Hide Old Messages (inlined from auto-hide.js)
@@ -39,6 +32,9 @@ import { getMessageTokenCount, getTokenSum, snapToTurnBoundary } from './utils/t
  * IMPORTANT: Only hides messages that have already been extracted into memories.
  */
 export async function autoHideOldMessages() {
+    const { getExtractedMessageIds } = await import('./extraction/scheduler.js');
+    const { getMessageTokenCount, getTokenSum, snapToTurnBoundary } = await import('./utils/tokens.js');
+
     const deps = getDeps();
     const settings = deps.getExtensionSettings()[extensionName];
     if (!settings.autoHideEnabled) return;
@@ -127,6 +123,8 @@ export async function onBeforeGeneration(type, _options, dryRun = false) {
         // Auto-hide old messages before building context
         await autoHideOldMessages();
 
+        const { updateInjection } = await import('./retrieval/retrieve.js');
+
         // Skip retrieval if no memories exist yet
         const data = getOpenVaultData();
         if (!data) {
@@ -180,8 +178,12 @@ export function onGenerationEnded() {
 /**
  * Handle chat changed event
  */
-export function onChatChanged() {
+export async function onChatChanged() {
     if (!isExtensionEnabled()) return;
+
+    const { clearEmbeddingCache } = await import('./embeddings.js');
+    const { cleanupCharacterStates } = await import('./extraction/extract.js');
+    const { clearRetrievalDebug } = await import('./retrieval/debug-cache.js');
 
     log('Chat changed, clearing injection, cache and setting load cooldown');
 
@@ -220,8 +222,10 @@ export function onChatChanged() {
  * Fire-and-forget — does not block SillyTavern.
  * @param {number} messageId - The message ID
  */
-export function onMessageReceived(messageId) {
+export async function onMessageReceived(messageId) {
     if (!isExtensionEnabled()) return;
+
+    const { wakeUpBackgroundWorker } = await import('./extraction/worker.js');
 
     if (isChatLoadingCooldown()) {
         log(`Skipping extraction for message ${messageId} - chat load cooldown active`);

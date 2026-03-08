@@ -23,8 +23,6 @@ import {
     setEmbeddingStatusCallback,
 } from '../embeddings.js';
 import { updateEventListeners } from '../events.js';
-import { getExtractedMessageIds, getUnextractedMessageIds } from '../extraction/scheduler.js';
-import { getTokenSum } from '../utils/tokens.js';
 import { exportToClipboard } from './export-debug.js';
 import { validateRPM } from './helpers.js';
 import { initBrowser, nextPage, prevPage, refreshAllUI, resetAndRender } from './render.js';
@@ -71,8 +69,6 @@ async function testOllamaConnection() {
     }, 3000);
 }
 
-import { extractAllMessages } from '../extraction/extract.js';
-import { isWorkerRunning } from '../extraction/worker.js';
 import { PREFILL_PRESETS } from '../prompts/preambles.js';
 import { deleteCurrentChatData, deleteCurrentChatEmbeddings, getOpenVaultData } from '../utils/data.js';
 import { showToast } from '../utils/dom.js';
@@ -249,6 +245,8 @@ function syncPrefillSelector() {
 // =============================================================================
 
 async function handleExtractAll() {
+    const { extractAllMessages } = await import('../extraction/extract.js');
+    const { isWorkerRunning } = await import('../extraction/worker.js');
     if (isWorkerRunning()) {
         showToast('warning', 'Background extraction in progress. Please wait.', 'OpenVault');
         return;
@@ -794,7 +792,7 @@ export function updateUI() {
  * Update budget fill indicators with color coding.
  * Called from refreshAllUI.
  */
-export function updateBudgetIndicators() {
+export async function updateBudgetIndicators() {
     const data = getOpenVaultData();
     const context = getDeps().getContext?.();
     const chat = context?.chat || [];
@@ -805,6 +803,9 @@ export function updateBudgetIndicators() {
         $('#openvault_visible_budget_text').text('No chat');
         return;
     }
+
+    const { getTokenSum } = await import('../utils/tokens.js');
+    const { getExtractedMessageIds, getUnextractedMessageIds } = await import('../extraction/scheduler.js');
 
     // Extraction indicator
     const extractionBudget = settings.extractionTokenBudget;

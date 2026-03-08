@@ -73,6 +73,7 @@ async function testOllamaConnection() {
 
 import { extractAllMessages } from '../extraction/extract.js';
 import { isWorkerRunning } from '../extraction/worker.js';
+import { PREFILL_PRESETS } from '../prompts/preambles.js';
 import { deleteCurrentChatData, deleteCurrentChatEmbeddings, getOpenVaultData } from '../utils/data.js';
 import { showToast } from '../utils/dom.js';
 
@@ -145,6 +146,102 @@ function getSettings() {
 function saveSetting(key, value) {
     getSettings()[key] = value;
     getDeps().saveSettingsDebounced();
+}
+
+// =============================================================================
+// Prefill Selector (custom dropdown with hover preview)
+// =============================================================================
+
+function initPrefillSelector() {
+    const $container = $('#openvault_prefill_selector');
+    if (!$container.length) return;
+
+    const settings = getSettings();
+    const currentKey = settings.extractionPrefill || 'think_tag';
+    const currentPreset = PREFILL_PRESETS[currentKey] || PREFILL_PRESETS.think_tag;
+
+    // Trigger button
+    const $trigger = $('<div class="openvault-prefill-trigger" tabindex="0"></div>').text(currentPreset.label);
+
+    // Dropdown panel
+    const $dropdown = $('<div class="openvault-prefill-dropdown"></div>');
+    const $options = $('<div class="openvault-prefill-options"></div>');
+    const $preview = $('<div class="openvault-prefill-preview"></div>');
+    const $previewLabel = $('<div class="openvault-prefill-preview-label">Preview</div>');
+    const $previewCode = $('<pre></pre>');
+    $preview.append($previewLabel, $previewCode);
+
+    renderPrefillPreview($previewCode, currentPreset.value);
+
+    for (const [key, preset] of Object.entries(PREFILL_PRESETS)) {
+        const $opt = $('<div class="openvault-prefill-option"></div>').attr('data-value', key).text(preset.label);
+
+        if (key === currentKey) $opt.addClass('selected');
+
+        $opt.on('mouseenter', () => renderPrefillPreview($previewCode, preset.value));
+
+        $opt.on('click', () => {
+            saveSetting('extractionPrefill', key);
+            $trigger.text(preset.label);
+            $options.find('.selected').removeClass('selected');
+            $opt.addClass('selected');
+            $container.removeClass('open');
+            renderPrefillPreview($previewCode, preset.value);
+        });
+
+        $options.append($opt);
+    }
+
+    // Revert preview when mouse leaves options area
+    $options.on('mouseleave', () => {
+        const selKey = $options.find('.selected').data('value');
+        renderPrefillPreview($previewCode, PREFILL_PRESETS[selKey]?.value);
+    });
+
+    $dropdown.append($options, $preview);
+    $container.append($trigger, $dropdown);
+
+    // Toggle dropdown
+    $trigger.on('click', (e) => {
+        e.stopPropagation();
+        $container.toggleClass('open');
+    });
+
+    // Close on outside click
+    $(document).on('click.prefillSelector', (e) => {
+        if (!$container[0].contains(e.target)) {
+            $container.removeClass('open');
+        }
+    });
+
+    // Close on Escape
+    $(document).on('keydown.prefillSelector', (e) => {
+        if (e.key === 'Escape' && $container.hasClass('open')) {
+            $container.removeClass('open');
+            $trigger.trigger('focus');
+        }
+    });
+}
+
+function renderPrefillPreview($pre, value) {
+    if (value === '' || value === undefined) {
+        $pre.html('<span class="openvault-prefill-preview-empty">(empty — no prefill)</span>');
+    } else {
+        $pre.text(value);
+    }
+}
+
+function syncPrefillSelector() {
+    const settings = getSettings();
+    const key = settings.extractionPrefill || 'think_tag';
+    const preset = PREFILL_PRESETS[key];
+    if (!preset) return;
+
+    const $container = $('#openvault_prefill_selector');
+    $container.find('.openvault-prefill-trigger').text(preset.label);
+    $container.find('.openvault-prefill-option').removeClass('selected');
+    $container.find(`.openvault-prefill-option[data-value="${key}"]`).addClass('selected');
+    renderPrefillPreview($container.find('.openvault-prefill-preview pre'), preset.value);
 }
 
 // =============================================================================
@@ -305,6 +402,9 @@ export async function loadSettings() {
 
     // Initialize browser event delegation (must be after HTML is loaded)
     initBrowser();
+
+    // Initialize custom prefill selector with hover preview
+    initPrefillSelector();
 
     // Inject version from manifest.json
     try {
@@ -476,10 +576,7 @@ function bindUIElements() {
         saveSetting('outputLanguage', $(this).val());
     });
 
-    // Prefill preset
-    $('#openvault_extraction_prefill').on('change', function () {
-        saveSetting('extractionPrefill', $(this).val());
-    });
+    // Prefill preset — handled by initPrefillSelector()
 
     // Feature settings
     bindSetting('reflection_threshold', 'reflectionThreshold');
@@ -628,7 +725,7 @@ export function updateUI() {
     // Preamble language and prefill preset
     $('#openvault_preamble_language').val(settings.preambleLanguage || 'cn');
     $('#openvault_output_language').val(settings.outputLanguage || 'auto');
-    $('#openvault_extraction_prefill').val(settings.extractionPrefill || 'think_tag');
+    syncPrefillSelector();
 
     // Feature settings
     $('#openvault_reflection_threshold').val(settings.reflectionThreshold);

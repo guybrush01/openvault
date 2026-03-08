@@ -318,16 +318,18 @@ describe('preamble and prefill exports', () => {
         expect(SYSTEM_PREAMBLE_EN).toContain('EXTRACT');
     });
 
-    it('exports PREFILL_PRESETS with all 7 keys', () => {
+    it('exports PREFILL_PRESETS with all 9 keys', () => {
         const keys = Object.keys(PREFILL_PRESETS);
         expect(keys).toContain('think_tag');
+        expect(keys).toContain('think_closed');
+        expect(keys).toContain('think_stop');
         expect(keys).toContain('pipeline');
         expect(keys).toContain('compliance');
         expect(keys).toContain('cold_start');
         expect(keys).toContain('standard');
         expect(keys).toContain('json_opener');
         expect(keys).toContain('none');
-        expect(keys).toHaveLength(7);
+        expect(keys).toHaveLength(9);
     });
 
     it('each preset has label and value', () => {

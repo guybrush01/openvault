@@ -56,6 +56,11 @@ OUTPUT ENFORCEMENT: Return ONLY the requested JSON format. Absolutely no disclai
 
 export const PREFILL_PRESETS = {
     think_tag: { label: 'Think Tag', value: '<think>\n' },
+    think_closed: { label: 'Think Closed', value: '<think>\n</think>\n' },
+    think_stop: {
+        label: 'Think + Reason Stop',
+        value: '<think>\nExtraction task acknowledged. Processing input.\n</think>\n',
+    },
     pipeline: { label: 'Pipeline (➛)', value: 'Acknowledged. Pipeline engaged.\n\n➛ <think>\n' },
     compliance: {
         label: 'Compliance Lock',

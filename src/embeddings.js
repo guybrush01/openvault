@@ -668,6 +668,7 @@ export async function enrichEventsWithEmbeddings(events) {
 // Exports
 // =============================================================================
 
+export { getStrategy };
 export { TRANSFORMERS_MODELS };
 export { getOptimalChunkSize };
 export { maybeRoundEmbedding };

@@ -19,6 +19,7 @@ import { getDeps } from '../deps.js';
 import {
     generateEmbeddingsForMemories,
     getEmbeddingStatus,
+    getStrategy,
     isEmbeddingsEnabled,
     setEmbeddingStatusCallback,
 } from '../embeddings.js';
@@ -536,15 +537,18 @@ function bindUIElements() {
         const value = $(this).val();
 
         // Reset old strategy before switching to prevent VRAM leak
-        const currentSettings = getDeps().getExtensionSettings();
-        const oldSource = currentSettings?.[extensionName]?.embeddingSource;
+        try {
+            const currentSettings = getDeps().getExtensionSettings();
+            const oldSource = currentSettings?.[extensionName]?.embeddingSource;
 
-        if (oldSource && oldSource !== value) {
-            const { getStrategy } = await import('../embeddings.js');
-            const oldStrategy = getStrategy(oldSource);
-            if (oldStrategy && typeof oldStrategy.reset === 'function') {
-                await oldStrategy.reset();
+            if (oldSource && oldSource !== value) {
+                const oldStrategy = getStrategy(oldSource);
+                if (oldStrategy && typeof oldStrategy.reset === 'function') {
+                    await oldStrategy.reset();
+                }
             }
+        } catch (err) {
+            console.warn('[OpenVault] Failed to reset old embedding strategy:', err);
         }
 
         // Persist the model selection

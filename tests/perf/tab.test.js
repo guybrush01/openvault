@@ -21,3 +21,16 @@ describe('perf tab HTML', () => {
         expect(html).toContain('id="openvault_copy_perf_btn"');
     });
 });
+
+describe('perf tab CSS', () => {
+    const css = readFileSync(resolve(__dirname, '../../css/perf.css'), 'utf-8');
+
+    it('has the perf table base class', () => {
+        expect(css).toContain('.openvault-perf-table');
+    });
+
+    it('has green and red health indicator classes', () => {
+        expect(css).toContain('.openvault-perf-ok');
+        expect(css).toContain('.openvault-perf-warn');
+    });
+});

@@ -23,6 +23,6 @@ Prevents duplicate nodes (e.g., "The King" vs "King Aldric").
 - **Summarization**: LLM generates Title, Summary, and Findings. Injected into ST context.
 
 ## GOTCHAS & RULES
-- **Embedding Rounding**: Embeddings are rounded to 4 decimal places via `maybeRoundEmbedding()` to reduce `chatMetadata` JSON bloat by ~60%.
+- **Embedding Storage**: Embeddings are stored as Base64-encoded `Float32Array` strings (`embedding_b64`) via the codec in `src/utils/embedding-codec.js`. Legacy `number[]` format (`embedding`) is read transparently but never written.
 - **Orphaned Edges**: `upsertRelationship` quietly skips if source/target nodes don't exist.
 - **ESM Libraries**: Relies on `https://esm.sh/graphology`. Mapped in `vitest.config.js`.

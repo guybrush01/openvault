@@ -475,7 +475,6 @@ function bindUIElements() {
     bindSetting('enabled', 'enabled', 'bool', () => updateEventListeners());
     bindSetting('debug', 'debugMode', 'bool');
     bindSetting('request_logging', 'requestLogging', 'bool');
-    bindSetting('embedding_rounding', 'embeddingRounding', 'bool');
 
     // Extraction settings
     bindSetting('extraction_token_budget', 'extractionTokenBudget', 'int', () => updatePayloadCalculator());
@@ -662,7 +661,6 @@ export function updateUI() {
     $('#openvault_enabled').prop('checked', settings.enabled);
     $('#openvault_debug').prop('checked', settings.debugMode);
     $('#openvault_request_logging').prop('checked', settings.requestLogging);
-    $('#openvault_embedding_rounding').prop('checked', settings.embeddingRounding);
 
     // Extraction settings
     $('#openvault_extraction_token_budget').val(settings.extractionTokenBudget);

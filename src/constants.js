@@ -44,7 +44,6 @@ export const defaultSettings = {
     embeddingModel: '',
     embeddingQueryPrefix: '', // Empty by default — e5-small works best without prefixes
     embeddingDocPrefix: '', // Empty by default — e5-small works best without prefixes
-    embeddingRounding: false, // Round embeddings to 4 decimal places to reduce chatMetadata JSON size
     // Alpha-blend scoring
     alpha: 0.7, // Vector vs keyword blend: 1.0 = vector only, 0.0 = BM25 only
     combinedBoostWeight: 15, // Max boost points for retrieval (BM25 + vector)

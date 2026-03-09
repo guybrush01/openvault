@@ -69,6 +69,8 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
 
 **Embeddings**: Stored as Base64 Float32Array. Legacy JSON arrays read transparently (lazy migration). True LRU cache (max 500). WebGPU attempts first -> falls back to WASM. `device.lost` not monitored (implicitly retries pipeline on next call). Failures degrade gracefully to BM25.
 
+**Abort/Cancellation**: Session-scoped `AbortController` in `state.js`. `resetSessionController()` fires on `CHAT_CHANGED`, aborting all in-flight LLM and embedding operations. Leaf I/O functions (`callLLM`, `getQueryEmbedding`, `getDocumentEmbedding`) read `getSessionSignal()` as default — mid-level orchestrators need no signature changes. `callLLM` uses `Promise.race` (logical cancel — HTTP continues server-side). Transformers.js pipeline and Ollama fetch use native `signal` (true cancel). AbortError re-thrown from Phase 2 catch, handled cleanly by worker and backfill loops.
+
 **Multilingual Prompt Architecture**:
 - *Output Language Setting*: User-configurable setting (`auto`/`ru`/`en`) controls language instruction and example filtering. `auto` preserves heuristic behavior (script detection via `buildLanguageReminder`). `ru`/`en` forces deterministic language instruction via `buildOutputLanguageInstruction` and filters few-shot examples to matching language only (halving token cost).
 - *Mirror Language Rule*: All prompts auto-detect input language and mirror it in output string values. JSON keys remain English.

@@ -7,6 +7,7 @@
 
 import { extensionName } from './constants.js';
 import { getDeps } from './deps.js';
+import { getSessionSignal } from './state.js';
 import { hasEmbedding, setEmbedding } from './utils/embedding-codec.js';
 import { log } from './utils/logging.js';
 
@@ -50,27 +51,33 @@ class EmbeddingStrategy {
     /**
      * Get embedding vector for text
      * @param {string} text - Text to embed
+     * @param {Object} options - Options
+     * @param {AbortSignal} options.signal - AbortSignal
      * @returns {Promise<number[]|null>} Embedding vector or null if unavailable
      */
-    async getEmbedding(_text) {
+    async getEmbedding(_text, _options = {}) {
         throw new Error('getEmbedding() must be implemented by subclass');
     }
 
     /**
      * Get query embedding (with query-side prefix for asymmetric search)
      * @param {string} text - Query text
+     * @param {Object} options - Options
+     * @param {AbortSignal} options.signal - AbortSignal
      * @returns {Promise<number[]|null>} Embedding vector or null
      */
-    async getQueryEmbedding(_text) {
+    async getQueryEmbedding(_text, _options = {}) {
         throw new Error('getQueryEmbedding() must be implemented by subclass');
     }
 
     /**
      * Get document embedding (with doc-side prefix for asymmetric search)
      * @param {string} text - Document text
+     * @param {Object} options - Options
+     * @param {AbortSignal} options.signal - AbortSignal
      * @returns {Promise<number[]|null>} Embedding vector or null
      */
-    async getDocumentEmbedding(_text) {
+    async getDocumentEmbedding(_text, _options = {}) {
         throw new Error('getDocumentEmbedding() must be implemented by subclass');
     }
 
@@ -270,32 +277,35 @@ class TransformersStrategy extends EmbeddingStrategy {
         log(`Embedding status: ${status}`);
     }
 
-    async #embed(text, prefix) {
+    async #embed(text, prefix, { signal } = {}) {
         if (!text || text.trim().length === 0) {
             return null;
         }
 
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
         try {
             const pipe = await this.#loadPipeline(this.#currentModelKey);
             const input = prefix ? `${prefix}${text.trim()}` : text.trim();
-            const output = await pipe(input, { pooling: 'mean', normalize: true });
+            const output = await pipe(input, { pooling: 'mean', normalize: true, signal });
             return Array.from(output.data);
         } catch (error) {
+            if (error.name === 'AbortError') throw error;
             log(`Transformers embedding error: ${error?.message || error || 'unknown'}`);
             return null;
         }
     }
 
-    async getQueryEmbedding(text) {
+    async getQueryEmbedding(text, { signal } = {}) {
         const settings = getDeps().getExtensionSettings()[extensionName];
         const prefix = settings.embeddingQueryPrefix;
-        return this.#embed(text, prefix);
+        return this.#embed(text, prefix, { signal });
     }
 
-    async getDocumentEmbedding(text) {
+    async getDocumentEmbedding(text, { signal } = {}) {
         const settings = getDeps().getExtensionSettings()[extensionName];
         const prefix = settings.embeddingDocPrefix;
-        return this.#embed(text, prefix);
+        return this.#embed(text, prefix, { signal });
     }
 
     async reset() {
@@ -336,7 +346,7 @@ class OllamaStrategy extends EmbeddingStrategy {
         return 'Ollama: Not configured';
     }
 
-    async getEmbedding(text) {
+    async getEmbedding(text, { signal } = {}) {
         const { url, model } = this.#getSettings();
 
         if (!url || !model) {
@@ -347,6 +357,8 @@ class OllamaStrategy extends EmbeddingStrategy {
             return null;
         }
 
+        if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
         try {
             const cleanUrl = url.replace(/\/+$/, '');
             const response = await getDeps().fetch(`${cleanUrl}/api/embeddings`, {
@@ -356,6 +368,7 @@ class OllamaStrategy extends EmbeddingStrategy {
                     model: model,
                     prompt: text.trim(),
                 }),
+                signal,
             });
 
             if (!response.ok) {
@@ -366,17 +379,18 @@ class OllamaStrategy extends EmbeddingStrategy {
             const data = await response.json();
             return data.embedding || null;
         } catch (error) {
+            if (error.name === 'AbortError') throw error;
             log(`Ollama embedding error: ${error.message}`);
             return null;
         }
     }
 
-    async getQueryEmbedding(text) {
-        return this.getEmbedding(text);
+    async getQueryEmbedding(text, { signal } = {}) {
+        return this.getEmbedding(text, { signal });
     }
 
-    async getDocumentEmbedding(text) {
-        return this.getEmbedding(text);
+    async getDocumentEmbedding(text, { signal } = {}) {
+        return this.getEmbedding(text, { signal });
     }
 }
 
@@ -496,9 +510,13 @@ export function clearEmbeddingCache() {
 /**
  * Get query embedding (with query prefix applied by strategy)
  * @param {string} text - Query text
+ * @param {Object} options - Options
+ * @param {AbortSignal} options.signal - AbortSignal
  * @returns {Promise<number[]|null>} Embedding vector
  */
-export async function getQueryEmbedding(text) {
+export async function getQueryEmbedding(text, { signal } = {}) {
+    signal ??= getSessionSignal();
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
     if (!text) return null;
 
     // Check cache (query prefix is applied inside strategy, so cache on raw text + 'q:' prefix)
@@ -513,7 +531,7 @@ export async function getQueryEmbedding(text) {
     const settings = getDeps().getExtensionSettings()[extensionName];
     const source = settings.embeddingSource;
     const strategy = getStrategy(source);
-    const result = await strategy.getQueryEmbedding(text);
+    const result = await strategy.getQueryEmbedding(text, { signal });
 
     if (embeddingCache.size >= MAX_CACHE_SIZE) {
         const firstKey = embeddingCache.keys().next().value;
@@ -526,9 +544,13 @@ export async function getQueryEmbedding(text) {
 /**
  * Get document embedding (with doc prefix applied by strategy)
  * @param {string} summary - Memory summary text
+ * @param {Object} options - Options
+ * @param {AbortSignal} options.signal - AbortSignal
  * @returns {Promise<number[]|null>} Embedding vector
  */
-export async function getDocumentEmbedding(summary) {
+export async function getDocumentEmbedding(summary, { signal } = {}) {
+    signal ??= getSessionSignal();
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
     if (!summary) return null;
 
     const cacheKey = `d:${summary}`;
@@ -542,7 +564,7 @@ export async function getDocumentEmbedding(summary) {
     const settings = getDeps().getExtensionSettings()[extensionName];
     const source = settings.embeddingSource;
     const strategy = getStrategy(source);
-    const result = await strategy.getDocumentEmbedding(summary);
+    const result = await strategy.getDocumentEmbedding(summary, { signal });
 
     if (embeddingCache.size >= MAX_CACHE_SIZE) {
         const firstKey = embeddingCache.keys().next().value;
@@ -580,9 +602,13 @@ async function processInBatches(items, batchSize, fn) {
 /**
  * Generate embeddings for multiple memories that don't have them yet
  * @param {Object[]} memories - Memories to embed
+ * @param {Object} options - Options
+ * @param {AbortSignal} options.signal - AbortSignal
  * @returns {Promise<number>} Number of memories successfully embedded
  */
-export async function generateEmbeddingsForMemories(memories) {
+export async function generateEmbeddingsForMemories(memories, { signal } = {}) {
+    signal ??= getSessionSignal();
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
     if (!isEmbeddingsEnabled()) {
         return 0;
     }
@@ -598,7 +624,7 @@ export async function generateEmbeddingsForMemories(memories) {
     const strategy = getStrategy(source);
 
     const embeddings = await processInBatches(validMemories, 5, async (m) => {
-        return strategy.getDocumentEmbedding(m.summary);
+        return strategy.getDocumentEmbedding(m.summary, { signal });
     });
 
     let count = 0;
@@ -615,9 +641,13 @@ export async function generateEmbeddingsForMemories(memories) {
 /**
  * Enrich events with embeddings (mutates events in place)
  * @param {Object[]} events - Events to enrich with embeddings
+ * @param {Object} options - Options
+ * @param {AbortSignal} options.signal - AbortSignal
  * @returns {Promise<number>} Number of events successfully embedded
  */
-export async function enrichEventsWithEmbeddings(events) {
+export async function enrichEventsWithEmbeddings(events, { signal } = {}) {
+    signal ??= getSessionSignal();
+    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
     if (!isEmbeddingsEnabled()) {
         return 0;
     }
@@ -638,7 +668,7 @@ export async function enrichEventsWithEmbeddings(events) {
         if (settings?.debugMode) {
             log(`Embedding doc: "${e.summary.slice(0, 80)}${e.summary.length > 80 ? '...' : ''}"`);
         }
-        return strategy.getDocumentEmbedding(e.summary);
+        return strategy.getDocumentEmbedding(e.summary, { signal });
     });
 
     let count = 0;

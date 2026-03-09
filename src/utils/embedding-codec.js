@@ -21,9 +21,9 @@ function encode(vec) {
 }
 
 /**
- * Decode a Base64 string back to a number[].
+ * Decode a Base64 string back to a Float32Array.
  * @param {string} b64 - Base64-encoded Float32Array
- * @returns {number[]} Decoded embedding vector
+ * @returns {Float32Array} Decoded embedding vector
  */
 function decode(b64) {
     const binary = atob(b64);
@@ -31,18 +31,18 @@ function decode(b64) {
     for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
     }
-    return Array.from(new Float32Array(bytes.buffer));
+    return new Float32Array(bytes.buffer);
 }
 
 /**
  * Read embedding from an object. Prefers Base64 format, falls back to legacy array.
  * @param {Object} obj - Object with embedding_b64 or embedding property
- * @returns {number[]|null} Embedding vector or null
+ * @returns {Float32Array|null} Embedding vector or null
  */
 export function getEmbedding(obj) {
     if (!obj) return null;
     if (obj.embedding_b64) return decode(obj.embedding_b64);
-    if (obj.embedding && obj.embedding.length > 0) return obj.embedding;
+    if (obj.embedding && obj.embedding.length > 0) return new Float32Array(obj.embedding);
     return null;
 }
 

@@ -7,6 +7,28 @@
 import { GENERATION_LOCK_TIMEOUT_MS } from './constants.js';
 import { getDeps } from './deps.js';
 
+// Session-scoped AbortController — one per active chat session.
+// On CHAT_CHANGED, the old controller is aborted and a new one is created.
+let _sessionController = new AbortController();
+
+/**
+ * Get the current session's AbortSignal.
+ * Leaf I/O functions (callLLM, embedding) read this as their default signal.
+ * @returns {AbortSignal}
+ */
+export function getSessionSignal() {
+    return _sessionController.signal;
+}
+
+/**
+ * Abort all in-flight operations and create a fresh controller.
+ * Called on CHAT_CHANGED before any new work starts.
+ */
+export function resetSessionController() {
+    _sessionController.abort();
+    _sessionController = new AbortController();
+}
+
 // Operation state machine to prevent concurrent operations
 export const operationState = {
     generationInProgress: false,

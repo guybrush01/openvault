@@ -9,10 +9,11 @@ import louvain from 'https://esm.sh/graphology-communities-louvain';
 import { toUndirected } from 'https://esm.sh/graphology-operators';
 import { extensionName } from '../constants.js';
 import { getDeps } from '../deps.js';
-import { getQueryEmbedding, maybeRoundEmbedding } from '../embeddings.js';
+import { getQueryEmbedding } from '../embeddings.js';
 import { parseCommunitySummaryResponse } from '../extraction/structured.js';
 import { callLLM, LLM_CONFIGS } from '../llm.js';
 import { buildCommunitySummaryPrompt, resolveExtractionPreamble, resolveOutputLanguage } from '../prompts/index.js';
+import { setEmbedding } from '../utils/embedding-codec.js';
 import { log } from '../utils/logging.js';
 import { yieldToMain } from '../utils/st-helpers.js';
 
@@ -231,15 +232,18 @@ export async function updateCommunitySummaries(
             // Embed the summary for retrieval
             const embedding = await getQueryEmbedding(parsed.summary);
 
-            updatedCommunities[key] = {
+            const community = {
                 nodeKeys: group.nodeKeys,
                 title: parsed.title,
                 summary: parsed.summary,
                 findings: parsed.findings,
-                embedding: maybeRoundEmbedding(embedding) || [],
                 lastUpdated: deps.Date.now(),
                 lastUpdatedMessageCount: currentMessageCount,
             };
+            if (embedding) {
+                setEmbedding(community, embedding);
+            }
+            updatedCommunities[key] = community;
 
             log(`Community ${key}: "${parsed.title}" (${group.nodeKeys.length} nodes)`);
         } catch (error) {

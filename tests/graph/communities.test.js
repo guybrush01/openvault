@@ -171,7 +171,29 @@ vi.mock('../../src/llm.js', () => ({
 // Mock embeddings
 vi.mock('../../src/embeddings.js', () => ({
     getQueryEmbedding: vi.fn(async (_text) => [0.1, 0.2, 0.3]),
-    maybeRoundEmbedding: vi.fn((emb) => emb),
+}));
+
+// Mock embedding-codec module
+const _mockEmbeddingData = new WeakMap();
+vi.mock('../../src/utils/embedding-codec.js', () => ({
+    getEmbedding: vi.fn((obj) => {
+        if (obj?.__mock_embedding) return obj.__mock_embedding;
+        return obj?.embedding || null;
+    }),
+    setEmbedding: vi.fn((obj, _vec) => {
+        obj.__mock_embedding = [0.1, 0.2, 0.3];
+        delete obj.embedding;
+    }),
+    hasEmbedding: vi.fn((obj) => {
+        return !!obj?.__mock_embedding || (obj?.embedding && obj.embedding.length > 0);
+    }),
+    deleteEmbedding: vi.fn((obj) => {
+        if (obj) {
+            delete obj.embedding;
+            delete obj.embedding_b64;
+            delete obj.__mock_embedding;
+        }
+    }),
 }));
 
 // Mock prompts
@@ -231,7 +253,10 @@ describe('updateCommunitySummaries', () => {
         const result = await updateCommunitySummaries(graphData, communityGroups, {});
         expect(result.C0).toBeDefined();
         expect(result.C0.title).toBe('The Royal Court');
-        expect(result.C0.embedding).toEqual([0.1, 0.2, 0.3]);
+        // Embedding is stored via codec, check using hasEmbedding
+        const { hasEmbedding, getEmbedding } = await import('../../src/utils/embedding-codec.js');
+        expect(hasEmbedding(result.C0)).toBe(true);
+        expect(getEmbedding(result.C0)).toEqual([0.1, 0.2, 0.3]);
         expect(result.C0.nodeKeys).toEqual(['king', 'castle']);
     });
 

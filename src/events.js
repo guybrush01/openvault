@@ -6,7 +6,7 @@
 
 import { extensionName, MEMORIES_KEY, RETRIEVAL_TIMEOUT_MS } from './constants.js';
 import { getDeps } from './deps.js';
-import { loadFromChat as loadPerfFromChat } from './perf/store.js';
+import { loadFromChat as loadPerfFromChat, record } from './perf/store.js';
 import {
     clearGenerationLock,
     isChatLoadingCooldown,
@@ -34,60 +34,67 @@ import { isExtensionEnabled, safeSetExtensionPrompt, withTimeout } from './utils
  * IMPORTANT: Only hides messages that have already been extracted into memories.
  */
 export async function autoHideOldMessages() {
-    const { getExtractedMessageIds } = await import('./extraction/scheduler.js');
-    const { getMessageTokenCount, getTokenSum, snapToTurnBoundary } = await import('./utils/tokens.js');
+    const t0 = performance.now();
+    try {
+        const { getExtractedMessageIds } = await import('./extraction/scheduler.js');
+        const { getMessageTokenCount, getTokenSum, snapToTurnBoundary } = await import('./utils/tokens.js');
 
-    const deps = getDeps();
-    const settings = deps.getExtensionSettings()[extensionName];
-    if (!settings.autoHideEnabled) return;
+        const deps = getDeps();
+        const settings = deps.getExtensionSettings()[extensionName];
+        if (!settings.autoHideEnabled) return;
 
-    const context = deps.getContext();
-    const chat = context.chat || [];
-    const visibleChatBudget = settings.visibleChatBudget;
+        const context = deps.getContext();
+        const chat = context.chat || [];
+        const visibleChatBudget = settings.visibleChatBudget;
 
-    const data = getOpenVaultData();
-    const extractedMessageIds = getExtractedMessageIds(data);
+        const data = getOpenVaultData();
+        const extractedMessageIds = getExtractedMessageIds(data);
 
-    // Get visible (non-system) message indices
-    const visibleIndices = [];
-    for (let i = 0; i < chat.length; i++) {
-        if (!chat[i].is_system) visibleIndices.push(i);
+        // Get visible (non-system) message indices
+        const visibleIndices = [];
+        for (let i = 0; i < chat.length; i++) {
+            if (!chat[i].is_system) visibleIndices.push(i);
+        }
+
+        // Sum visible tokens
+        const totalVisibleTokens = getTokenSum(chat, visibleIndices);
+        if (totalVisibleTokens <= visibleChatBudget) return;
+
+        // Calculate excess
+        const excess = totalVisibleTokens - visibleChatBudget;
+
+        // Collect oldest visible messages to hide, skipping unextracted
+        const toHide = [];
+        let accumulated = 0;
+
+        for (const idx of visibleIndices) {
+            if (accumulated >= excess) break;
+
+            // Only hide already-extracted messages; skip unextracted
+            if (!extractedMessageIds.has(idx)) continue;
+
+            toHide.push(idx);
+            accumulated += getMessageTokenCount(chat, idx);
+        }
+
+        // Snap to turn boundary
+        const snapped = snapToTurnBoundary(chat, toHide);
+
+        if (snapped.length === 0) return;
+
+        // Hide
+        for (const idx of snapped) {
+            chat[idx].is_system = true;
+        }
+
+        await getDeps().saveChatConditional();
+        log(
+            `Auto-hid ${snapped.length} messages (token-based) — budget: ${visibleChatBudget}, was: ${totalVisibleTokens}`
+        );
+        showToast('info', `Auto-hid ${snapped.length} old messages`);
+    } finally {
+        record('auto_hide', performance.now() - t0);
     }
-
-    // Sum visible tokens
-    const totalVisibleTokens = getTokenSum(chat, visibleIndices);
-    if (totalVisibleTokens <= visibleChatBudget) return;
-
-    // Calculate excess
-    const excess = totalVisibleTokens - visibleChatBudget;
-
-    // Collect oldest visible messages to hide, skipping unextracted
-    const toHide = [];
-    let accumulated = 0;
-
-    for (const idx of visibleIndices) {
-        if (accumulated >= excess) break;
-
-        // Only hide already-extracted messages; skip unextracted
-        if (!extractedMessageIds.has(idx)) continue;
-
-        toHide.push(idx);
-        accumulated += getMessageTokenCount(chat, idx);
-    }
-
-    // Snap to turn boundary
-    const snapped = snapToTurnBoundary(chat, toHide);
-
-    if (snapped.length === 0) return;
-
-    // Hide
-    for (const idx of snapped) {
-        chat[idx].is_system = true;
-    }
-
-    await getDeps().saveChatConditional();
-    log(`Auto-hid ${snapped.length} messages (token-based) — budget: ${visibleChatBudget}, was: ${totalVisibleTokens}`);
-    showToast('info', `Auto-hid ${snapped.length} old messages`);
 }
 
 // =============================================================================
@@ -155,7 +162,9 @@ export async function onBeforeGeneration(type, _options, dryRun = false) {
         log(
             `>>> Pre-generation retrieval starting (type: ${type}, message: "${pendingUserMessage.substring(0, 50)}...")`
         );
+        const t0Retrieval = performance.now();
         await withTimeout(updateInjection(pendingUserMessage), RETRIEVAL_TIMEOUT_MS, 'Memory retrieval');
+        record('retrieval_injection', performance.now() - t0Retrieval);
         log('>>> Pre-generation retrieval complete');
 
         setStatus('ready');

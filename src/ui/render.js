@@ -14,6 +14,7 @@ import {
     updateMemory as updateMemoryAction,
 } from '../utils/data.js';
 import { escapeHtml, showToast } from '../utils/dom.js';
+import { hasEmbedding, setEmbedding } from '../utils/embedding-codec.js';
 import {
     buildCharacterStateData,
     extractCharactersSet,
@@ -128,10 +129,10 @@ async function saveEdit(id, btnElement) {
     const updated = await updateMemoryAction(id, { summary, importance });
     if (updated) {
         const memory = getMemoryById(id);
-        if (memory && !memory.embedding && isEmbeddingsEnabled()) {
+        if (memory && !hasEmbedding(memory) && isEmbeddingsEnabled()) {
             const embedding = await getDocumentEmbedding(summary);
             if (embedding) {
-                memory.embedding = embedding;
+                setEmbedding(memory, embedding);
                 await getDeps().saveChatConditional();
             }
         }

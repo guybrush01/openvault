@@ -73,6 +73,7 @@ async function testOllamaConnection() {
 import { PREFILL_PRESETS } from '../prompts/preambles.js';
 import { deleteCurrentChatData, deleteCurrentChatEmbeddings, getOpenVaultData } from '../utils/data.js';
 import { showToast } from '../utils/dom.js';
+import { hasEmbedding } from '../utils/embedding-codec.js';
 
 // =============================================================================
 // Helper Functions (inlined from bindings.js)
@@ -329,7 +330,7 @@ async function backfillEmbeddings() {
     }
 
     const memories = data[MEMORIES_KEY] || [];
-    const needsEmbedding = memories.filter((m) => !m.embedding);
+    const needsEmbedding = memories.filter((m) => !hasEmbedding(m));
 
     if (needsEmbedding.length === 0) {
         showToast('info', 'All memories already have embeddings');

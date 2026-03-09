@@ -7,6 +7,7 @@
 
 import { isEmbeddingsEnabled } from '../embeddings.js';
 import { escapeHtml } from '../utils/dom.js';
+import { hasEmbedding } from '../utils/embedding-codec.js';
 import { formatMemoryDate, formatMemoryImportance, formatWitnesses } from './helpers.js';
 
 // CSS class constants
@@ -30,7 +31,7 @@ function buildBadges(memory) {
     const stars = formatMemoryImportance(importance);
     const witnessText = formatWitnesses(memory.witnesses);
     const location = memory.location || '';
-    const needsEmbed = !memory.embedding && isEmbeddingsEnabled();
+    const needsEmbed = !hasEmbedding(memory) && isEmbeddingsEnabled();
 
     badges.push(`<span class="openvault-memory-card-badge importance">${stars}</span>`);
 

@@ -7,6 +7,7 @@
 import { CHARACTERS_KEY, defaultSettings, extensionName, MEMORIES_KEY } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { getOpenVaultData } from '../utils/data.js';
+import { hasEmbedding } from '../utils/embedding-codec.js';
 import { log } from '../utils/logging.js';
 import { getStatusText } from './helpers.js';
 
@@ -108,7 +109,7 @@ export async function refreshStats() {
 
     const memories = data[MEMORIES_KEY] || [];
     const eventCount = memories.length;
-    const embeddingCount = memories.filter((m) => m.embedding?.length > 0).length;
+    const embeddingCount = memories.filter((m) => hasEmbedding(m)).length;
     const charCount = Object.keys(data[CHARACTERS_KEY] || {}).length;
 
     // New feature stats

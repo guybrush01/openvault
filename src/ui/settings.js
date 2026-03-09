@@ -820,7 +820,7 @@ export async function updateBudgetIndicators() {
     const extractionBudget = settings.extractionTokenBudget;
     const extractedIds = getExtractedMessageIds(data);
     const unextractedIds = getUnextractedMessageIds(chat, extractedIds, 0);
-    const unextractedTokens = getTokenSum(chat, unextractedIds, data);
+    const unextractedTokens = getTokenSum(chat, unextractedIds);
     const extractionPct = Math.min((unextractedTokens / extractionBudget) * 100, 100);
 
     $('#openvault_extraction_budget_fill').css('width', `${extractionPct}%`);
@@ -835,7 +835,7 @@ export async function updateBudgetIndicators() {
     for (let i = 0; i < chat.length; i++) {
         if (!chat[i].is_system) visibleIndices.push(i);
     }
-    const visibleTokens = getTokenSum(chat, visibleIndices, data);
+    const visibleTokens = getTokenSum(chat, visibleIndices);
     const visiblePct = Math.min((visibleTokens / visibleBudget) * 100, 100);
 
     $('#openvault_visible_budget_fill').css('width', `${visiblePct}%`);

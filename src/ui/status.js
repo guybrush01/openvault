@@ -133,7 +133,7 @@ export async function refreshStats() {
     const chat = context.chat || [];
     const extractedIds = getExtractedMessageIds(data);
     const unextractedIds = getUnextractedMessageIds(chat, extractedIds, 0);
-    const unextractedTokens = getTokenSum(chat, unextractedIds, data);
+    const unextractedTokens = getTokenSum(chat, unextractedIds);
 
     // Calculate progress percentage
     const percentage = Math.min((unextractedTokens / tokenBudget) * 100, 100);

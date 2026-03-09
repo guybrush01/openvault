@@ -357,7 +357,7 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
         let accumulated = 0;
         let startIdx = candidates.length;
         for (let i = candidates.length - 1; i >= 0; i--) {
-            const tokens = getMessageTokenCount(chat, candidates[i].id, data);
+            const tokens = getMessageTokenCount(chat, candidates[i].id);
             if (accumulated + tokens > tokenBudget && startIdx < candidates.length) break;
             accumulated += tokens;
             startIdx = i;

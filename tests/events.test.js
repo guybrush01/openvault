@@ -5,12 +5,22 @@ describe('autoHideOldMessages (token-based)', () => {
     let mockChat;
     let mockData;
     let saveFn;
+    let _getMessageTokenCount;
+    let clearTokenCache;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         saveFn = vi.fn(async () => true);
 
+        // Import token functions for pre-seeding cache
+        const tokensModule = await import('../src/utils/tokens.js');
+        _getMessageTokenCount = tokensModule.getMessageTokenCount;
+        clearTokenCache = tokensModule.clearTokenCache;
+
+        // Clear the in-memory cache before each test
+        clearTokenCache();
+
         // 8 messages: U B U B U B U B
-        // Each with 500 cached tokens = 4000 total visible
+        // Each message is 2 chars → actual token count from gpt-tokenizer
         mockChat = [
             { mes: 'u0', is_user: true, is_system: false },
             { mes: 'b1', is_user: false, is_system: false },
@@ -25,17 +35,6 @@ describe('autoHideOldMessages (token-based)', () => {
         mockData = {
             memories: [],
             processed_message_ids: [0, 1, 2, 3, 4, 5, 6, 7], // All extracted
-            // Cache key format: `${index}_${textLength}`
-            message_tokens: {
-                '0_2': 500,
-                '1_2': 500,
-                '2_2': 500,
-                '3_2': 500,
-                '4_2': 500,
-                '5_2': 500,
-                '6_2': 500,
-                '7_2': 500,
-            },
         };
 
         setupTestContext({
@@ -49,7 +48,7 @@ describe('autoHideOldMessages (token-based)', () => {
             settings: {
                 enabled: true,
                 autoHideEnabled: true,
-                visibleChatBudget: 2000, // 4 messages worth (2000 of 4000)
+                visibleChatBudget: 8, // 4 messages worth (2 tokens each = 8 total)
             },
             deps: {
                 saveChatConditional: saveFn,
@@ -68,7 +67,7 @@ describe('autoHideOldMessages (token-based)', () => {
 
         await autoHideOldMessages();
 
-        // 4000 total, budget 2000 → excess 2000 → hide first 4 messages (2000 tokens)
+        // 8 messages * 2 tokens = 16 total, budget 8 → hide first 4 messages (8 tokens)
         // Snap: after index 3, next is U(4) ✓
         expect(mockChat[0].is_system).toBe(true);
         expect(mockChat[1].is_system).toBe(true);
@@ -84,7 +83,7 @@ describe('autoHideOldMessages (token-based)', () => {
     });
 
     it('does not hide when under budget', async () => {
-        // Re-setup with budget higher than total (4000)
+        // Re-setup with budget higher than total (16)
         setupTestContext({
             context: {
                 chat: mockChat,
@@ -96,7 +95,7 @@ describe('autoHideOldMessages (token-based)', () => {
             settings: {
                 enabled: true,
                 autoHideEnabled: true,
-                visibleChatBudget: 5000,
+                visibleChatBudget: 20,
             },
             deps: {
                 saveChatConditional: saveFn,
@@ -121,8 +120,8 @@ describe('autoHideOldMessages (token-based)', () => {
         const { autoHideOldMessages } = await import('../src/events.js');
         await autoHideOldMessages();
 
-        // excess = 2000 tokens. Hide 0,1 (extracted, 1000 tokens), skip 2,3 (unextracted),
-        // continue with 4,5 (extracted, 1000 tokens) → total hidden = 2000
+        // excess = 8 tokens. Hide 0,1 (extracted, 4 tokens), skip 2,3 (unextracted),
+        // continue with 4,5 (extracted, 4 tokens) → total hidden = 8
         // Snap after 1: next is U(2) ✓. Snap after 5: next is U(6) ✓.
         expect(mockChat[0].is_system).toBe(true);
         expect(mockChat[1].is_system).toBe(true);
@@ -133,9 +132,9 @@ describe('autoHideOldMessages (token-based)', () => {
     });
 
     it('respects turn boundaries — does not split mid-turn', async () => {
-        // Budget 2500: excess = 1500. Accumulate oldest: 0(500), 1(500), 2(500) = 1500
+        // Budget 12: excess = 4. Accumulate oldest: 0(2), 1(2), 2(2) = 6 tokens
         // But after index 2 (User), next is B(3) ✗ → snap back to index 1 (next is U(2) ✓)
-        // So only 0,1 hidden (1000 tokens)
+        // So only 0,1 hidden (4 tokens)
         setupTestContext({
             context: {
                 chat: mockChat,
@@ -147,7 +146,7 @@ describe('autoHideOldMessages (token-based)', () => {
             settings: {
                 enabled: true,
                 autoHideEnabled: true,
-                visibleChatBudget: 2500,
+                visibleChatBudget: 12,
             },
             deps: {
                 saveChatConditional: saveFn,

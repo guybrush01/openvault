@@ -57,7 +57,7 @@ export function getUnextractedMessageIds(chat, extractedIds, excludeLastN = 0) {
 export function isBatchReady(chat, data, tokenBudget) {
     const extractedIds = getExtractedMessageIds(data);
     const unextractedIds = getUnextractedMessageIds(chat, extractedIds, 0);
-    return getTokenSum(chat, unextractedIds, data) >= tokenBudget;
+    return getTokenSum(chat, unextractedIds) >= tokenBudget;
 }
 
 /**
@@ -71,7 +71,7 @@ export function getNextBatch(chat, data, tokenBudget) {
     const extractedIds = getExtractedMessageIds(data);
     const unextractedIds = getUnextractedMessageIds(chat, extractedIds, 0);
 
-    const totalTokens = getTokenSum(chat, unextractedIds, data);
+    const totalTokens = getTokenSum(chat, unextractedIds);
     if (totalTokens < tokenBudget) {
         return null;
     }
@@ -82,7 +82,7 @@ export function getNextBatch(chat, data, tokenBudget) {
 
     for (const id of unextractedIds) {
         accumulated.push(id);
-        currentSum += getMessageTokenCount(chat, id, data);
+        currentSum += getMessageTokenCount(chat, id);
 
         if (currentSum >= tokenBudget) {
             break;
@@ -121,7 +121,7 @@ export function getNextBatch(chat, data, tokenBudget) {
 export function getBackfillStats(chat, data, tokenBudget) {
     const extractedIds = getExtractedMessageIds(data);
     const unextractedIds = getUnextractedMessageIds(chat, extractedIds, 0);
-    const totalTokens = getTokenSum(chat, unextractedIds, data);
+    const totalTokens = getTokenSum(chat, unextractedIds);
 
     return {
         completeBatches: totalTokens >= tokenBudget ? Math.floor(totalTokens / tokenBudget) : 0,
@@ -140,7 +140,7 @@ export function getBackfillStats(chat, data, tokenBudget) {
 export function getBackfillMessageIds(chat, data, tokenBudget) {
     const extractedIds = getExtractedMessageIds(data);
     const allUnextracted = getUnextractedMessageIds(chat, extractedIds, 0);
-    const totalTokens = getTokenSum(chat, allUnextracted, data);
+    const totalTokens = getTokenSum(chat, allUnextracted);
 
     if (totalTokens < tokenBudget) {
         return { messageIds: [], batchCount: 0 };
@@ -152,7 +152,7 @@ export function getBackfillMessageIds(chat, data, tokenBudget) {
     let batchCount = 0;
 
     for (const id of allUnextracted) {
-        currentSum += getMessageTokenCount(chat, id, data);
+        currentSum += getMessageTokenCount(chat, id);
         messageIds.push(id);
 
         if (currentSum >= tokenBudget) {
@@ -165,7 +165,7 @@ export function getBackfillMessageIds(chat, data, tokenBudget) {
     if (currentSum > 0 && currentSum < tokenBudget) {
         while (messageIds.length > 0 && currentSum > 0) {
             const removed = messageIds.pop();
-            currentSum -= getMessageTokenCount(chat, removed, data);
+            currentSum -= getMessageTokenCount(chat, removed);
         }
     }
 

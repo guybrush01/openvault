@@ -40,6 +40,7 @@ global.$ = (selector) => ({
     addClass: () => global.$(selector),
     removeClass: () => global.$(selector),
     hasClass: () => false,
+    css: () => global.$(selector),
 });
 
 global.toastr = {

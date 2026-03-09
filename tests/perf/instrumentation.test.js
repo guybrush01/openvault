@@ -72,3 +72,21 @@ describe('perf instrumentation - extract.js dedup', () => {
         expect(all.event_dedup.size).toContain('1'); // new count
     });
 });
+
+describe('perf instrumentation - data.js', () => {
+    it('saveOpenVaultData records chat_save metric', async () => {
+        _resetForTest();
+        setupTestContext({
+            context: { chatMetadata: { openvault: { memories: [] } } },
+            deps: { saveChatConditional: vi.fn(async () => true) },
+            settings: { debugMode: true },
+        });
+
+        const { saveOpenVaultData } = await import('../../src/utils/data.js');
+        await saveOpenVaultData();
+
+        const all = getAll();
+        expect(all.chat_save).toBeDefined();
+        expect(all.chat_save.ms).toBeGreaterThanOrEqual(0);
+    });
+});

@@ -1,5 +1,6 @@
 import { CHARACTERS_KEY, LAST_PROCESSED_KEY, MEMORIES_KEY, METADATA_KEY } from '../constants.js';
 import { getDeps } from '../deps.js';
+import { record } from '../perf/store.js';
 import { showToast } from './dom.js';
 import { deleteEmbedding, hasEmbedding } from './embedding-codec.js';
 import { log } from './logging.js';
@@ -44,6 +45,7 @@ export function getCurrentChatId() {
  * @returns {Promise<boolean>} True if save succeeded, false otherwise
  */
 export async function saveOpenVaultData(expectedChatId = null) {
+    const t0 = performance.now();
     if (expectedChatId !== null) {
         const currentId = getCurrentChatId();
         if (currentId !== expectedChatId) {
@@ -56,9 +58,11 @@ export async function saveOpenVaultData(expectedChatId = null) {
 
     try {
         await getDeps().saveChatConditional();
+        record('chat_save', performance.now() - t0);
         log('Data saved to chat metadata');
         return true;
     } catch (error) {
+        record('chat_save', performance.now() - t0);
         getDeps().console.error('[OpenVault] Failed to save data:', error);
         showToast('error', `Failed to save data: ${error.message}`);
         return false;

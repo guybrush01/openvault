@@ -128,9 +128,10 @@ function bm25Score(queryTokens, docTokens, idfMap, avgDL) {
 }
 
 /**
- * Calculate cosine similarity between two vectors
- * @param {number[]} vecA - First vector
- * @param {number[]} vecB - Second vector
+ * Calculate cosine similarity between two vectors.
+ * 4x loop-unrolled for performance on 384/768-dim typed arrays.
+ * @param {Float32Array|number[]} vecA - First vector
+ * @param {Float32Array|number[]} vecB - Second vector
  * @returns {number} Cosine similarity (0-1)
  */
 export function cosineSimilarity(vecA, vecB) {
@@ -138,18 +139,36 @@ export function cosineSimilarity(vecA, vecB) {
         return 0;
     }
 
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
+    const len = vecA.length;
+    let dot = 0,
+        normA = 0,
+        normB = 0;
 
-    for (let i = 0; i < vecA.length; i++) {
-        dotProduct += vecA[i] * vecB[i];
+    // Process 4 elements per iteration (384-dim → 96 iterations)
+    const limit = len - (len % 4);
+    for (let i = 0; i < limit; i += 4) {
+        const a0 = vecA[i],
+            a1 = vecA[i + 1],
+            a2 = vecA[i + 2],
+            a3 = vecA[i + 3];
+        const b0 = vecB[i],
+            b1 = vecB[i + 1],
+            b2 = vecB[i + 2],
+            b3 = vecB[i + 3];
+        dot += a0 * b0 + a1 * b1 + a2 * b2 + a3 * b3;
+        normA += a0 * a0 + a1 * a1 + a2 * a2 + a3 * a3;
+        normB += b0 * b0 + b1 * b1 + b2 * b2 + b3 * b3;
+    }
+
+    // Handle remainder (0-3 elements)
+    for (let i = limit; i < len; i++) {
+        dot += vecA[i] * vecB[i];
         normA += vecA[i] * vecA[i];
         normB += vecB[i] * vecB[i];
     }
 
     const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
-    return magnitude === 0 ? 0 : dotProduct / magnitude;
+    return magnitude === 0 ? 0 : dot / magnitude;
 }
 
 /**

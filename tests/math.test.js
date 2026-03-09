@@ -3,7 +3,7 @@
  * Tests the pure mathematical functions for scoring.
  */
 import { describe, expect, it } from 'vitest';
-import { calculateScore, scoreMemories, tokenize } from '../src/retrieval/math.js';
+import { calculateScore, cosineSimilarity, scoreMemories, tokenize } from '../src/retrieval/math.js';
 
 describe('math.js - alpha-blend scoring', () => {
     it('BM25 bonus is capped at (1-alpha) * combinedBoostWeight', () => {
@@ -340,5 +340,81 @@ describe('scoreMemories - dynamic character stopwords', () => {
         const gapWith = parkMemoryWith.score - pastaMemoryWith.score;
         const gapWithout = parkMemoryWithout.score - pastaMemoryWithout.score;
         expect(gapWith).toBeGreaterThan(gapWithout);
+    });
+});
+
+describe('cosineSimilarity - Float32Array and unrolling', () => {
+    it('handles Float32Array inputs', () => {
+        const a = new Float32Array([1, 0, 0]);
+        const b = new Float32Array([0, 1, 0]);
+        expect(cosineSimilarity(a, b)).toBe(0);
+    });
+
+    it('handles identical Float32Array vectors', () => {
+        const a = new Float32Array([0.5, 0.5, 0.5]);
+        expect(cosineSimilarity(a, a)).toBeCloseTo(1.0, 10);
+    });
+
+    it('handles mixed Float32Array + number[] inputs', () => {
+        const a = new Float32Array([1, 0, 0]);
+        const b = [1, 0, 0];
+        expect(cosineSimilarity(a, b)).toBeCloseTo(1.0, 10);
+    });
+
+    it('handles vectors with length not divisible by 4 (remainder)', () => {
+        const a = new Float32Array([1, 2, 3, 4, 5]);
+        const b = new Float32Array([1, 2, 3, 4, 5]);
+        expect(cosineSimilarity(a, b)).toBeCloseTo(1.0, 10);
+    });
+
+    it('handles length=1 vector (all remainder, no unrolled iterations)', () => {
+        const a = new Float32Array([1]);
+        const b = new Float32Array([1]);
+        expect(cosineSimilarity(a, b)).toBeCloseTo(1.0, 10);
+    });
+
+    it('handles length=4 vector (exactly one unrolled iteration, no remainder)', () => {
+        const a = new Float32Array([1, 0, 0, 0]);
+        const b = new Float32Array([0, 1, 0, 0]);
+        expect(cosineSimilarity(a, b)).toBe(0);
+    });
+
+    it('produces identical results on 384-dim vs naive reference', () => {
+        const a = new Float32Array(384);
+        const b = new Float32Array(384);
+        for (let i = 0; i < 384; i++) {
+            a[i] = Math.sin(i * 0.1);
+            b[i] = Math.cos(i * 0.1);
+        }
+        // Naive reference
+        let dot = 0,
+            na = 0,
+            nb = 0;
+        for (let i = 0; i < 384; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+        const expected = dot / (Math.sqrt(na) * Math.sqrt(nb));
+        expect(cosineSimilarity(a, b)).toBeCloseTo(expected, 10);
+    });
+
+    it('produces identical results on 768-dim vs naive reference', () => {
+        const a = new Float32Array(768);
+        const b = new Float32Array(768);
+        for (let i = 0; i < 768; i++) {
+            a[i] = Math.sin(i * 0.05);
+            b[i] = Math.cos(i * 0.05);
+        }
+        let dot = 0,
+            na = 0,
+            nb = 0;
+        for (let i = 0; i < 768; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+        const expected = dot / (Math.sqrt(na) * Math.sqrt(nb));
+        expect(cosineSimilarity(a, b)).toBeCloseTo(expected, 10);
     });
 });

@@ -199,6 +199,66 @@ describe('onChatChanged resets session controller', () => {
     });
 });
 
+describe('onChatChanged embedding model mismatch detection', () => {
+    let mockData;
+    let saveFn;
+
+    beforeEach(() => {
+        saveFn = vi.fn(async () => true);
+
+        // Setup: chat has embeddings from old model
+        mockData = {
+            embedding_model_id: 'old-model',
+            memories: [{ id: '1', embedding_b64: 'abc' }],
+            graph: { nodes: { alice: { name: 'Alice', type: 'CHARACTER', embedding_b64: 'def' } }, edges: {} },
+            communities: { C0: { title: 'G', embedding_b64: 'ghi' } },
+        };
+
+        setupTestContext({
+            context: {
+                chat: [],
+                chatMetadata: { openvault: mockData },
+                name1: 'User',
+                name2: 'Bot',
+                chatId: 'test',
+            },
+            settings: { enabled: true, embeddingSource: 'bge-small-en-v1.5' },
+            deps: { saveChatConditional: saveFn },
+        });
+    });
+
+    afterEach(() => {
+        resetDeps();
+        vi.clearAllMocks();
+    });
+
+    it('wipes stale embeddings on model mismatch during chat change', async () => {
+        const { onChatChanged } = await import('../src/events.js');
+
+        await onChatChanged();
+
+        expect(mockData.embedding_model_id).toBe('bge-small-en-v1.5');
+        expect(mockData.memories[0].embedding_b64).toBeUndefined();
+        expect(mockData.graph.nodes.alice.embedding_b64).toBeUndefined();
+        expect(mockData.communities.C0.embedding_b64).toBeUndefined();
+        expect(saveFn).toHaveBeenCalled();
+    });
+
+    it('does not wipe when model matches', async () => {
+        mockData.embedding_model_id = 'bge-small-en-v1.5';
+
+        const { onChatChanged } = await import('../src/events.js');
+
+        await onChatChanged();
+
+        expect(mockData.embedding_model_id).toBe('bge-small-en-v1.5');
+        expect(mockData.memories[0].embedding_b64).toBe('abc');
+        expect(mockData.graph.nodes.alice.embedding_b64).toBe('def');
+        expect(mockData.communities.C0.embedding_b64).toBe('ghi');
+        expect(saveFn).not.toHaveBeenCalled();
+    });
+});
+
 describe('onBeforeGeneration AbortError handling', () => {
     afterEach(() => {
         resetDeps();

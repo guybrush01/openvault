@@ -205,6 +205,16 @@ export async function onChatChanged() {
         cleanupCharacterStates(data, validCharNames);
     }
 
+    // Check for embedding model mismatch and wipe stale vectors
+    const { invalidateStaleEmbeddings, saveOpenVaultData } = await import('./utils/data.js');
+    const settings = getDeps().getExtensionSettings()[extensionName];
+    if (data && settings?.embeddingSource) {
+        const wiped = invalidateStaleEmbeddings(data, settings.embeddingSource);
+        if (wiped > 0) {
+            await saveOpenVaultData();
+        }
+    }
+
     // Clear token cache when switching chats
     clearTokenCache();
 

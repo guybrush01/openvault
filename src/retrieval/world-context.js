@@ -4,6 +4,7 @@
  * Retrieves relevant community summaries for injection into the prompt.
  */
 
+import { getEmbedding, hasEmbedding } from '../utils/embedding-codec.js';
 import { countTokens } from '../utils/tokens.js';
 import { cosineSimilarity } from './math.js';
 
@@ -22,8 +23,8 @@ export function retrieveWorldContext(communities, queryEmbedding, tokenBudget = 
     // Score communities by cosine similarity
     const scored = [];
     for (const [id, community] of Object.entries(communities)) {
-        if (!community.embedding || community.embedding.length === 0) continue;
-        const score = cosineSimilarity(queryEmbedding, community.embedding);
+        if (!hasEmbedding(community)) continue;
+        const score = cosineSimilarity(queryEmbedding, getEmbedding(community));
         scored.push({ id, community, score });
     }
 

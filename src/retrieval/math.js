@@ -5,6 +5,7 @@
  * Extracted for testability and reuse in both main thread and worker.
  */
 
+import { getEmbedding, hasEmbedding } from '../utils/embedding-codec.js';
 import { yieldToMain } from '../utils/st-helpers.js';
 import { stemWord } from '../utils/stemmer.js';
 import { ALL_STOPWORDS } from '../utils/stopwords.js';
@@ -195,8 +196,8 @@ export function calculateScore(memory, contextEmbedding, chatLength, constants, 
     let vectorBonus = 0;
     let vectorSimilarity = 0;
 
-    if (contextEmbedding && memory.embedding) {
-        vectorSimilarity = cosineSimilarity(contextEmbedding, memory.embedding);
+    if (contextEmbedding && hasEmbedding(memory)) {
+        vectorSimilarity = cosineSimilarity(contextEmbedding, getEmbedding(memory));
         const threshold = settings.vectorSimilarityThreshold;
 
         if (vectorSimilarity > threshold) {

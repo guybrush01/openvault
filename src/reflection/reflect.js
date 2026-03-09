@@ -18,6 +18,7 @@ import { getDeps } from '../deps.js';
 import { enrichEventsWithEmbeddings, getQueryEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
 import { parseInsightExtractionResponse, parseSalientQuestionsResponse } from '../extraction/structured.js';
 import { callLLM, LLM_CONFIGS } from '../llm.js';
+import { record } from '../perf/store.js';
 import { filterMemoriesByPOV } from '../pov.js';
 import {
     buildInsightExtractionPrompt,
@@ -193,6 +194,7 @@ export function shouldSkipReflectionGeneration(recentMemories, existingReflectio
  * @returns {Promise<Array>} New reflection memory objects
  */
 export async function generateReflections(characterName, allMemories, characterStates) {
+    const t0 = performance.now();
     const deps = getDeps();
     const settings = deps.getExtensionSettings()?.[extensionName] || {};
     const preamble = resolveExtractionPreamble(settings);
@@ -334,5 +336,6 @@ export async function generateReflections(characterName, allMemories, characterS
     log(
         `Reflection: Generated ${toAdd.length} reflections for ${characterName} (${reflections.length - toAdd.length} filtered)`
     );
+    record('llm_reflection', performance.now() - t0);
     return toAdd;
 }

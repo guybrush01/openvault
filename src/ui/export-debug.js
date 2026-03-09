@@ -10,6 +10,7 @@ import { isEmbeddingsEnabled } from '../embeddings.js';
 import { getCachedScoringDetails, getLastRetrievalDebug } from '../retrieval/debug-cache.js';
 import { getOpenVaultData } from '../utils/data.js';
 import { showToast } from '../utils/dom.js';
+import { deleteEmbedding } from '../utils/embedding-codec.js';
 
 const _RECENT_CONTEXT_CAP = 2000;
 
@@ -91,7 +92,7 @@ function buildScoringStats(scoringDetails) {
 function stripEmbedding(obj) {
     if (!obj || typeof obj !== 'object') return obj;
     const clone = { ...obj };
-    delete clone.embedding;
+    deleteEmbedding(clone);
     return clone;
 }
 

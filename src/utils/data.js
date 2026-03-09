@@ -1,6 +1,7 @@
 import { CHARACTERS_KEY, LAST_PROCESSED_KEY, MEMORIES_KEY, METADATA_KEY } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { showToast } from './dom.js';
+import { deleteEmbedding, hasEmbedding } from './embedding-codec.js';
 import { log } from './logging.js';
 
 /**
@@ -102,7 +103,7 @@ export async function updateMemory(id, updates) {
 
     // If summary changed, invalidate embedding so it can be regenerated
     if (summaryChanged) {
-        delete memory.embedding;
+        deleteEmbedding(memory);
     }
 
     await getDeps().saveChatConditional();
@@ -164,8 +165,8 @@ export async function deleteCurrentChatEmbeddings() {
 
     let count = 0;
     for (const memory of data[MEMORIES_KEY]) {
-        if (memory.embedding) {
-            delete memory.embedding;
+        if (hasEmbedding(memory)) {
+            deleteEmbedding(memory);
             count++;
         }
     }

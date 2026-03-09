@@ -55,3 +55,20 @@ describe('perf instrumentation - math.js', () => {
         expect(all.memory_scoring.size).toContain('2');
     });
 });
+
+describe('perf instrumentation - extract.js dedup', () => {
+    it('filterSimilarEvents records event_dedup metric with size context', async () => {
+        _resetForTest();
+        setupTestContext({ settings: { debugMode: true } });
+
+        const { filterSimilarEvents } = await import('../../src/extraction/extract.js');
+        const newEvents = [{ summary: 'event A', tokens: ['event', 'a'], embedding: [1, 0, 0] }];
+        const existing = [{ summary: 'event B', tokens: ['event', 'b'], embedding: [0, 1, 0] }];
+
+        await filterSimilarEvents(newEvents, existing);
+
+        const all = getAll();
+        expect(all.event_dedup).toBeDefined();
+        expect(all.event_dedup.size).toContain('1'); // new count
+    });
+});

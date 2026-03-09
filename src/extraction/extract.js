@@ -57,6 +57,7 @@ import {
     upsertRelationship,
 } from '../graph/graph.js';
 import { callLLM, LLM_CONFIGS } from '../llm.js';
+import { record } from '../perf/store.js';
 import {
     buildEventExtractionPrompt,
     buildGraphExtractionPrompt,
@@ -243,6 +244,7 @@ function selectMemoriesForExtraction(data, settings) {
  * @param {number} jaccardThreshold - Jaccard token similarity threshold for intra-batch dedup
  */
 export async function filterSimilarEvents(newEvents, existingMemories, cosineThreshold = 0.92, jaccardThreshold = 0.6) {
+    const t0 = performance.now();
     // Phase 1: Filter against existing memories (cosine + Jaccard cross-check)
     let filtered = newEvents;
     if (existingMemories?.length) {
@@ -309,6 +311,7 @@ export async function filterSimilarEvents(newEvents, existingMemories, cosineThr
         }
         if (!isDuplicate) kept.push(event);
     }
+    record('event_dedup', performance.now() - t0, `${newEvents.length}×${existingMemories?.length || 0} O(n×m)`);
     return kept;
 }
 

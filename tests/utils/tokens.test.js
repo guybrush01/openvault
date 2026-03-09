@@ -1,77 +1,68 @@
-import { describe, expect, it } from 'vitest';
-
-const MESSAGE_TOKENS_KEY = 'message_tokens';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('getMessageTokenCount', () => {
-    it('computes token count for a message and caches it in data', async () => {
-        const { getMessageTokenCount } = await import('../../src/utils/tokens.js');
-
-        const chat = [
-            { mes: 'Hello, how are you today?', is_user: true },
-            { mes: 'I am doing well, thank you for asking!', is_user: false },
-        ];
-        const data = {};
-
-        const count = getMessageTokenCount(chat, 0, data);
-
-        // Should be a positive integer
-        expect(count).toBeGreaterThan(0);
-        expect(Number.isInteger(count)).toBe(true);
-
-        // Should cache the result (key includes text length for invalidation)
-        expect(data[MESSAGE_TOKENS_KEY]).toBeDefined();
-        const text = chat[0].mes;
-        expect(data[MESSAGE_TOKENS_KEY][`0_${text.length}`]).toBe(count);
+    beforeEach(async () => {
+        const { clearTokenCache } = await import('../../src/utils/tokens.js');
+        clearTokenCache();
     });
 
-    it('returns cached count on second call without recomputing', async () => {
+    it('computes token count for a message', async () => {
         const { getMessageTokenCount } = await import('../../src/utils/tokens.js');
+        const chat = [{ mes: 'Hello, how are you today?', is_user: true }];
+        const count = getMessageTokenCount(chat, 0);
+        expect(count).toBeGreaterThan(0);
+        expect(Number.isInteger(count)).toBe(true);
+    });
 
-        const chat = [{ mes: 'Test message', is_user: true }];
-        // Cache key includes text length: index_textLength
-        const data = { [MESSAGE_TOKENS_KEY]: { '0_12': 999 } };
-
-        const count = getMessageTokenCount(chat, 0, data);
-
-        // Should return the cached value, not recompute
-        expect(count).toBe(999);
+    it('returns cached count on second call', async () => {
+        const { getMessageTokenCount } = await import('../../src/utils/tokens.js');
+        const chat = [{ mes: 'Test message for caching', is_user: true }];
+        const count1 = getMessageTokenCount(chat, 0);
+        const count2 = getMessageTokenCount(chat, 0);
+        expect(count1).toBe(count2);
     });
 
     it('handles empty or missing message text', async () => {
         const { getMessageTokenCount } = await import('../../src/utils/tokens.js');
-
         const chat = [{ mes: '', is_user: true }, { is_user: false }];
-        const data = {};
-
-        expect(getMessageTokenCount(chat, 0, data)).toBe(0);
-        expect(getMessageTokenCount(chat, 1, data)).toBe(0);
+        expect(getMessageTokenCount(chat, 0)).toBe(0);
+        expect(getMessageTokenCount(chat, 1)).toBe(0);
     });
 });
 
 describe('getTokenSum', () => {
+    beforeEach(async () => {
+        const { clearTokenCache } = await import('../../src/utils/tokens.js');
+        clearTokenCache();
+    });
+
     it('sums token counts for specified indices', async () => {
         const { getTokenSum } = await import('../../src/utils/tokens.js');
-
         const chat = [
             { mes: 'Hello world', is_user: true },
-            { mes: 'How are you doing today my friend?', is_user: false },
+            { mes: 'How are you doing today?', is_user: false },
             { mes: 'Great thanks', is_user: true },
         ];
-        const data = {};
-
-        const total = getTokenSum(chat, [0, 1, 2], data);
-
+        const total = getTokenSum(chat, [0, 1, 2]);
         expect(total).toBeGreaterThan(0);
         expect(Number.isInteger(total)).toBe(true);
     });
 
     it('returns 0 for empty index list', async () => {
         const { getTokenSum } = await import('../../src/utils/tokens.js');
+        expect(getTokenSum([], [])).toBe(0);
+    });
+});
 
-        const chat = [{ mes: 'Hello', is_user: true }];
-        const data = {};
-
-        expect(getTokenSum(chat, [], data)).toBe(0);
+describe('clearTokenCache', () => {
+    it('clears the cache so counts are recomputed', async () => {
+        const { getMessageTokenCount, clearTokenCache } = await import('../../src/utils/tokens.js');
+        const chat = [{ mes: 'Cached message', is_user: true }];
+        getMessageTokenCount(chat, 0);
+        clearTokenCache();
+        // After clear, should recompute (same result, but from scratch)
+        const count = getMessageTokenCount(chat, 0);
+        expect(count).toBeGreaterThan(0);
     });
 });
 

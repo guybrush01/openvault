@@ -1,36 +1,43 @@
 import { countTokens as _countTokens } from 'https://esm.sh/gpt-tokenizer/encoding/o200k_base';
 
-const MESSAGE_TOKENS_KEY = 'message_tokens';
+const MAX_CACHE_SIZE = 2000;
+const tokenCache = new Map();
 
-/**
- * Count tokens for any text string using gpt-tokenizer (o200k_base).
- * @param {string} text - Text to count
- * @returns {number} Token count
- */
 export function countTokens(text) {
     return (text || '').length === 0 ? 0 : _countTokens(text);
 }
 
 /**
- * Get token count for a single message. Uses cache, falls back to computation.
+ * Clear the token cache. Call on CHAT_CHANGED.
+ */
+export function clearTokenCache() {
+    tokenCache.clear();
+}
+
+/**
+ * Get token count for a single message. Uses in-memory LRU cache.
  * @param {Object[]} chat - Chat array
  * @param {number} index - Message index
- * @param {Object} data - OpenVault data (for cache read/write)
  * @returns {number} Token count
  */
-export function getMessageTokenCount(chat, index, data) {
-    if (!data[MESSAGE_TOKENS_KEY]) {
-        data[MESSAGE_TOKENS_KEY] = {};
-    }
-
+export function getMessageTokenCount(chat, index) {
     const text = chat[index]?.mes || '';
     const key = `${index}_${text.length}`;
-    if (data[MESSAGE_TOKENS_KEY][key] !== undefined) {
-        return data[MESSAGE_TOKENS_KEY][key];
+
+    if (tokenCache.has(key)) {
+        const value = tokenCache.get(key);
+        tokenCache.delete(key);
+        tokenCache.set(key, value);
+        return value;
     }
 
     const count = text.length === 0 ? 0 : _countTokens(text);
-    data[MESSAGE_TOKENS_KEY][key] = count;
+
+    if (tokenCache.size >= MAX_CACHE_SIZE) {
+        const oldest = tokenCache.keys().next().value;
+        tokenCache.delete(oldest);
+    }
+    tokenCache.set(key, count);
     return count;
 }
 
@@ -38,40 +45,14 @@ export function getMessageTokenCount(chat, index, data) {
  * Sum token counts for a list of message indices.
  * @param {Object[]} chat - Chat array
  * @param {number[]} indices - Message indices
- * @param {Object} data - OpenVault data
  * @returns {number} Total tokens
  */
-export function getTokenSum(chat, indices, data) {
+export function getTokenSum(chat, indices) {
     let total = 0;
     for (const i of indices) {
-        total += getMessageTokenCount(chat, i, data);
+        total += getMessageTokenCount(chat, i);
     }
     return total;
-}
-
-/**
- * Remove stale token cache entries whose message index is out of bounds
- * or whose text length no longer matches the current message.
- * @param {Object} data - OpenVault data (mutated in place)
- * @param {Object[]} chat - Current chat array
- * @returns {number} Number of pruned entries
- */
-export function pruneTokenCache(data, chat) {
-    const cache = data[MESSAGE_TOKENS_KEY];
-    if (!cache) return 0;
-
-    let pruned = 0;
-    for (const key of Object.keys(cache)) {
-        const sep = key.indexOf('_');
-        const msgIndex = parseInt(key.slice(0, sep), 10);
-        const textLength = parseInt(key.slice(sep + 1), 10);
-
-        if (msgIndex >= chat.length || (chat[msgIndex]?.mes || '').length !== textLength) {
-            delete cache[key];
-            pruned++;
-        }
-    }
-    return pruned;
 }
 
 /**

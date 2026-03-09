@@ -1,3 +1,6 @@
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
 import {
     renderCommunityAccordion,
@@ -5,6 +8,12 @@ import {
     renderMemoryItem,
     renderReflectionProgress,
 } from '../src/ui/templates.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Read settings panel HTML for template validation
+const settingsPanelHtml = readFileSync(join(__dirname, '../templates/settings_panel.html'), 'utf-8');
 
 describe('ui/templates', () => {
     describe('renderMemoryItem', () => {
@@ -180,5 +189,12 @@ describe('ui/templates', () => {
             const html = renderEntityCard(entity);
             expect(html).toContain('0 mentions');
         });
+    });
+});
+
+describe('settings panel template', () => {
+    it('contains backup profile dropdown', () => {
+        expect(settingsPanelHtml).toContain('id="openvault_backup_profile"');
+        expect(settingsPanelHtml).toContain('None (no failover)');
     });
 });

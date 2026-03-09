@@ -570,6 +570,10 @@ function bindUIElements() {
         saveSetting('extractionProfile', $(this).val());
     });
 
+    $('#openvault_backup_profile').on('change', function () {
+        saveSetting('backupProfile', $(this).val());
+    });
+
     // Preamble language
     $('#openvault_preamble_language').on('change', function () {
         saveSetting('preambleLanguage', $(this).val());
@@ -869,4 +873,5 @@ export function populateProfileSelector() {
     const profiles = extension_settings.connectionManager?.profiles || [];
 
     populateProfileDropdown($('#openvault_extraction_profile'), profiles, settings.extractionProfile);
+    populateProfileDropdown($('#openvault_backup_profile'), profiles, settings.backupProfile);
 }

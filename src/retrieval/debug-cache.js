@@ -48,6 +48,8 @@ export function cacheScoringDetails(scoredResults, selectedIds) {
                 vectorBonus: breakdown.vectorBonus,
                 bm25Score: breakdown.bm25Score,
                 bm25Bonus: breakdown.bm25Bonus,
+                hitDamping: breakdown.hitDamping,
+                frequencyFactor: breakdown.frequencyFactor,
                 total: breakdown.total,
             },
             selected: selectedSet.has(memory.id),

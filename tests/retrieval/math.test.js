@@ -154,3 +154,24 @@ describe('Frequency Factor (mentions boost)', () => {
         expect(withMentions.total / noMentions.total).toBeCloseTo(expectedRatio, 2);
     });
 });
+
+describe('Debug cache propagation', () => {
+    it('cacheScoringDetails includes hitDamping and frequencyFactor in scores', async () => {
+        const { cacheScoringDetails, getCachedScoringDetails } = await import('../../src/retrieval/debug-cache.js');
+        const scoredResults = [{
+            memory: { id: 'test1', summary: 'Test event' },
+            score: 2.5,
+            breakdown: {
+                base: 2.0, baseAfterFloor: 2.0, recencyPenalty: 0,
+                vectorSimilarity: 0.6, vectorBonus: 0.3,
+                bm25Score: 0.4, bm25Bonus: 0.2,
+                total: 2.5, distance: 50, importance: 3,
+                hitDamping: 0.67, frequencyFactor: 1.115,
+            },
+        }];
+        cacheScoringDetails(scoredResults, ['test1']);
+        const cached = getCachedScoringDetails();
+        expect(cached[0].scores.hitDamping).toBeCloseTo(0.67);
+        expect(cached[0].scores.frequencyFactor).toBeCloseTo(1.115);
+    });
+});

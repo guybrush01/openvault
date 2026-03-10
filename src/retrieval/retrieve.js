@@ -17,6 +17,7 @@
  * @property {string} headerName - Header for injection ("Scene" or character name)
  * @property {number} finalTokens - Final context token budget
  * @property {Object} graphNodes - Graph entity nodes for entity detection
+ * @property {Object} graphEdges - Graph entity edges for corpus vocabulary
  * @property {Object[]} allAvailableMemories - All memories for expanded IDF corpus
  */
 
@@ -113,6 +114,7 @@ export function buildRetrievalContext(opts = {}) {
         finalTokens: settings.retrievalFinalTokens,
         worldContextBudget: settings.worldContextBudget,
         graphNodes: data?.graph?.nodes || {},
+        graphEdges: data?.graph?.edges || {},
         allAvailableMemories: data?.[MEMORIES_KEY] || [], // Full memory list for IDF
     };
 }

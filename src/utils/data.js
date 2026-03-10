@@ -3,7 +3,7 @@ import { getDeps } from '../deps.js';
 import { record } from '../perf/store.js';
 import { showToast } from './dom.js';
 import { deleteEmbedding, hasEmbedding } from './embedding-codec.js';
-import { logDebug, logError, logWarn } from './logging.js';
+import { logDebug, logError, logInfo, logWarn } from './logging.js';
 
 /**
  * Get OpenVault data from chat metadata
@@ -213,7 +213,7 @@ export function invalidateStaleEmbeddings(data, currentModelId) {
     }
 
     data.embedding_model_id = currentModelId;
-    logDebug(`Embedding model changed (${oldModel} → ${currentModelId}). Wiped ${count} embeddings.`);
+    logInfo(`Embedding model changed (${oldModel} → ${currentModelId}). Wiped ${count} embeddings.`);
     return count;
 }
 

@@ -17,7 +17,7 @@ import { loadSettings } from './src/ui/settings.js';
 import { setStatus } from './src/ui/status.js';
 import { getOpenVaultData } from './src/utils/data.js';
 import { showToast } from './src/utils/dom.js';
-import { logDebug } from './src/utils/logging.js';
+import { logDebug, logError, logInfo } from './src/utils/logging.js';
 
 // Re-export extensionName for external use
 export { extensionName };
@@ -127,6 +127,7 @@ jQuery(() => {
             }
         } catch (error) {
             console.error('[OpenVault] Failed to check SillyTavern version:', error);
+            logError('Failed to check SillyTavern version', error);
             showToast('error', 'OpenVault failed to verify SillyTavern version');
             return;
         }
@@ -139,6 +140,6 @@ jQuery(() => {
 
         updateEventListeners();
         setStatus('ready');
-        logDebug('Extension initialized');
+        logInfo('Extension initialized successfully');
     });
 });

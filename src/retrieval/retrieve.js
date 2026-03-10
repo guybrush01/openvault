@@ -304,7 +304,9 @@ export async function retrieveAndInjectContext() {
         logDebug(`Injected ${result.memories.length} memories into context`);
         return result;
     } catch (error) {
-        logError('Retrieval error', error);
+        const chatLength = chat?.length || 0;
+        const povCharacters = getPOVContext().povCharacters;
+        logError('Retrieval error', error, { chatLength, povCharacters });
         throw error;
     }
 }

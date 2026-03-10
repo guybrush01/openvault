@@ -2,7 +2,7 @@ import { cdnImport } from '../utils/cdn.js';
 
 const [{ jsonrepair }, { z }] = await Promise.all([cdnImport('jsonrepair'), cdnImport('zod')]);
 
-import { logWarn } from '../utils/logging.js';
+import { logError, logWarn } from '../utils/logging.js';
 import { stripThinkingTags } from '../utils/text.js';
 
 // --- Schemas (inlined from schemas/) ---
@@ -120,6 +120,9 @@ function parseStructuredResponse(content, schema) {
         const repaired = jsonrepair(jsonContent);
         parsed = JSON.parse(repaired);
     } catch (e) {
+        logError('JSON parse failed in structured response', e, {
+            rawContent: content.slice(0, 2000),
+        });
         throw new Error(`JSON parse failed: ${e.message}`);
     }
 
@@ -168,6 +171,9 @@ export function parseEventExtractionResponse(content) {
         const repaired = jsonrepair(jsonContent);
         parsed = JSON.parse(repaired);
     } catch (e) {
+        logError('JSON parse failed in event extraction', e, {
+            rawContent: content.slice(0, 2000),
+        });
         throw new Error(`JSON parse failed: ${e.message}`);
     }
 
@@ -218,6 +224,9 @@ export function parseGraphExtractionResponse(content) {
         const repaired = jsonrepair(jsonContent);
         parsed = JSON.parse(repaired);
     } catch (e) {
+        logError('JSON parse failed in graph extraction', e, {
+            rawContent: content.slice(0, 2000),
+        });
         throw new Error(`JSON parse failed: ${e.message}`);
     }
 

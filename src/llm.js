@@ -16,7 +16,7 @@ import {
 } from './extraction/structured.js';
 import { getSessionSignal } from './state.js';
 import { showToast } from './utils/dom.js';
-import { logDebug, logRequest } from './utils/logging.js';
+import { logDebug, logError, logRequest } from './utils/logging.js';
 import { withTimeout } from './utils/st-helpers.js';
 
 /**
@@ -188,7 +188,10 @@ export async function callLLM(messages, config, options = {}) {
 
         // Original error handling — toast + re-throw main error
         const errorMessage = mainError.message || 'Unknown error';
-        logDebug(`${errorContext} LLM call error: ${errorMessage}`);
+        logError(`${errorContext} LLM call failed`, mainError, {
+            profileId,
+            maxTokens,
+        });
         if (!errorMessage.includes('timed out')) {
             showToast('error', `${errorContext} failed: ${errorMessage}`);
         }

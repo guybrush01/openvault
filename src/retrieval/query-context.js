@@ -179,6 +179,18 @@ export function buildBM25Tokens(userMessage, extractedEntities, corpusVocab = nu
         const msgStems = tokenize(userMessage || '');
         const grounded = msgStems.filter(t => corpusVocab.has(t));
 
+        // DEBUG: Log corpus grounding behavior
+        if (msgStems.length > 0) {
+            const filtered = msgStems.filter(t => !corpusVocab.has(t));
+            console.log('[BM25-DEBUG] Corpus grounding:', {
+                msgStems: msgStems.slice(0, 20), // First 20 stems
+                groundedCount: grounded.length,
+                filteredCount: filtered.length,
+                sampleFiltered: filtered.slice(0, 10),
+                vocabSize: corpusVocab.size
+            });
+        }
+
         // Deduplicate grounded tokens (each unique stem boosted once)
         const unique = [...new Set(grounded)];
         const boost = Math.ceil(settings.entityBoostWeight / CORPUS_GROUNDED_BOOST_DIVISOR);
@@ -245,6 +257,13 @@ export function buildCorpusVocab(memories, hiddenMemories, graphNodes, graphEdge
         if (edge.description) {
             for (const t of tokenize(edge.description)) vocab.add(t);
         }
+    }
+
+    // DEBUG: Log corpus vocab sample
+    const vocabArray = Array.from(vocab);
+    const candleRelated = vocabArray.filter(t => t.includes('свеч') || t.includes('воск'));
+    if (candleRelated.length > 0) {
+        console.log('[BM25-DEBUG] Corpus vocab candle/wax stems:', candleRelated);
     }
 
     return vocab;

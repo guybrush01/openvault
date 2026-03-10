@@ -17,7 +17,7 @@ import { loadSettings } from './src/ui/settings.js';
 import { setStatus } from './src/ui/status.js';
 import { getOpenVaultData } from './src/utils/data.js';
 import { showToast } from './src/utils/dom.js';
-import { log } from './src/utils/logging.js';
+import { logDebug } from './src/utils/logging.js';
 
 // Re-export extensionName for external use
 export { extensionName };
@@ -102,7 +102,7 @@ function registerCommands() {
         })
     );
 
-    log('Slash commands registered');
+    logDebug('Slash commands registered');
 }
 
 /**
@@ -135,10 +135,10 @@ jQuery(() => {
         registerCommands();
 
         // Set cooldown during initial load to prevent extraction from MESSAGE_RECEIVED events
-        setChatLoadingCooldown(2000, log);
+        setChatLoadingCooldown(2000, logDebug);
 
         updateEventListeners();
         setStatus('ready');
-        log('Extension initialized');
+        logDebug('Extension initialized');
     });
 });

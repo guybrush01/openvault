@@ -4,6 +4,21 @@ import { resetDeps, setDeps } from '../../src/deps.js';
 import { logDebug, logError, logInfo, logRequest, logWarn } from '../../src/utils/logging.js';
 
 describe('logging', () => {
+    // Test that verifies all expected exports are available
+    // This prevents regression where imports break due to missing/renamed exports
+    it('exports all expected logging functions', async () => {
+        // Dynamic import to ensure we test the actual module exports
+        const module = await import('../../src/utils/logging.js');
+        expect(module).toHaveProperty('logDebug');
+        expect(module).toHaveProperty('logInfo');
+        expect(module).toHaveProperty('logWarn');
+        expect(module).toHaveProperty('logError');
+        expect(module).toHaveProperty('logRequest');
+
+        // Verify the old 'log' export does NOT exist (prevent re-introduction)
+        expect(module).not.toHaveProperty('log');
+    });
+
     let mockConsole;
 
     beforeEach(() => {

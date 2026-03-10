@@ -2,13 +2,67 @@ import { extensionName } from '../constants.js';
 import { getDeps } from '../deps.js';
 
 /**
- * Log message if debug mode is enabled
- * @param {string} message
+ * Debug-only log. Hidden unless settings.debugMode is true.
+ * @param {string} msg
+ * @param {unknown} [data]
  */
-export function log(message) {
+export function logDebug(msg, data) {
     const settings = getDeps().getExtensionSettings()[extensionName];
-    if (settings?.debugMode) {
-        getDeps().console.log(`[OpenVault] ${message}`);
+    if (!settings?.debugMode) return;
+    const c = getDeps().console;
+    if (data !== undefined) {
+        c.log(`[OpenVault] ${msg}`, data);
+    } else {
+        c.log(`[OpenVault] ${msg}`);
+    }
+}
+
+/**
+ * Always-visible info log. Use for rare lifecycle milestones only.
+ * @param {string} msg
+ * @param {unknown} [data]
+ */
+export function logInfo(msg, data) {
+    const c = getDeps().console;
+    if (data !== undefined) {
+        c.log(`[OpenVault] ${msg}`, data);
+    } else {
+        c.log(`[OpenVault] ${msg}`);
+    }
+}
+
+/**
+ * Always-visible warning. Recovered errors, edge-case fallbacks.
+ * @param {string} msg
+ * @param {unknown} [data]
+ */
+export function logWarn(msg, data) {
+    const c = getDeps().console;
+    if (data !== undefined) {
+        c.warn(`[OpenVault] ${msg}`, data);
+    } else {
+        c.warn(`[OpenVault] ${msg}`);
+    }
+}
+
+/**
+ * Always-visible error log with optional error object and context.
+ * @param {string} msg - Human description of what failed
+ * @param {Error} [error] - The caught error object
+ * @param {Record<string, unknown>} [context] - Debugging state (counts, model names, truncated inputs)
+ */
+export function logError(msg, error, context) {
+    const c = getDeps().console;
+    c.error(`[OpenVault] ${msg}`);
+    if (error) {
+        c.error(error);
+    }
+    if (context) {
+        const group = c.groupCollapsed?.bind(c) ?? c.log.bind(c);
+        const groupEnd = c.groupEnd?.bind(c) ?? (() => {});
+        group('[OpenVault] Error context');
+        c.log(context);
+        groupEnd();
     }
 }
 

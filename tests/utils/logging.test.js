@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { extensionName } from '../../src/constants.js';
 import { resetDeps, setDeps } from '../../src/deps.js';
-import { log, logRequest } from '../../src/utils/logging.js';
+import { logDebug, logError, logInfo, logRequest, logWarn } from '../../src/utils/logging.js';
 
 describe('logging', () => {
     let mockConsole;
@@ -11,32 +11,138 @@ describe('logging', () => {
     });
     afterEach(() => resetDeps());
 
-    describe('log', () => {
-        it('logs message when debug mode is enabled', () => {
+    describe('logDebug', () => {
+        it('logs when debugMode is true', () => {
             setDeps({
                 console: mockConsole,
                 getExtensionSettings: () => ({ [extensionName]: { debugMode: true } }),
             });
-            log('test message');
-            expect(mockConsole.log).toHaveBeenCalledWith('[OpenVault] test message');
+            logDebug('test debug');
+            expect(mockConsole.log).toHaveBeenCalledWith('[OpenVault] test debug');
         });
 
-        it('does not log when debug mode is disabled', () => {
+        it('logs with data when debugMode is true', () => {
+            setDeps({
+                console: mockConsole,
+                getExtensionSettings: () => ({ [extensionName]: { debugMode: true } }),
+            });
+            logDebug('scores', { top: 0.9 });
+            expect(mockConsole.log).toHaveBeenCalledWith('[OpenVault] scores', { top: 0.9 });
+        });
+
+        it('does not log when debugMode is false', () => {
             setDeps({
                 console: mockConsole,
                 getExtensionSettings: () => ({ [extensionName]: { debugMode: false } }),
             });
-            log('test message');
+            logDebug('hidden');
             expect(mockConsole.log).not.toHaveBeenCalled();
         });
 
-        it('handles missing settings gracefully', () => {
+        it('does not log when settings are missing', () => {
             setDeps({
                 console: mockConsole,
                 getExtensionSettings: () => ({}),
             });
-            log('test message');
+            logDebug('hidden');
             expect(mockConsole.log).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('logInfo', () => {
+        it('always logs regardless of debugMode', () => {
+            setDeps({
+                console: mockConsole,
+                getExtensionSettings: () => ({ [extensionName]: { debugMode: false } }),
+            });
+            logInfo('Extension initialized');
+            expect(mockConsole.log).toHaveBeenCalledWith('[OpenVault] Extension initialized');
+        });
+
+        it('logs with data', () => {
+            setDeps({
+                console: mockConsole,
+                getExtensionSettings: () => ({ [extensionName]: {} }),
+            });
+            logInfo('Backfill complete', { memories: 5, nodes: 12 });
+            expect(mockConsole.log).toHaveBeenCalledWith('[OpenVault] Backfill complete', { memories: 5, nodes: 12 });
+        });
+    });
+
+    describe('logWarn', () => {
+        it('always warns regardless of debugMode', () => {
+            setDeps({
+                console: mockConsole,
+                getExtensionSettings: () => ({ [extensionName]: { debugMode: false } }),
+            });
+            logWarn('Stale lock cleared');
+            expect(mockConsole.warn).toHaveBeenCalledWith('[OpenVault] Stale lock cleared');
+        });
+
+        it('warns with data', () => {
+            setDeps({
+                console: mockConsole,
+                getExtensionSettings: () => ({ [extensionName]: {} }),
+            });
+            logWarn('Array fallback', { length: 3 });
+            expect(mockConsole.warn).toHaveBeenCalledWith('[OpenVault] Array fallback', { length: 3 });
+        });
+    });
+
+    describe('logError', () => {
+        it('logs error message with prefix', () => {
+            setDeps({
+                console: mockConsole,
+                getExtensionSettings: () => ({ [extensionName]: {} }),
+            });
+            logError('Something broke');
+            expect(mockConsole.error).toHaveBeenCalledWith('[OpenVault] Something broke');
+        });
+
+        it('logs error object when provided', () => {
+            setDeps({
+                console: mockConsole,
+                getExtensionSettings: () => ({ [extensionName]: {} }),
+            });
+            const err = new Error('boom');
+            logError('Parse failed', err);
+            expect(mockConsole.error).toHaveBeenCalledWith('[OpenVault] Parse failed');
+            expect(mockConsole.error).toHaveBeenCalledWith(err);
+        });
+
+        it('logs context object in collapsed group when provided', () => {
+            const groupCollapsed = vi.fn();
+            const groupEnd = vi.fn();
+            setDeps({
+                console: { ...mockConsole, groupCollapsed, groupEnd },
+                getExtensionSettings: () => ({ [extensionName]: {} }),
+            });
+            logError('Extraction failed', new Error('timeout'), { messageCount: 42 });
+            expect(mockConsole.error).toHaveBeenCalledWith('[OpenVault] Extraction failed');
+            expect(groupCollapsed).toHaveBeenCalledWith('[OpenVault] Error context');
+            expect(mockConsole.log).toHaveBeenCalledWith({ messageCount: 42 });
+            expect(groupEnd).toHaveBeenCalled();
+        });
+
+        it('skips context group when context is not provided', () => {
+            const groupCollapsed = vi.fn();
+            setDeps({
+                console: { ...mockConsole, groupCollapsed, groupEnd: vi.fn() },
+                getExtensionSettings: () => ({ [extensionName]: {} }),
+            });
+            logError('Simple error', new Error('x'));
+            expect(groupCollapsed).not.toHaveBeenCalled();
+        });
+
+        it('handles missing groupCollapsed gracefully', () => {
+            setDeps({
+                console: mockConsole, // no groupCollapsed
+                getExtensionSettings: () => ({ [extensionName]: {} }),
+            });
+            // Should not throw even with context
+            logError('Fallback test', new Error('y'), { key: 'val' });
+            expect(mockConsole.error).toHaveBeenCalledWith('[OpenVault] Fallback test');
+            expect(mockConsole.log).toHaveBeenCalledWith({ key: 'val' });
         });
     });
 

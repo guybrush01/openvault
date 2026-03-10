@@ -1,4 +1,6 @@
-import { countTokens as _countTokens } from 'https://esm.sh/gpt-tokenizer/encoding/o200k_base';
+import { cdnImport } from './cdn.js';
+
+const { countTokens: _countTokens } = await cdnImport('gpt-tokenizer/encoding/o200k_base');
 
 const MAX_CACHE_SIZE = 2000;
 const tokenCache = new Map();

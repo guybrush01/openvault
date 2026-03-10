@@ -2,8 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetDeps } from '../../src/deps.js';
 
 describe('worker abort handling', () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.resetModules();
+        await registerCdnOverrides();
     });
 
     afterEach(() => {

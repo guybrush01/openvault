@@ -1,5 +1,6 @@
-import snowball from 'https://esm.sh/snowball-stemmers';
+import { cdnImport } from './cdn.js';
 
+const { default: snowball } = await cdnImport('snowball-stemmers');
 const ruStemmer = snowball.newStemmer('russian');
 const enStemmer = snowball.newStemmer('english');
 

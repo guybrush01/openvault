@@ -4,9 +4,14 @@
  * Uses graphology for graph computation and Louvain for community detection.
  */
 
-import Graph from 'https://esm.sh/graphology';
-import louvain from 'https://esm.sh/graphology-communities-louvain';
-import { toUndirected } from 'https://esm.sh/graphology-operators';
+import { cdnImport } from '../utils/cdn.js';
+
+const [{ default: Graph }, { default: louvain }, { toUndirected }] = await Promise.all([
+    cdnImport('graphology'),
+    cdnImport('graphology-communities-louvain'),
+    cdnImport('graphology-operators'),
+]);
+
 import { extensionName } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { getQueryEmbedding } from '../embeddings.js';

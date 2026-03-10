@@ -54,6 +54,37 @@ import { defaultSettings, extensionName } from '../src/constants.js';
 // ── Shared test context helper ──
 import { setDeps } from '../src/deps.js';
 
+// ── CDN import overrides: local packages instead of network fetches ──
+// Must run BEFORE source modules are imported (top-level await in setupFiles).
+import { _setTestOverride } from '../src/utils/cdn.js';
+
+const CDN_SPECS = {
+    zod: () => import('zod'),
+    jsonrepair: () => import('jsonrepair'),
+    'snowball-stemmers': () => import('snowball-stemmers'),
+    stopword: () => import('stopword'),
+    graphology: () => import('graphology'),
+    'graphology-communities-louvain': () => import('graphology-communities-louvain'),
+    'graphology-operators': () => import('graphology-operators'),
+    'gpt-tokenizer/encoding/o200k_base': () => import('gpt-tokenizer/encoding/o200k_base'),
+};
+
+// Initial registration (setup.js module instance of cdn.js)
+for (const [spec, loader] of Object.entries(CDN_SPECS)) {
+    _setTestOverride(spec, await loader());
+}
+
+/**
+ * Re-register CDN overrides on a fresh cdn.js instance.
+ * Call from tests that use vi.resetModules().
+ */
+global.registerCdnOverrides = async () => {
+    const { _setTestOverride: setOverride } = await import('../src/utils/cdn.js');
+    for (const [spec, loader] of Object.entries(CDN_SPECS)) {
+        setOverride(spec, await loader());
+    }
+};
+
 /**
  * Standard test context setup. Replaces per-file setDeps boilerplate.
  *

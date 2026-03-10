@@ -1,5 +1,7 @@
-import { jsonrepair } from 'https://esm.sh/jsonrepair';
-import { z } from 'https://esm.sh/zod';
+import { cdnImport } from '../utils/cdn.js';
+
+const [{ jsonrepair }, { z }] = await Promise.all([cdnImport('jsonrepair'), cdnImport('zod')]);
+
 import { logWarn } from '../utils/logging.js';
 import { stripThinkingTags } from '../utils/text.js';
 

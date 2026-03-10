@@ -1,4 +1,7 @@
-import { jsonrepair } from 'https://esm.sh/jsonrepair';
+import { cdnImport } from './cdn.js';
+
+const { jsonrepair } = await cdnImport('jsonrepair');
+
 import { logError, logWarn } from './logging.js';
 import { countTokens } from './tokens.js';
 

@@ -276,9 +276,13 @@ export async function scoreMemories(
     constants,
     settings,
     queryTokens,
-    characterNames = []
+    characterNames = [],
+    hiddenMemories = [] // NEW: Optional hidden memories for IDF
 ) {
     const start = performance.now();
+
+    // Build corpus: candidates + hidden (if provided)
+    const idfCorpus = hiddenMemories.length > 0 ? [...memories, ...hiddenMemories] : memories;
 
     // Precompute BM25 data if query tokens provided
     let tokens = null;
@@ -298,15 +302,20 @@ export async function scoreMemories(
         }
 
         if (tokens.length > 0) {
-            // Pre-tokenize all memories
-            memoryTokensList = memories.map((m) => m.tokens || tokenize(m.summary || ''));
-            const idfData = calculateIDF(memories, new Map(memoryTokensList.map((t, i) => [i, t])));
+            // Tokenize ALL memories in corpus (candidates + hidden)
+            const corpusMemoryTokens = idfCorpus.map((m) => m.tokens || tokenize(m.summary || ''));
+
+            // Calculate IDF from expanded corpus
+            const tokenizedMap = new Map(corpusMemoryTokens.map((t, i) => [i, t]));
+            const idfData = calculateIDF(idfCorpus, tokenizedMap);
             idfMap = idfData.idfMap;
             avgDL = idfData.avgDL;
 
-            // IDF-aware query TF adjustment: reduce repeated tokens proportional to their IDF
-            // This prevents entity-boosted corpus-common tokens (e.g. main character name) from inflating scores
-            tokens = adjustQueryTokensByIDF(tokens, idfMap, memories.length);
+            // Only score candidate memories (not hidden ones)
+            memoryTokensList = corpusMemoryTokens.slice(0, memories.length);
+
+            // IDF-aware query TF adjustment (existing)
+            tokens = adjustQueryTokensByIDF(tokens, idfMap, idfCorpus.length);
         }
     }
 

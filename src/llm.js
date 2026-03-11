@@ -11,8 +11,6 @@ import {
     getCommunitySummaryJsonSchema,
     getEventExtractionJsonSchema,
     getGraphExtractionJsonSchema,
-    getInsightExtractionJsonSchema,
-    getSalientQuestionsJsonSchema,
     getUnifiedReflectionJsonSchema,
 } from './extraction/structured.js';
 import { getSessionSignal } from './state.js';
@@ -72,20 +70,6 @@ export const LLM_CONFIGS = {
         errorContext: 'Unified Reflection',
         timeoutMs: 90000,
         getJsonSchema: getUnifiedReflectionJsonSchema,
-    },
-    reflection_questions: {
-        profileSettingKey: 'extractionProfile',
-        maxTokens: 8000,
-        errorContext: 'Reflection (questions)',
-        timeoutMs: 90000,
-        getJsonSchema: getSalientQuestionsJsonSchema,
-    },
-    reflection_insights: {
-        profileSettingKey: 'extractionProfile',
-        maxTokens: 8000,
-        errorContext: 'Reflection (insights)',
-        timeoutMs: 90000,
-        getJsonSchema: getInsightExtractionJsonSchema,
     },
     community: {
         profileSettingKey: 'extractionProfile',

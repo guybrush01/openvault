@@ -291,40 +291,6 @@ export const InsightExtractionSchema = z.object({
         .max(5),
 });
 
-/**
- * Get jsonSchema for salient questions (reflection step 1)
- * @returns {Object} ConnectionManager jsonSchema object
- */
-export function getSalientQuestionsJsonSchema() {
-    return toJsonSchema(SalientQuestionsSchema, 'SalientQuestions');
-}
-
-/**
- * Get jsonSchema for insight extraction (reflection step 2)
- * @returns {Object} ConnectionManager jsonSchema object
- */
-export function getInsightExtractionJsonSchema() {
-    return toJsonSchema(InsightExtractionSchema, 'InsightExtraction');
-}
-
-/**
- * Parse salient questions response
- * @param {string} content - Raw LLM response
- * @returns {Object} Validated salient questions
- */
-export function parseSalientQuestionsResponse(content) {
-    return parseStructuredResponse(content, SalientQuestionsSchema);
-}
-
-/**
- * Parse insight extraction response
- * @param {string} content - Raw LLM response
- * @returns {Object} Validated insights
- */
-export function parseInsightExtractionResponse(content) {
-    return parseStructuredResponse(content, InsightExtractionSchema);
-}
-
 // --- Unified Reflection Schema ---
 
 /**

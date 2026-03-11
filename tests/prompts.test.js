@@ -4,8 +4,6 @@ import {
     buildCommunitySummaryPrompt,
     buildEventExtractionPrompt,
     buildGraphExtractionPrompt,
-    buildInsightExtractionPrompt,
-    buildSalientQuestionsPrompt,
     buildUnifiedReflectionPrompt,
     PREFILL_PRESETS,
     resolveExtractionPreamble,
@@ -14,61 +12,6 @@ import {
     SYSTEM_PREAMBLE_CN,
     SYSTEM_PREAMBLE_EN,
 } from '../src/prompts/index.js';
-
-describe('buildSalientQuestionsPrompt', () => {
-    it('returns system/user message pair with character name', () => {
-        const memories = [
-            { summary: 'Alice met Bob', importance: 3 },
-            { summary: 'Alice fought the dragon', importance: 5 },
-        ];
-        const result = buildSalientQuestionsPrompt('Alice', memories);
-        expect(result).toHaveLength(3);
-        expect(result[0].role).toBe('system');
-        expect(result[1].role).toBe('user');
-        expect(result[1].content).toContain('Alice');
-        expect(result[1].content).toContain('Alice met Bob');
-    });
-
-    it('uses unified XML structure with role, output_schema, and examples', () => {
-        const result = buildSalientQuestionsPrompt('Alice', [{ summary: 'test', importance: 3 }]);
-        const sys = result[0].content;
-        expect(sys).toContain('<role>');
-        expect(sys).toContain('<output_schema>');
-        expect(sys).toContain('<examples>');
-    });
-});
-
-describe('buildInsightExtractionPrompt', () => {
-    it('returns system/user message pair with question and evidence', () => {
-        const memories = [
-            { id: 'ev_001', summary: 'Alice fought the dragon' },
-            { id: 'ev_002', summary: 'Alice was wounded' },
-        ];
-        const result = buildInsightExtractionPrompt('Alice', 'How has Alice changed?', memories);
-        expect(result).toHaveLength(3);
-        expect(result[0].role).toBe('system');
-        expect(result[1].content).toContain('How has Alice changed?');
-        expect(result[1].content).toContain('ev_001');
-        expect(result[1].content).toContain('Alice fought the dragon');
-    });
-
-    it('uses unified XML structure with role, output_schema, and examples', () => {
-        const memories = [{ id: 'ev_001', summary: 'test' }];
-        const result = buildInsightExtractionPrompt('Alice', 'test?', memories);
-        const sys = result[0].content;
-        expect(sys).toContain('<role>');
-        expect(sys).toContain('<output_schema>');
-        expect(sys).toContain('<examples>');
-    });
-
-    it('insight extraction prompt limits insights to 1-3', () => {
-        const memories = [{ id: 'ev_1', summary: 'Alice did something' }];
-        const result = buildInsightExtractionPrompt('Alice', 'How is Alice?', memories);
-        const systemContent = result[0].content;
-        expect(systemContent).toContain('1 to 3');
-        expect(systemContent).not.toContain('1 to 5');
-    });
-});
 
 describe('buildCommunitySummaryPrompt', () => {
     it('returns system/user message pair with node and edge data', () => {
@@ -202,18 +145,6 @@ describe('all prompts use raw JSON instruction', () => {
         expect(sys).toContain('Do NOT wrap output in markdown code blocks');
     });
 
-    it('salient questions prompt forbids markdown wrapping', () => {
-        const result = buildSalientQuestionsPrompt('TestChar', [{ summary: 'test', importance: 3 }]);
-        const sys = result[0].content;
-        expect(sys).toContain('Do NOT wrap output in markdown code blocks');
-    });
-
-    it('insight extraction prompt forbids markdown wrapping', () => {
-        const result = buildInsightExtractionPrompt('TestChar', 'test?', [{ id: 'ev_1', summary: 'test' }]);
-        const sys = result[0].content;
-        expect(sys).toContain('Do NOT wrap output in markdown code blocks');
-    });
-
     it('community summary prompt forbids markdown wrapping', () => {
         const result = buildCommunitySummaryPrompt(['Node A'], ['A -> B']);
         const sys = result[0].content;
@@ -269,11 +200,9 @@ describe('CN preamble and assistant prefill', () => {
             messages: '[A]: test',
             names: { char: 'A', user: 'B' },
         });
-        const salientResult = buildSalientQuestionsPrompt('A', [{ summary: 'test', importance: 3 }]);
-        const insightResult = buildInsightExtractionPrompt('A', 'q?', [{ id: '1', summary: 't' }]);
         const communityResult = buildCommunitySummaryPrompt([], []);
 
-        for (const result of [eventResult, graphResult, salientResult, insightResult, communityResult]) {
+        for (const result of [eventResult, graphResult, communityResult]) {
             expect(result[0].content).toContain('<system_config>');
             expect(result[0].content).toContain('</system_config>');
         }
@@ -294,11 +223,9 @@ describe('CN preamble and assistant prefill', () => {
             messages: '[A]: test',
             names: { char: 'A', user: 'B' },
         });
-        const salientResult = buildSalientQuestionsPrompt('A', [{ summary: 'test', importance: 3 }]);
-        const insightResult = buildInsightExtractionPrompt('A', 'q?', [{ id: '1', summary: 't' }]);
         const communityResult = buildCommunitySummaryPrompt([], []);
 
-        for (const result of [graphResult, salientResult, insightResult, communityResult]) {
+        for (const result of [graphResult, communityResult]) {
             expect(result[2].role).toBe('assistant');
             expect(result[2].content).toBe('{');
         }
@@ -424,19 +351,6 @@ describe('buildMessages via non-event prompts', () => {
         });
         expect(result[0].content).toContain('Interactive Fiction Archival Database');
         expect(result[2].content).toBe('{');
-    });
-
-    it('salient questions prompt uses custom preamble', () => {
-        const memories = [{ summary: 'test', importance: 3 }];
-        const result = buildSalientQuestionsPrompt('Alice', memories, SYSTEM_PREAMBLE_EN);
-        expect(result[0].content).toContain('Interactive Fiction Archival Database');
-        expect(result[2].content).toBe('{');
-    });
-
-    it('insight extraction prompt uses custom preamble', () => {
-        const memories = [{ id: 'ev_001', summary: 'test' }];
-        const result = buildInsightExtractionPrompt('Alice', 'question?', memories, SYSTEM_PREAMBLE_EN);
-        expect(result[0].content).toContain('Interactive Fiction Archival Database');
     });
 
     it('community summary prompt uses custom preamble', () => {
@@ -565,20 +479,6 @@ describe('output language in builders', () => {
         expect(user).toContain('Russian');
     });
 
-    it('salient questions prompt passes outputLanguage through', () => {
-        const memories = [{ summary: 'Alice did something', importance: 3 }];
-        const result = buildSalientQuestionsPrompt('Alice', memories, undefined, 'en');
-        const user = result[1].content;
-        expect(user).toContain('English');
-    });
-
-    it('insight extraction prompt passes outputLanguage through', () => {
-        const memories = [{ id: 'ev_1', summary: 'Alice was brave' }];
-        const result = buildInsightExtractionPrompt('Alice', 'How?', memories, undefined, 'ru');
-        const user = result[1].content;
-        expect(user).toContain('Russian');
-    });
-
     it('community summary prompt passes outputLanguage through', () => {
         const result = buildCommunitySummaryPrompt(['- Node'], ['- Edge'], undefined, 'en');
         const user = result[1].content;
@@ -605,32 +505,28 @@ describe('multilingual prompt compliance', () => {
         messages: '[A]: test',
         names: { char: 'A', user: 'B' },
     });
-    const salientResult = buildSalientQuestionsPrompt('A', [{ summary: 'test', importance: 3 }]);
-    const insightResult = buildInsightExtractionPrompt('A', 'q?', [{ id: '1', summary: 't' }]);
     const communityResult = buildCommunitySummaryPrompt([], []);
 
     it('all prompts contain mirror language rules', () => {
-        for (const result of [eventResult, graphResult, salientResult, insightResult, communityResult]) {
+        for (const result of [eventResult, graphResult, communityResult]) {
             expect(result[0].content).toContain('<language_rules>');
             expect(result[0].content).toContain('SAME LANGUAGE');
         }
     });
 
     it('no prompt contains "Write in ENGLISH" or "Write ALL summaries in ENGLISH"', () => {
-        for (const result of [eventResult, graphResult, salientResult, insightResult, communityResult]) {
+        for (const result of [eventResult, graphResult, communityResult]) {
             const sys = result[0].content;
             const user = result[1].content;
             expect(sys).not.toContain('Write in ENGLISH');
             expect(sys).not.toContain('summaries in ENGLISH');
-            expect(sys).not.toContain('Write all questions in English');
-            expect(sys).not.toContain('Write all insights in English');
             expect(sys).not.toContain('Write in English');
             expect(user).not.toContain('in ENGLISH');
         }
     });
 
     it('all prompts contain bilingual few-shot examples', () => {
-        for (const result of [eventResult, graphResult, salientResult, insightResult, communityResult]) {
+        for (const result of [eventResult, graphResult, communityResult]) {
             const sys = result[0].content;
             // Bilingual examples must contain Cyrillic text
             expect(sys).toMatch(/[\u0400-\u04FF]/);

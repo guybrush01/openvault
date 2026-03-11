@@ -7,8 +7,6 @@ import {
     parseEvent,
     parseEventExtractionResponse,
     parseGraphExtractionResponse,
-    parseInsightExtractionResponse,
-    parseSalientQuestionsResponse,
     parseUnifiedReflectionResponse,
 } from '../../src/extraction/structured.js';
 
@@ -69,31 +67,6 @@ describe('parseEvent', () => {
         const result = parseEvent(content);
         expect(result.summary).toBe('Alice climbed the tower to watch the sunset over the kingdom');
         expect(result.importance).toBe(4);
-    });
-});
-
-describe('Reflection Schemas', () => {
-    it('parses salient questions response with exactly 3 questions', () => {
-        const json = JSON.stringify({
-            questions: ['Why is the king paranoid?', 'Who does he trust?', 'What changed?'],
-        });
-        const result = parseSalientQuestionsResponse(json);
-        expect(result.questions).toHaveLength(3);
-    });
-
-    it('rejects salient questions with wrong count', () => {
-        const json = JSON.stringify({ questions: ['Only one'] });
-        expect(() => parseSalientQuestionsResponse(json)).toThrow();
-    });
-
-    it('parses insight extraction response', () => {
-        const json = JSON.stringify({
-            insights: [{ insight: 'The king fears betrayal', evidence_ids: ['ev_001', 'ev_002'] }],
-        });
-        const result = parseInsightExtractionResponse(json);
-        expect(result.insights).toHaveLength(1);
-        expect(result.insights[0].insight).toBe('The king fears betrayal');
-        expect(result.insights[0].evidence_ids).toContain('ev_001');
     });
 });
 

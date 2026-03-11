@@ -17,18 +17,6 @@ describe('LLM_CONFIGS reflection configs', () => {
         expect(LLM_CONFIGS.reflection).toBeDefined();
         expect(LLM_CONFIGS.reflection.profileSettingKey).toBe('extractionProfile');
     });
-
-    it('has reflection_questions config (deprecated)', () => {
-        expect(LLM_CONFIGS.reflection_questions).toBeDefined();
-        expect(LLM_CONFIGS.reflection_questions.profileSettingKey).toBe('extractionProfile');
-        expect(LLM_CONFIGS.reflection_questions.maxTokens).toBe(8000);
-    });
-
-    it('has reflection_insights config (deprecated)', () => {
-        expect(LLM_CONFIGS.reflection_insights).toBeDefined();
-        expect(LLM_CONFIGS.reflection_insights.profileSettingKey).toBe('extractionProfile');
-        expect(LLM_CONFIGS.reflection_insights.maxTokens).toBe(8000);
-    });
 });
 
 describe('LLM_CONFIGS community config', () => {

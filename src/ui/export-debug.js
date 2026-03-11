@@ -4,10 +4,11 @@
  * Assembles and exports full system state + last retrieval debug data to clipboard.
  */
 
-import { CHARACTERS_KEY, defaultSettings, extensionName, MEMORIES_KEY } from '../constants.js';
+import { CHARACTERS_KEY, defaultSettings, extensionName, MEMORIES_KEY, PERF_METRICS } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { isEmbeddingsEnabled } from '../embeddings.js';
 import { getCachedScoringDetails, getLastRetrievalDebug } from '../retrieval/debug-cache.js';
+import { getAll as getPerfMetrics } from '../perf/store.js';
 import { getOpenVaultData } from '../utils/data.js';
 import { showToast } from '../utils/dom.js';
 import { deleteEmbedding } from '../utils/embedding-codec.js';
@@ -303,6 +304,21 @@ function buildCommunitiesExport(communities) {
 }
 
 /**
+ * Build perf metrics export with rounded values.
+ * @returns {Object}
+ */
+function buildPerfExport() {
+    const metrics = getPerfMetrics();
+    const result = {};
+    for (const [id, entry] of Object.entries(metrics)) {
+        const label = PERF_METRICS[id]?.label || id;
+        result[label] = { ms: r2(entry.ms) };
+        if (entry.size) result[label].size = entry.size;
+    }
+    return result;
+}
+
+/**
  * Build the full export payload.
  * @returns {Object} JSON-serializable payload
  */
@@ -379,7 +395,14 @@ export function buildExportPayload() {
         // Runtime-computed values (not in defaultSettings)
         runtime: {
             embeddingsEnabled: isEmbeddingsEnabled(),
+            embeddingModelId: data.embedding_model_id || null,
+            extractionProgress: {
+                processed: (data.processed_message_ids || []).length,
+                chatLength: deps.getContext()?.chat?.length || 0,
+            },
+            reflectionState: data.reflection_state || {},
         },
+        perf: buildPerfExport(),
     };
 }
 

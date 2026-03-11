@@ -68,6 +68,10 @@ vi.mock('../../src/embeddings.js', () => ({
     isEmbeddingsEnabled: () => true,
 }));
 
+vi.mock('../../src/perf/store.js', () => ({
+    getAll: () => ({}),
+}));
+
 // Must import after mocks
 const { buildExportPayload } = await import('../../src/ui/export-debug.js');
 const { cacheRetrievalDebug, clearRetrievalDebug, cacheScoringDetails } = await import('../../src/retrieval/debug-cache.js');
@@ -273,5 +277,20 @@ describe('buildExportPayload', () => {
             const payload = buildExportPayload();
             expect(payload.scoring._note).toContain('Default-value');
         });
+    });
+
+    it('includes extended runtime info', () => {
+        const payload = buildExportPayload();
+        expect(payload.runtime.embeddingsEnabled).toBe(true);
+        expect(payload.runtime.embeddingModelId).toBeDefined();
+        expect(payload.runtime.extractionProgress).toBeDefined();
+        expect(payload.runtime.extractionProgress).toHaveProperty('processed');
+        expect(payload.runtime.extractionProgress).toHaveProperty('chatLength');
+    });
+
+    it('includes perf section', () => {
+        const payload = buildExportPayload();
+        expect(payload.perf).toBeDefined();
+        expect(payload.perf).toBeTypeOf('object');
     });
 });

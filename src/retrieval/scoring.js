@@ -98,6 +98,7 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit, allHiddenMemor
     const hasEvents = memories.some(m => m.type === 'event');
 
     let bm25Tokens = [];
+    const bm25Meta = {};
     if (hasEvents) {
         const corpusVocab = buildCorpusVocab(
             memories,
@@ -105,7 +106,7 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit, allHiddenMemor
             ctx.graphNodes || {},
             ctx.graphEdges || {}
         );
-        bm25Tokens = buildBM25Tokens(userMessages, queryContext, corpusVocab);
+        bm25Tokens = buildBM25Tokens(userMessages, queryContext, corpusVocab, bm25Meta);
     }
 
     // Cache query context for debug export
@@ -113,7 +114,12 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit, allHiddenMemor
         queryContext: {
             entities: queryContext.entities,
             embeddingQuery: embeddingQuery,
-            bm25TokenCount: Array.isArray(bm25Tokens) ? bm25Tokens.length : 0,
+            bm25Tokens: {
+                total: Array.isArray(bm25Tokens) ? bm25Tokens.length : 0,
+                entityStems: bm25Meta.entityStems || 0,
+                grounded: bm25Meta.grounded || 0,
+                nonGrounded: bm25Meta.nonGrounded || 0,
+            },
         },
     });
 
@@ -173,6 +179,16 @@ export async function selectRelevantMemories(memories, ctx) {
 
     // Cache scoring details for debug export
     cacheScoringDetails(scoredResults, selectedIds);
+
+    // Cache token budget utilization for debug export
+    cacheRetrievalDebug({
+        tokenBudget: {
+            budget: finalTokens,
+            scoredCount: scoredMemories.length,
+            selectedCount: finalResults.length,
+            trimmedByBudget: scoredMemories.length - finalResults.length,
+        },
+    });
 
     // Increment retrieval_hits counter for each selected memory
     // Mutates in-place; next save cycle will persist the counter

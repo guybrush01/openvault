@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { defaultSettings } from '../src/constants.js';
 import {
     buildCommunitySummaryPrompt,
+    buildEdgeConsolidationPrompt,
     buildEventExtractionPrompt,
     buildGraphExtractionPrompt,
     buildUnifiedReflectionPrompt,
@@ -12,6 +13,7 @@ import {
     SYSTEM_PREAMBLE_CN,
     SYSTEM_PREAMBLE_EN,
 } from '../src/prompts/index.js';
+import { parseConsolidationResponse } from '../src/extraction/structured.js';
 
 describe('buildCommunitySummaryPrompt', () => {
     it('returns system/user message pair with node and edge data', () => {
@@ -566,5 +568,30 @@ describe('buildUnifiedReflectionPrompt', () => {
         expect(result[1].content).toContain('ev_001');
         expect(result[1].content).toContain('ev_002');
         expect(result[0].content).toContain('CRITICAL ID GROUNDING RULE');
+    });
+});
+
+describe('buildEdgeConsolidationPrompt', () => {
+    it('builds edge consolidation prompt with edge data', () => {
+        const edge = {
+            source: 'alice',
+            target: 'bob',
+            description: 'Met at tavern | Traded goods | Fought dragon together',
+            weight: 3
+        };
+        const result = buildEdgeConsolidationPrompt(edge);
+        expect(result.system).toContain('relationship state synthesizer');
+        expect(result.user).toContain('alice');
+        expect(result.user).toContain('bob');
+        expect(result.user).toContain('Met at tavern');
+    });
+
+    it('parses consolidation response', () => {
+        const raw = JSON.stringify({
+            consolidated_description: 'Started as strangers at a tavern, became trading partners, then allies in battle against the dragon'
+        });
+        const result = parseConsolidationResponse(raw);
+        expect(result.consolidated_description).toContain('strangers');
+        expect(result.consolidated_description).toContain('allies');
     });
 });

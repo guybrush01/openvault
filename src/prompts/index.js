@@ -408,6 +408,39 @@ Respond with a single JSON object containing a "reflections" array with 1-3 item
 }
 
 /**
+ * Build the edge consolidation prompt.
+ * @param {Object} edgeData - Edge object with source, target, description, weight
+ * @returns {object} { system, user } prompt object
+ */
+export function buildEdgeConsolidationPrompt(edgeData) {
+    const segments = edgeData.description.split(' | ');
+    return {
+        system: 'You are a relationship state synthesizer. Combine multiple relationship descriptions into a single, coherent summary that preserves narrative depth.',
+        user: `Synthesize these relationship developments into ONE unified description:
+
+Source: ${edgeData.source}
+Target: ${edgeData.target}
+Weight: ${edgeData.weight}
+
+Timeline segments:
+${segments.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+
+Output a JSON object with:
+{
+  "consolidated_description": "string - unified relationship summary that captures the evolution"
+}
+
+Keep the description under 100 tokens.
+
+IMPORTANT: Summarize the CURRENT dynamic, but preserve critical historical shifts.
+For example: "Started as enemies, but allied after the dragon incident; now close friends."
+If the relationship has evolved significantly, capture that trajectory in a concise way.
+
+Respond with a single JSON object. No other text.`,
+    };
+}
+
+/**
  * Build the community summarization prompt.
  * @param {string[]} nodeLines - Formatted node descriptions
  * @param {string[]} edgeLines - Formatted edge descriptions

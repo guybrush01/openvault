@@ -355,3 +355,29 @@ export function getCommunitySummaryJsonSchema() {
 export function parseCommunitySummaryResponse(content) {
     return parseStructuredResponse(content, CommunitySummarySchema);
 }
+
+// --- Edge Consolidation Schema ---
+
+/**
+ * Schema for edge consolidation response
+ */
+export const EdgeConsolidationSchema = z.object({
+    consolidated_description: z.string().min(1, 'Consolidated description is required'),
+});
+
+/**
+ * Get jsonSchema for edge consolidation
+ * @returns {Object} ConnectionManager jsonSchema object
+ */
+export function getEdgeConsolidationJsonSchema() {
+    return toJsonSchema(EdgeConsolidationSchema, 'EdgeConsolidation');
+}
+
+/**
+ * Parse edge consolidation response
+ * @param {string} content - Raw LLM response
+ * @returns {Object} Validated consolidation response
+ */
+export function parseConsolidationResponse(content) {
+    return parseStructuredResponse(content, EdgeConsolidationSchema);
+}

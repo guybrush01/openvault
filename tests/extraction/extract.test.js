@@ -1062,3 +1062,167 @@ describe('runPhase2Enrichment', () => {
         expect(sendRequest).not.toHaveBeenCalled();
     });
 });
+
+describe('extractMemories backfill mode integration', () => {
+    let mockContext;
+    let mockData;
+
+    beforeEach(() => {
+        mockData = {
+            memories: [
+                {
+                    id: 'event_1',
+                    type: 'event',
+                    summary: 'Test event 1',
+                    importance: 5,
+                    tokens: ['test'],
+                    message_ids: [0],
+                    sequence: 0,
+                    characters_involved: ['King Aldric'],
+                    witnesses: ['King Aldric'],
+                    embedding_b64: 'AAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+                },
+                {
+                    id: 'event_2',
+                    type: 'event',
+                    summary: 'Test event 2',
+                    importance: 5,
+                    tokens: ['test'],
+                    message_ids: [1],
+                    sequence: 1,
+                    characters_involved: ['King Aldric'],
+                    witnesses: ['King Aldric'],
+                    embedding_b64: 'AAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+                },
+                {
+                    id: 'event_3',
+                    type: 'event',
+                    summary: 'Test event 3',
+                    importance: 5,
+                    tokens: ['test'],
+                    message_ids: [2],
+                    sequence: 2,
+                    characters_involved: ['King Aldric'],
+                    witnesses: ['King Aldric'],
+                    embedding_b64: 'AAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+                },
+            ],
+            character_states: {},
+            last_processed_message_id: -1,
+            processed_message_ids: [],
+            reflection_state: {
+                'King Aldric': { importance_sum: 45 }, // >= threshold of 40
+            },
+            graph: { nodes: {}, edges: {}, _mergeRedirects: {} },
+            graph_message_count: 100,
+        };
+
+        mockContext = {
+            chat: [
+                { mes: 'Hello', is_user: true, name: 'User' },
+                { mes: 'Welcome to the Castle', is_user: false, name: 'King Aldric' },
+            ],
+            name1: 'User',
+            name2: 'King Aldric',
+            characterId: 'char1',
+            characters: { char1: { description: '' } },
+            chatMetadata: { openvault: mockData },
+            chatId: 'test-chat',
+            powerUserSettings: {},
+        };
+    });
+
+    afterEach(() => {
+        resetDeps();
+        vi.clearAllMocks();
+    });
+
+    it('should accumulate importance across batches and run Phase 2 once', async () => {
+        // Arrange: Set up responses for extraction (events + graph only, no Phase 2)
+        const sendRequest = mockSendRequest(
+            // No Phase 2 responses - backfill mode should not request them
+        );
+
+        const saveChatConditionalSpy = vi.fn().mockResolvedValue(true);
+
+        setupTestContext({
+            context: mockContext,
+            settings: {
+                ...getExtractionSettings(),
+                reflectionThreshold: 40,
+                communityDetectionInterval: 50,
+            },
+            deps: {
+                connectionManager: getMockConnectionManager(sendRequest),
+                fetch: vi.fn(async () => ({
+                    ok: true,
+                    json: async () => ({ embedding: [0.1, 0.2] }),
+                })),
+                saveChatConditional: saveChatConditionalSpy,
+            },
+        });
+
+        // Act: Extract with isBackfill=true to skip Phase 2 during batch processing
+        const result1 = await extractMemories([0, 1], null, { isBackfill: true, silent: true });
+
+        // Assert: Batch 1 succeeded with backfill mode
+        expect(result1.status).toBe('success');
+
+        // Verify only Phase 1 LLM calls were made (events + graph, no reflection/community)
+        // sendRequest should have been called exactly 2 times (events and graph)
+        expect(sendRequest).toHaveBeenCalledTimes(2);
+
+        // Act: Set up Phase 2 LLM responses with correct format
+        const reflectionResponse = JSON.stringify({
+            reflections: [
+                {
+                    question: 'What defines King Aldric?',
+                    insight: 'King Aldric has been ruling with wisdom',
+                    evidence_ids: ['event_1', 'event_2'],
+                },
+            ],
+        });
+
+        // Mock community detection response
+        const communityResponse = JSON.stringify({
+            communities: [],
+        });
+
+        const sendRequestPhase2 = vi
+            .fn()
+            .mockResolvedValueOnce({ content: reflectionResponse })
+            .mockResolvedValueOnce({ content: communityResponse });
+
+        setupTestContext({
+            context: mockContext,
+            settings: {
+                ...getExtractionSettings(),
+                reflectionThreshold: 40,
+                communityStalenessThreshold: 50,
+            },
+            deps: {
+                connectionManager: getMockConnectionManager(sendRequestPhase2),
+                fetch: vi.fn(async () => ({
+                    ok: true,
+                    json: async () => ({ embedding: [0.1, 0.2] }),
+                })),
+                saveChatConditional: saveChatConditionalSpy,
+            },
+        });
+
+        const initialMemoriesLength = mockData.memories.length;
+        await runPhase2Enrichment(mockData, getExtractionSettings(), null);
+
+        // Assert: Phase 2 added reflections
+        expect(mockData.memories.length).toBeGreaterThan(initialMemoriesLength);
+        const reflection = mockData.memories.find((m) => m.type === 'reflection');
+        expect(reflection).toBeDefined();
+        expect(reflection.summary).toContain('King Aldric');
+
+        // Assert: importance_sum was reset after reflection processing
+        expect(mockData.reflection_state['King Aldric'].importance_sum).toBe(0);
+
+        // Assert: saveOpenVaultData was called (via saveChatConditional)
+        expect(saveChatConditionalSpy).toHaveBeenCalled();
+    });
+});

@@ -566,6 +566,13 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
                     for (const w of event.witnesses || []) characters.add(w);
                 }
 
+                // ===== Backfill guard: skip Phase 2 LLM synthesis =====
+                if (options.isBackfill) {
+                    logDebug('Backfill mode: skipping Phase 2 LLM synthesis for this batch');
+                    return { status: 'success', events_created: events.length, messages_processed: messages.length };
+                }
+                // ===== END BACKFILL GUARD =====
+
                 // Check each character for reflection trigger
                 const reflectionThreshold = settings.reflectionThreshold;
                 for (const characterName of characters) {

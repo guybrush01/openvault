@@ -573,6 +573,49 @@ describe('two-phase extraction with intermediate save', () => {
         expect(result.events_created).toBe(1);
     });
 
+    it('should skip Phase 2 LLM calls when isBackfill=true', async () => {
+        // Arrange: Set up conditions that WOULD trigger Phase 2 without isBackfill
+        // We need enough existing memories to pass the "recentMemories.length >= 3" check
+        const existingMemories = [
+            { id: 'm1', type: 'event', summary: 'Old event 1', sequence: 100, characters_involved: ['King Aldric'], embedding_b64: 'AAAAAAAAAAAAAAAAAAAAAA==' },
+            { id: 'm2', type: 'event', summary: 'Old event 2', sequence: 200, characters_involved: ['King Aldric'], embedding_b64: 'AAAAAAAAAAAAAAAAAAAAAA==' },
+            { id: 'm3', type: 'event', summary: 'Old event 3', sequence: 300, characters_involved: ['King Aldric'], embedding_b64: 'AAAAAAAAAAAAAAAAAAAAAA==' },
+        ];
+        mockData.memories = existingMemories;
+        mockData.reflection_state = { 'King Aldric': { importance_sum: 38 } }; // Will trigger reflection (38 + 3 = 41 >= 40)
+        mockData.graph_message_count = 98; // Will trigger community detection (98 + 2 = 100 >= threshold)
+
+        // Mock only Phase 1 LLM responses (events + graph) - no Phase 2 responses provided
+        const sendRequest = mockSendRequest();
+
+        setupTestContext({
+            context: mockContext,
+            settings: getExtractionSettings(),
+            deps: {
+                connectionManager: getMockConnectionManager(sendRequest),
+                fetch: vi.fn(async () => ({
+                    ok: true,
+                    json: async () => ({ embedding: [0.1, 0.2] }),
+                })),
+                saveChatConditional: vi.fn(async () => true),
+            },
+        });
+
+        // Act: Extract with isBackfill=true
+        const result = await extractMemories([0, 1], null, { isBackfill: true });
+
+        // Assert: Phase 1 succeeded
+        expect(result.status).toBe('success');
+        expect(result.events_created).toBe(1);
+
+        // Assert: State accumulation happened (reflection_state should have the event's importance added)
+        expect(mockData.reflection_state['King Aldric'].importance_sum).toBeGreaterThan(38);
+
+        // Assert: Only 2 LLM calls made (events + graph), not Phase 2 calls
+        // Without isBackfill guard, Phase 2 would attempt reflection LLM call and fail
+        expect(sendRequest).toHaveBeenCalledTimes(2);
+    });
+
     it('updates PROCESSED_MESSAGES_KEY only after events are pushed to memories', async () => {
         // Verify ordering: memories should contain events AND processed_message_ids should be set
         const result = await extractMemories([0, 1]);

@@ -216,6 +216,17 @@ export async function generateReflections(characterName, allMemories, characterS
     const accessibleMemories = filterMemoriesByPOV(allMemories, [characterName], data);
     const recentMemories = sortMemoriesBySequence(accessibleMemories, false).slice(0, 100);
 
+    // Include old reflections for potential synthesis
+    const oldReflections = accessibleMemories.filter(m =>
+        m.type === 'reflection' &&
+        (m.level || 1) >= 1
+    );
+
+    // Combine and deduplicate by id (recent memories take precedence if duplicate)
+    const candidateSet = Array.from(
+        new Map([...recentMemories, ...oldReflections].map(m => [m.id, m])).values()
+    );
+
     if (recentMemories.length < 3) {
         logDebug(`Reflection: ${characterName} has too few accessible memories (${recentMemories.length}), skipping`);
         return [];
@@ -226,9 +237,12 @@ export async function generateReflections(characterName, allMemories, characterS
         (m) => m.type === 'reflection' && m.character === characterName
     );
 
+    // For pre-flight gate, use only events (not reflections) to check alignment
+    const recentEvents = recentMemories.filter(m => m.type === 'event');
+
     // Pre-flight similarity gate: check if recent events align with existing insights
     const { shouldSkip, reason: skipReason } = shouldSkipReflectionGeneration(
-        recentMemories.slice(0, 10), // Check top 10 most recent
+        recentEvents.slice(0, 10), // Check top 10 most recent
         existingReflections,
         0.85
     );
@@ -240,7 +254,7 @@ export async function generateReflections(characterName, allMemories, characterS
     }
 
     // Single unified reflection call (replaces Step 1 + Step 2)
-    const reflectionPrompt = buildUnifiedReflectionPrompt(characterName, recentMemories, preamble, outputLanguage);
+    const reflectionPrompt = buildUnifiedReflectionPrompt(characterName, candidateSet, preamble, outputLanguage);
     const reflectionResponse = await callLLM(reflectionPrompt, LLM_CONFIGS.reflection, { structured: true });
     const { reflections } = parseUnifiedReflectionResponse(reflectionResponse);
 

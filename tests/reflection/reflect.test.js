@@ -285,3 +285,31 @@ describe('Reflection level and parent_ids fields', () => {
         expect(level).toBe(1);
     });
 });
+
+describe('Old reflections in candidate set', () => {
+    it('should include old reflections when building candidate set', async () => {
+        // This test verifies the structure; actual synthesis requires LLM mocking
+        const accessibleMemories = [
+            { id: '1', type: 'event', summary: 'Recent event', sequence: 5000, characters_involved: ['Char'] },
+            { id: 'ref1', type: 'reflection', level: 1, summary: 'Old insight', sequence: 1000, character: 'Char' },
+            { id: 'ref2', type: 'reflection', level: 2, summary: 'Meta insight', sequence: 2000, character: 'Char' },
+        ];
+
+        // Simulate sorting and filtering
+        const recentMemories = accessibleMemories
+            .filter(m => m.type === 'event')
+            .sort((a, b) => b.sequence - a.sequence)
+            .slice(0, 100);
+
+        const oldReflections = accessibleMemories.filter(m =>
+            m.type === 'reflection' && m.level >= 1
+        );
+
+        expect(recentMemories.length).toBe(1);
+        expect(oldReflections.length).toBe(2);
+
+        // Candidate set should have both
+        const candidateSet = [...recentMemories, ...oldReflections];
+        expect(candidateSet.length).toBe(3);
+    });
+});

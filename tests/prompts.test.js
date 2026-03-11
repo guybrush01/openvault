@@ -4,6 +4,7 @@ import {
     buildCommunitySummaryPrompt,
     buildEdgeConsolidationPrompt,
     buildEventExtractionPrompt,
+    buildGlobalSynthesisPrompt,
     buildGraphExtractionPrompt,
     buildUnifiedReflectionPrompt,
     PREFILL_PRESETS,
@@ -593,5 +594,28 @@ describe('buildEdgeConsolidationPrompt', () => {
         const result = parseConsolidationResponse(raw);
         expect(result.consolidated_description).toContain('strangers');
         expect(result.consolidated_description).toContain('allies');
+    });
+});
+
+describe('buildGlobalSynthesisPrompt', () => {
+    it('should build prompt with system and user messages', () => {
+        const communities = [
+            { title: 'Community A', summary: 'Summary A', findings: ['f1'] },
+            { title: 'Community B', summary: 'Summary B', findings: ['f2'] },
+        ];
+        const result = buildGlobalSynthesisPrompt(communities, 'auto', 'auto');
+
+        expect(result).toHaveProperty('system');
+        expect(result).toHaveProperty('user');
+        expect(result.system).toContain('role');
+        expect(result.user).toContain('Community A');
+        expect(result.user).toContain('Community B');
+    });
+
+    it('should include language rules from assembleSystemPrompt', () => {
+        const communities = [{ title: 'C1', summary: 'S1', findings: [] }];
+        const result = buildGlobalSynthesisPrompt(communities, 'You are a narrative synthesist', 'auto');
+
+        expect(result.system).toContain('<language_rules>');
     });
 });

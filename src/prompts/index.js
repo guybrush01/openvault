@@ -17,6 +17,7 @@ import { GRAPH_EXAMPLES } from './examples/graph.js';
 import { INSIGHT_EXAMPLES } from './examples/insights.js';
 import { QUESTION_EXAMPLES } from './examples/questions.js';
 import { UNIFIED_REFLECTION_EXAMPLES } from './examples/reflections.js';
+import { GLOBAL_SYNTHESIS_EXAMPLES } from './examples/global-synthesis.js';
 import {
     assembleSystemPrompt,
     buildMessages,
@@ -183,6 +184,20 @@ CRITICAL FORMAT RULES:
 5. Do NOT wrap output in markdown code blocks.
 6. Do NOT include ANY text outside the JSON object.`;
 
+const GLOBAL_SYNTHESIS_SCHEMA = `You MUST respond with EXACTLY ONE JSON object. No other text, no markdown fences, no commentary.
+
+The JSON object MUST have this EXACT structure:
+
+{
+  "global_summary": "A 300-token overarching summary of the current story state"
+}
+
+CRITICAL FORMAT RULES:
+1. The top level MUST be a JSON object { }, NEVER a bare array [ ].
+2. "global_summary" must be a single comprehensive string.
+3. Do NOT wrap output in markdown code blocks.
+4. Do NOT include ANY text outside the JSON object.`;
+
 // =============================================================================
 // RULES (per-prompt task-specific rules)
 // =============================================================================
@@ -273,6 +288,26 @@ const COMMUNITY_RULES = `1. Be specific — reference entity names and relations
 2. Capture the narrative significance of the group.
 3. Describe power dynamics, alliances, conflicts, and dependencies.
 4. Use EXACT entity names from the input data — do NOT transliterate, abbreviate, or translate entity names. If the input shows "Vova", use "Vova" — not "Во", "Вова", or any other variant.`;
+
+// =============================================================================
+// GLOBAL SYNTHESIS (New for Phase 2)
+// =============================================================================
+
+const GLOBAL_SYNTHESIS_ROLE = `You are a narrative synthesis expert. Your task is to weave multiple community summaries into a single, coherent global narrative that captures the current state of the story.
+
+Focus on:
+- Macro-level relationships and tensions between communities
+- Overarching plot trajectory and unresolved conflicts
+- Thematic connections across different story threads
+- The "big picture" of what is happening in the world
+
+Write in a storytelling style that emphasizes patterns, evolution, and cause-effect relationships across communities. Your summary should feel like a narrator stepping back to describe the forest rather than individual trees.`;
+
+const GLOBAL_SYNTHESIS_RULES = `1. Synthesize ALL provided communities into a cohesive narrative.
+2. Focus on connections between communities (shared characters, causal links, thematic parallels).
+3. Capture the current trajectory: where is the story heading? What tensions are building?
+4. Keep the summary under ~300 tokens (approximately 225 words).
+5. Reference community titles to ground your synthesis in specific details.`;
 
 // =============================================================================
 // PUBLIC API — PROMPT BUILDERS
@@ -469,4 +504,38 @@ Write a comprehensive report about this community of entities.
 Respond with a single JSON object containing title, summary, and 1-5 findings. No other text.`;
 
     return buildMessages(systemPrompt, userPrompt, '{', preamble);
+}
+
+/**
+ * Build the global synthesis prompt for Map-Reduce over communities.
+ * @param {Object[]} communities - Array of community objects with { title, summary, findings }
+ * @param {string} preamble - System preamble (anti-refusal framing)
+ * @param {string} outputLanguage - Output language setting ('auto'|'en'|'ru')
+ * @returns {object} { system, user } prompt object
+ */
+export function buildGlobalSynthesisPrompt(communities, preamble, outputLanguage = 'auto') {
+    const systemPrompt = assembleSystemPrompt({
+        role: GLOBAL_SYNTHESIS_ROLE,
+        schema: GLOBAL_SYNTHESIS_SCHEMA,
+        rules: GLOBAL_SYNTHESIS_RULES,
+        examples: GLOBAL_SYNTHESIS_EXAMPLES,
+        outputLanguage,
+    });
+
+    const communityText = communities.map((c, i) =>
+        `${i + 1}. ${c.title}\n${c.summary}${c.findings?.length ? '\nKey findings: ' + c.findings.join('; ') : ''}`
+    ).join('\n\n');
+
+    const languageInstruction = resolveLanguageInstruction(communityText, outputLanguage);
+    const userPrompt = `<communities>
+${communityText}
+</communities>
+
+${languageInstruction}
+Synthesize these community summaries into a single global narrative (max ~300 tokens).
+Focus on macro-relationships, overarching tensions, and plot trajectory.
+
+Respond with a single JSON object containing "global_summary". No other text.`;
+
+    return { system: systemPrompt, user: userPrompt };
 }

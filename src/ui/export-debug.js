@@ -52,6 +52,42 @@ function diffSettings(current, defaults) {
 }
 
 /**
+ * Build compact score entry with zero-suppression and rounding.
+ * @param {Object} detail - Cached scoring detail entry
+ * @param {number} summaryLimit - Max summary length
+ * @returns {Object} Compact entry
+ */
+function compactScores(detail, summaryLimit) {
+    const { scores, memoryId, type, summary, distance, importance, retrieval_hits, mentions, characters_involved } = detail;
+    const base = r2(scores.base);
+    const entry = {
+        id: memoryId,
+        type,
+        summary: truncateSummary(summary, summaryLimit),
+        total: r2(scores.total),
+        base,
+        decayPct: importance > 0 ? r2(scores.base / importance) : 0,
+        distance,
+        importance,
+        retrieval_hits: retrieval_hits ?? 0,
+        mentions: mentions ?? 1,
+        characters_involved: characters_involved || [],
+    };
+
+    // Optional fields — only include when non-default
+    if (scores.baseAfterFloor !== scores.base) entry.baseAfterFloor = r2(scores.baseAfterFloor);
+    if (scores.recencyPenalty) entry.recencyPenalty = r2(scores.recencyPenalty);
+    if (scores.vectorSimilarity) entry.vectorSimilarity = r2(scores.vectorSimilarity);
+    if (scores.vectorBonus) entry.vectorBonus = r2(scores.vectorBonus);
+    if (scores.bm25Score) entry.bm25Score = r2(scores.bm25Score);
+    if (scores.bm25Bonus) entry.bm25Bonus = r2(scores.bm25Bonus);
+    if (scores.hitDamping !== 1) entry.hitDamping = r2(scores.hitDamping);
+    if (scores.frequencyFactor !== 1) entry.frequencyFactor = r2(scores.frequencyFactor);
+
+    return entry;
+}
+
+/**
  * Build scoring statistics from cached scoring details.
  * @param {Array<Object>|null} scoringDetails
  * @returns {Object}
@@ -62,17 +98,11 @@ function buildScoringStats(scoringDetails) {
     }
 
     const totalScored = scoringDetails.length;
-    let reflectionsScored = 0;
-    let reflectionsSelected = 0;
-    let eventsScored = 0;
-    let eventsSelected = 0;
-    let totalReflectionScore = 0;
-    let totalEventScore = 0;
-    let topScore = 0;
-    let cutoffScore = null;
-    let selectedCount = 0;
+    let reflectionsScored = 0, reflectionsSelected = 0;
+    let eventsScored = 0, eventsSelected = 0;
+    let totalReflectionScore = 0, totalEventScore = 0;
+    let topScore = 0, cutoffScore = null, selectedCount = 0;
 
-    // Find top score and cutoff score (lowest selected score)
     for (const detail of scoringDetails) {
         const { scores, type, selected } = detail;
         if (scores.total > topScore) topScore = scores.total;
@@ -82,7 +112,6 @@ function buildScoringStats(scoringDetails) {
                 cutoffScore = scores.total;
             }
         }
-
         if (type === 'reflection') {
             reflectionsScored++;
             totalReflectionScore += scores.total;
@@ -94,31 +123,21 @@ function buildScoringStats(scoringDetails) {
         }
     }
 
-    // Top 10 rejected memories (highest-scoring non-selected)
-    const rejected = scoringDetails
-        .filter((d) => !d.selected)
-        .sort((a, b) => b.scores.total - a.scores.total)
-        .slice(0, 10)
-        .map((d) => ({
-            memoryId: d.memoryId,
-            type: d.type,
-            summary: d.summary,
-            score: d.scores.total,
-        }));
-
     return {
         totalScored,
         selected: selectedCount,
-        reflectionsScored,
-        reflectionsSelected,
-        eventsScored,
-        eventsSelected,
-        avgReflectionScore:
-            reflectionsScored > 0 ? Math.round((totalReflectionScore / reflectionsScored) * 100) / 100 : 0,
-        avgEventScore: eventsScored > 0 ? Math.round((totalEventScore / eventsScored) * 100) / 100 : 0,
-        topScore: Math.round(topScore * 100) / 100,
-        cutoffScore: cutoffScore !== null ? Math.round(cutoffScore * 100) / 100 : null,
-        rejected: rejected.length > 0 ? rejected : null,
+        reflections: {
+            scored: reflectionsScored,
+            selected: reflectionsSelected,
+            avgScore: reflectionsScored > 0 ? r2(totalReflectionScore / reflectionsScored) : 0,
+        },
+        events: {
+            scored: eventsScored,
+            selected: eventsSelected,
+            avgScore: eventsScored > 0 ? r2(totalEventScore / eventsScored) : 0,
+        },
+        topScore: r2(topScore),
+        cutoffScore: cutoffScore !== null ? r2(cutoffScore) : null,
     };
 }
 
@@ -273,13 +292,38 @@ export function buildExportPayload() {
     const scoringDetails = getCachedScoringDetails();
     const scoringStats = buildScoringStats(scoringDetails);
 
+    // Build selected + top-15-rejected scoring details
+    let scoringSection = null;
+    if (scoringStats && scoringDetails) {
+        const REJECTED_LIMIT = 15;
+        const SELECTED_SUMMARY_LIMIT = 200;
+        const REJECTED_SUMMARY_LIMIT = 150;
+
+        const selectedEntries = scoringDetails
+            .filter((d) => d.selected)
+            .map((d) => compactScores(d, SELECTED_SUMMARY_LIMIT));
+
+        const rejectedEntries = scoringDetails
+            .filter((d) => !d.selected)
+            .sort((a, b) => b.scores.total - a.scores.total)
+            .slice(0, REJECTED_LIMIT)
+            .map((d) => compactScores(d, REJECTED_SUMMARY_LIMIT));
+
+        scoringSection = {
+            _note: 'Default-value fields omitted from entries. Defaults: recencyPenalty=0, hitDamping=1, frequencyFactor=1, vector/bm25 fields=0',
+            stats: scoringStats,
+            selected: selectedEntries,
+            rejected: rejectedEntries,
+        };
+    }
+
     return {
         openvault_debug_export: true,
         exportedAt: new Date().toISOString(),
 
         lastRetrieval,
 
-        scoring: scoringStats ? { stats: scoringStats, details: scoringDetails } : null,
+        scoring: scoringSection,
 
         state: {
             memories: buildMemoryStats(memories),

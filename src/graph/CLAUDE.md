@@ -28,6 +28,7 @@ Prevents duplicate nodes (e.g., "The King" vs "King Aldric").
 - **Edge Consolidation**: Runs before summarization (`consolidateEdges()`). Processes bloated edges flagged in `_edgesNeedingConsolidation` queue.
 - **Hairball Pruning**: Edges involving main characters (User/Char + their aliases) are temporarily removed. Prevents the "protagonist hairball" where all entities group into one giant cluster. Nodes re-assigned to strongest neighbor's community after.
 - **Summarization**: LLM generates Title, Summary, and Findings. Injected into ST context.
+- **Global World State**: `generateGlobalWorldState()` synthesizes all communities into single narrative (~300 tokens). Stored in `chatMetadata.openvault.global_world_state` as `{ summary, last_updated, community_count }`. Used for macro-intent queries.
 
 ## GOTCHAS & RULES
 - **Embedding Storage**: Embeddings are stored as Base64-encoded `Float32Array` strings (`embedding_b64`) via the codec in `src/utils/embedding-codec.js`. Legacy `number[]` format (`embedding`) is read transparently but never written.

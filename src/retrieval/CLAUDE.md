@@ -8,7 +8,9 @@ Selects optimal memories (events + reflections) and community summaries, then fo
 2. **Hidden Memories for IDF**: `allAvailableMemories` in context includes all memories. Non-candidate memories are extracted and passed to `scoreMemories()` as `hiddenMemories` for expanded IDF corpus.
 3. **POV Filter**: Strict filter. Characters only recall what they witnessed or are told (`known_events`).
 4. **Budgeting**: Top-scored results sliced to `retrievalFinalTokens` limit.
-5. **Formatting**: Grouped into temporal buckets: *The Story So Far*, *Leading Up To This Moment*, *Current Scene*.
+5. **Formatting** (`formatting.js`): Grouped into temporal buckets: *The Story So Far*, *Leading Up To This Moment*, *Current Scene*.
+   - **Subconscious Drives**: Reflections (`type: 'reflection'`) separated into `<subconscious_drives>` XML block. Events stay in `<scene_memory>`.
+   - CRITICAL RULE text prevents therapist-speak — reflections are hidden psychological truths, never spoken aloud.
 
 ## SCORING MATH (Alpha-Blend in `math.js`)
 **Formula**: `Total = Base + (Alpha * VectorBonus) + ((1 - Alpha) * BM25Bonus)`
@@ -30,8 +32,10 @@ Selects optimal memories (events + reflections) and community summaries, then fo
 - **Vector Similarity**: Cosine similarity against last 3 user messages + top entities.
 
 ## WORLD CONTEXT (`world-context.js`)
-- Retrieves GraphRAG community summaries.
-- Uses **Pure Vector Similarity** (bypasses BM25 entirely).
+- **Intent Routing**: Macro queries (summarize, recap, вкратце, etc.) use pre-computed global state. Local queries use vector search.
+- `detectMacroIntent()`: Multilingual regex matches EN/RU keywords (summarize, recap, story so far, что было, расскажи, etc.).
+- Global state: Map-reduce synthesis over all communities, stored in `chatMetadata.openvault.global_world_state`.
+- Local retrieval: **Pure Vector Similarity** (bypasses BM25 entirely).
 - Injects via `<world_context>` XML tag high up in the prompt (`openvault_world` slot).
 
 ## GOTCHAS & RULES

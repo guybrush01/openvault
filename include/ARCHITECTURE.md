@@ -46,6 +46,7 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
     _edgesNeedingConsolidation: string[]  // Edge keys pending consolidation
   },
   communities: { "C0": { title, summary, findings: string[], nodeKeys: string[], embedding_b64: string } },
+  global_world_state: { summary: string, last_updated: number, community_count: number },
   character_states: { "Name": { current_emotion, emotion_intensity, known_events: string[] } },
   reflection_state: { "Name": { importance_sum: number } },
   processed_message_ids: number[],
@@ -87,7 +88,7 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
 
 **GraphRAG Communities**:
 - *Pruning*: Edges involving User/Char temporarily removed before Louvain to prevent "hairball" clusters. Re-assigned after.
-- *Injection*: Pure vector search injected into `openvault_world` slot.
+- *Injection*: Intent-based routing. Macro queries (summarize, recap, вкратце) use pre-computed global state (map-reduce over all communities). Local queries use vector search on individual community embeddings.
 
 **Embeddings**: Stored as Base64 Float32Array, decoded to `Float32Array` at runtime (not `number[]`). Legacy JSON arrays wrapped in `Float32Array` on read (lazy migration). True LRU cache (max 500). All cosine similarity uses 4x loop-unrolled dot product on typed arrays. WebGPU attempts first -> falls back to WASM. `device.lost` not monitored (implicitly retries pipeline on next call). Failures degrade gracefully to BM25.
 

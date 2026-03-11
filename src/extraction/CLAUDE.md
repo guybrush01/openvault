@@ -26,7 +26,8 @@ Background pipeline converting raw messages -> structured JSON -> Deduplicated M
 10. **Final Save**.
 
 ## GOTCHAS & RULES
-- **Split Schemas**: Events and Graph have separate Zod schemas. No unified schema. Lowers LLM cognitive load.
+- **Split Schemas**: Events, Graph, Community Summary, and Global Synthesis each have separate Zod schemas. No unified schema. Lowers LLM cognitive load.
+- **GlobalSynthesisSchema**: `global_summary` field, min 50 chars, max ~300 tokens. Map-reduce output over all communities.
 - **JSON Array Recovery**: If LLM forgets object wrapper and returns a bare array, `safeParseJSON` wraps it automatically.
 - **Markdown Stripping**: `_testStripMarkdown` handles open/close orphans (````json\n{...}`).
 - **Event Summary Min**: Enforced 30 characters in Zod.

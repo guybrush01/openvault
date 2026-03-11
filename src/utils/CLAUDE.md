@@ -39,6 +39,8 @@
 ### `text.js`
 - `stripThinkingTags()`: Strips `<think>`, `<reasoning>`, etc. (Case insensitive). Also handles orphaned closing tags (e.g., `</think>` without opening) from assistant prefill continuations — strips everything before and including the orphaned tag.
 - `safeParseJSON()`: Multi-layer recovery. Extracts markdown codeblocks -> uses bracket-balancing to isolate JSON -> applies `jsonrepair`. Wraps bare arrays in an `{ events: [] }` object if the LLM forgot the root key.
+- `getMemoryPosition(memory)`: Returns average position from `message_ids` for bucket assignment.
+- `assignMemoriesToBuckets(memories, chatLength)`: Assigns memories to old/mid/recent buckets. Old: < (len-500), Mid: (len-500) to (len-100), Recent: >= (len-100). Used by soft balance budgeting.
 
 ### `st-helpers.js`
 - `safeSetExtensionPrompt()`: Wraps ST's injection with try/catch.

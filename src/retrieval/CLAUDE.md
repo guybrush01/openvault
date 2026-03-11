@@ -7,8 +7,8 @@ Selects optimal memories (events + reflections) and community summaries, then fo
 1. **Candidate Pool**: Hidden memories (visible ones are already in ST context) + Reflections (no message IDs).
 2. **Hidden Memories for IDF**: `allAvailableMemories` in context includes all memories. Non-candidate memories are extracted and passed to `scoreMemories()` as `hiddenMemories` for expanded IDF corpus.
 3. **POV Filter**: Strict filter. Characters only recall what they witnessed or are told (`known_events`).
-4. **Budgeting**: Top-scored results sliced to `retrievalFinalTokens` limit.
-5. **Formatting** (`formatting.js`): Grouped into temporal buckets: *The Story So Far*, *Leading Up To This Moment*, *Current Scene*.
+4. **Budgeting**: **Score-First with Soft Balance**. `selectMemoriesWithSoftBalance()` selects top 95% by score, then allocates 5% budget for chronological balance (min 20% per bucket: old/mid/recent). `bucketMinRepresentation=0.20`, `bucketSoftBalanceBudget=0.05`.
+5. **Formatting** (`formatting.js`): Grouped into temporal buckets: *The Story So Far*, *Leading Up To This Moment*, *Current Scene*. **No hard quotas** — scoring handles balance.
    - **Subconscious Drives**: Reflections (`type: 'reflection'`) separated into `<subconscious_drives>` XML block. Events stay in `<scene_memory>`.
    - CRITICAL RULE text prevents therapist-speak — reflections are hidden psychological truths, never spoken aloud.
 
@@ -17,18 +17,20 @@ Selects optimal memories (events + reflections) and community summaries, then fo
 
 - **Forgetfulness Curve (Base)**: Exponential decay by narrative distance.
   - Higher importance = slower decay. Importance 5 has a soft floor of `1.0`.
-  - *Reflection Decay*: Reflections older than 750 messages suffer linear penalty (floor 0.25x) to prevent stale insights.
+  - *Reflection Decay*: Level-aware decay. Reflections older than 750 messages suffer linear penalty (floor 0.25x). **Level Divisor**: Each level above 1 decays 2x slower (`reflectionLevelMultiplier=2.0`). Level 2 reflections at 1000 msgs retain ~91% vs ~83% for level 1.
 - **BM25 Keyword Matching**:
   - *Token Caching*: Pre-computed `m.tokens` (stemmed) to save CPU.
   - *Graph-Anchored*: Extracts query entities directly from Graph Nodes (no regex guessing).
   - *IDF-Aware*: Query tokens weighted by Inverse Document Frequency.
   - *Expanded Corpus*: IDF calculated from **candidates + hidden memories** (not just candidates). Prevents common terms from getting artificially high IDF scores.
   - *Dynamic Stopwords*: Main character names are stripped from BM25 queries since they have near-zero IDF and waste scoring weight.
-  - *Three-Token-Tier System*:
-    - **Layer 1 (Entities)**: Named entities from graph — full boost (`entityBoostWeight` = 5x).
+  - *Four-Token-Tier System*:
+    - **Layer 0 (Exact Phrases)**: Multi-word entities (contain space) — added ONCE, boosted at scoring time via `hasExactPhrase()`. Configurable `exactPhraseBoostWeight=10.0`.
+    - **Layer 1 (Entities)**: Single-word named entities from graph — stemmed, repeated at `entityBoostWeight` (5x).
     - **Layer 2 (Corpus-Grounded)**: User-message tokens filtered through **corpus vocabulary** (`buildCorpusVocab`). Only stems that exist in memories/graph are used. Gets 60% boost (3x).
     - **Layer 3 (Non-Grounded)**: User-message tokens NOT in corpus vocabulary. Gets 40% boost (2x). Preserves scene context and dialogue tokens.
   - *Event Gate*: BM25 skipped entirely when no events in candidate pool (returns empty token array).
+- **Exact Phrase Matching**: `hasExactPhrase(phrase, memory)` checks if memory contains multi-word phrase. Case-insensitive, normalizes whitespace, strips punctuation. Used by Layer 0 scoring.
 - **Vector Similarity**: Cosine similarity against last 3 user messages + top entities.
 
 ## WORLD CONTEXT (`world-context.js`)

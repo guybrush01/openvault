@@ -38,6 +38,7 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
   memories: [{ // Both events and reflections
     id: string, type: "event"|"reflection", summary: string, importance: 1-5,
     tokens: string[], message_ids?: number[], source_ids?: string[], // source_ids for reflections
+    level?: number, parent_ids?: string[], // Reflection hierarchy: level=1 (from events), level=2+ (from reflections)
     characters_involved: string[], embedding_b64: string, archived: boolean, mentions?: number
   }],
   graph: {
@@ -59,16 +60,23 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
 ## 3. CORE SYSTEMS SAUCE
 
 **Retrieval Math (Alpha-Blend)**: `Score = (Base + (Alpha * VectorBonus) + ((1 - Alpha) * BM25Bonus)) × FrequencyFactor`
-- *Base (Forgetfulness)*: `Importance * e^(-Lambda * Distance)`. Lambda dampened by `hitDamping = max(0.5, 1/(1 + retrieval_hits × 0.1))` — frequently retrieved memories decay up to 50% slower. Imp 5 has soft floor of 1.0. Reflections > 750 msgs decay linearly to 0.25x.
+- *Base (Forgetfulness)*: `Importance * e^(-Lambda * Distance)`. Lambda dampened by `hitDamping = max(0.5, 1/(1 + retrieval_hits × 0.1))` — frequently retrieved memories decay up to 50% slower. Imp 5 has soft floor of 1.0. Reflections > 750 msgs decay linearly to 0.25x. **Level Divisor**: Higher-level reflections decay 2x slower per level (`reflectionLevelMultiplier`).
 - *Frequency Factor*: `1 + ln(mentions) × 0.05`. Sublinear boost from event repetitions (dedup increments `mentions`). 10 mentions ≈ +11.5%, 50 mentions ≈ +20%.
-- *BM25*: IDF-aware using **expanded corpus** (candidates + hidden memories) to prevent common terms from getting artificially high scores. Dynamic Character Stopwords (names filtered out to prevent score inflation). **Three-Token-Tier System** (Layers 1-3): Entity stems at 5x, corpus-grounded stems at 3x, non-grounded stems at 2x. **Event Gate**: BM25 skipped when no events in candidates (returns empty token array).
+- *BM25*: IDF-aware using **expanded corpus** (candidates + hidden memories) to prevent common terms from getting artificially high scores. Dynamic Character Stopwords (names filtered out to prevent score inflation). **Four-Token-Tier System**: Layer 0 (exact phrase tokens, 10x via `hasExactPhrase`), Layer 1 (entities, 5x), Layer 2 (corpus-grounded, 3x), Layer 3 (non-grounded, 2x). **Event Gate**: BM25 skipped when no events in candidates (returns empty token array).
 
 **BM25 Token Construction** (`buildBM25Tokens` + `buildCorpusVocab`):
-- **Layer 1**: Named entities from graph — full boost (`entityBoostWeight` = 5x).
+- **Layer 0**: Multi-word entities (contain space) — added ONCE as exact phrase tokens. Boosted at scoring time via `hasExactPhrase()` check (`exactPhraseBoostWeight` = 10x).
+- **Layer 1**: Named entities from graph — stemmed, repeated at full boost (`entityBoostWeight` = 5x).
 - **Layer 2**: User-message stems that exist in corpus vocab — 60% boost (`ceil(entityBoostWeight * 0.6)` = 3x). High-signal tokens that match memory/graph content.
 - **Layer 3**: User-message stems NOT in corpus vocab — 40% boost (`ceil(entityBoostWeight * 0.4)` = 2x). Scene context and dialogue tokens that may match memory content via IDF.
 - Corpus vocab = memory `.tokens` + tokenized graph node/edge descriptions.
 - Backward compat: `corpusVocab=null` includes all message tokens at 1x (unfiltered).
+
+**Score-First Budgeting** (`selectMemoriesWithSoftBalance` in `scoring.js`):
+- Phase 1: Select top-scoring memories until 95% of budget consumed (`bucketSoftBalanceBudget` = 0.05).
+- Phase 2: Allocate remaining 5% for chronological balance — ensure minimum 20% per temporal bucket (`bucketMinRepresentation` = 0.20).
+- Buckets: old (story so far), mid (leading up), recent (current scene). Uses `getMemoryPosition()` from `utils/text.js`.
+- Replaces hard 50% quota in formatting layer.
 
 **Entity Semantic Merging**: Prevents duplicates ("The King" vs "King Aldric").
 - *Guard 1*: Embeddings (type + name + description) cosine sim >= `0.94`.
@@ -81,7 +89,9 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
 - Characters in `characters_involved` see the event regardless of `is_secret` (participants know their own secrets).
 - `is_secret` only hides events from characters who are neither involved nor witnesses.
 - Explicit `known_events` tracking for additional access.
+- **Exact Phrase Matching**: `hasExactPhrase(phrase, memory)` checks if memory contains multi-word phrase (case-insensitive, whitespace-normalized, punctuation-stripped). Used by Layer 0 BM25 scoring.
 - *Pre-flight*: Aborts if recent events >85% similar to existing insights.
+- *Candidate Set*: Recent events (top 100) + old reflections (all levels) for synthesis.
 - *Tier 1 (Reject >=90%)*: Duplicate, discard.
 - *Tier 2 (Replace 80-89%)*: Same theme. Old set to `archived: true`, new added.
 - *Tier 3 (Add <80%)*: Genuinely new.

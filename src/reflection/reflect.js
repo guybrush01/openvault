@@ -257,7 +257,9 @@ export async function generateReflections(characterName, allMemories, characterS
         sequence: now,
         characters_involved: [characterName],
         character: characterName,
-        source_ids: evidence_ids,
+        source_ids: evidence_ids,    // For level 1: event IDs
+        parent_ids: [],              // NEW: Empty for level 1 (derived from events)
+        level: 1,                    // NEW: Default level for event-derived reflections
         witnesses: [characterName],
         location: null,
         is_secret: false,

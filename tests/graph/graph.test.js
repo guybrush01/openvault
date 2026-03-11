@@ -5,6 +5,7 @@ import {
     createEmptyGraph,
     expandMainCharacterKeys,
     initGraphState,
+    markEdgeForConsolidation,
     mergeOrInsertEntity,
     normalizeKey,
     redirectEdges,
@@ -642,5 +643,21 @@ describe('expandMainCharacterKeys', () => {
         const expanded = expandMainCharacterKeys(baseKeys, graphNodes);
 
         expect(expanded).toEqual(['nonexistent']);
+    });
+});
+
+describe('markEdgeForConsolidation', () => {
+    it('marks edges for consolidation', () => {
+        const graph = { nodes: {}, edges: {}, _edgesNeedingConsolidation: [] };
+        graph.nodes.alice = { name: 'Alice', type: 'PERSON', description: 'test', mentions: 1 };
+        graph.nodes.bob = { name: 'Bob', type: 'PERSON', description: 'test', mentions: 1 };
+        graph.edges['alice__bob'] = { source: 'alice', target: 'bob', description: 'test', weight: 1 };
+
+        markEdgeForConsolidation(graph, 'alice__bob');
+        expect(graph._edgesNeedingConsolidation).toContain('alice__bob');
+
+        // Duplicate add is idempotent
+        markEdgeForConsolidation(graph, 'alice__bob');
+        expect(graph._edgesNeedingConsolidation.filter(e => e === 'alice__bob')).toHaveLength(1);
     });
 });

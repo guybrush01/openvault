@@ -155,6 +155,20 @@ export function upsertRelationship(graphData, source, target, description, cap =
 }
 
 /**
+ * Mark an edge for consolidation during next community detection.
+ * @param {Object} graphData - The graph object
+ * @param {string} edgeKey - The edge key to mark
+ */
+export function markEdgeForConsolidation(graphData, edgeKey) {
+    if (!graphData._edgesNeedingConsolidation) {
+        graphData._edgesNeedingConsolidation = [];
+    }
+    if (!graphData._edgesNeedingConsolidation.includes(edgeKey)) {
+        graphData._edgesNeedingConsolidation.push(edgeKey);
+    }
+}
+
+/**
  * Create an empty flat graph structure.
  * @returns {{ nodes: Object, edges: Object }}
  */

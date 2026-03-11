@@ -1,5 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+describe('countTokens', () => {
+    it('exports countTokens function', async () => {
+        const { countTokens } = await import('../../src/utils/tokens.js');
+        expect(typeof countTokens).toBe('function');
+        expect(countTokens('hello world')).toBeGreaterThan(0);
+    });
+});
+
 describe('getMessageTokenCount', () => {
     beforeEach(async () => {
         const { clearTokenCache } = await import('../../src/utils/tokens.js');

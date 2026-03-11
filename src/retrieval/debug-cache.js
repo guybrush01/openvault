@@ -35,6 +35,8 @@ export function cacheScoringDetails(scoredResults, selectedIds) {
         return {
             memoryId: memory.id,
             type: memory.type || 'event',
+            level: memory.level || 1,
+            parent_ids: memory.parent_ids || [],
             summary: memory.summary || '',
             scores: {
                 base: breakdown.base,

@@ -57,7 +57,7 @@ function diffSettings(current, defaults) {
  * @returns {Object} Compact entry
  */
 function compactScores(detail, summaryLimit) {
-    const { scores, memoryId, type, summary, distance, importance, retrieval_hits, mentions, characters_involved } = detail;
+    const { scores, memoryId, type, level, parent_ids, summary, distance, importance, retrieval_hits, mentions, characters_involved } = detail;
     const base = r2(scores.base);
     const entry = {
         id: memoryId,
@@ -72,6 +72,14 @@ function compactScores(detail, summaryLimit) {
         mentions: mentions ?? 1,
         characters_involved: characters_involved || [],
     };
+
+    // Include level and parent_ids for reflections
+    if (type === 'reflection') {
+        entry.level = level || 1;
+        if (parent_ids && parent_ids.length > 0) {
+            entry.parent_ids = parent_ids;
+        }
+    }
 
     // Optional fields — only include when non-default
     if (scores.baseAfterFloor !== scores.base) entry.baseAfterFloor = r2(scores.baseAfterFloor);
@@ -399,6 +407,8 @@ export function buildExportPayload() {
                 chatLength: deps.getContext()?.chat?.length || 0,
             },
             reflectionState: data.reflection_state || {},
+            globalWorldState: data.global_world_state || null,
+            edgesNeedingConsolidation: data.graph?._edgesNeedingConsolidation || null,
         },
         perf: buildPerfExport(),
     };

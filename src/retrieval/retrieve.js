@@ -184,6 +184,8 @@ async function selectFormatAndInject(memoriesToUse, data, ctx) {
     cacheRetrievalDebug({
         injectedContext: formattedContext,
         selectedCount: relevantMemories.length,
+        eventsCount: relevantMemories.filter(m => m.type !== 'reflection').length,
+        reflectionsCount: relevantMemories.filter(m => m.type === 'reflection').length,
     });
 
     // Inject world context from community summaries
@@ -204,7 +206,10 @@ async function selectFormatAndInject(memoriesToUse, data, ctx) {
             safeSetExtensionPrompt(worldResult.text, 'openvault_world');
             // Cache world context result for debug export
             if (worldResult?.text) {
-                cacheRetrievalDebug({ injectedWorldContext: worldResult.text });
+                cacheRetrievalDebug({
+                    injectedWorldContext: worldResult.text,
+                    isMacroIntent: worldResult.isMacroIntent
+                });
             }
         } else {
             safeSetExtensionPrompt('', 'openvault_world');

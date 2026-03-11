@@ -36,7 +36,7 @@ export function detectMacroIntent(userMessagesString) {
  * @param {string} userMessagesString - Concatenated user messages for intent detection
  * @param {Float32Array} queryEmbedding - Embedding of current context
  * @param {number} tokenBudget - Max tokens for world context (default: 2000)
- * @returns {{ text: string, communityIds: string[] }}
+ * @returns {{ text: string, communityIds: string[], isMacroIntent: boolean }}
  */
 export function retrieveWorldContext(communities, globalState, userMessagesString, queryEmbedding, tokenBudget = 2000) {
     // Intent-based routing: check for macro intent first
@@ -44,12 +44,13 @@ export function retrieveWorldContext(communities, globalState, userMessagesStrin
         return {
             text: `<world_context>\n${globalState.summary}\n</world_context>`,
             communityIds: [],
+            isMacroIntent: true,
         };
     }
 
     // Fall back to existing vector search logic
     if (!communities || !queryEmbedding) {
-        return { text: '', communityIds: [] };
+        return { text: '', communityIds: [], isMacroIntent: false };
     }
 
     // Score communities by cosine similarity
@@ -61,7 +62,7 @@ export function retrieveWorldContext(communities, globalState, userMessagesStrin
     }
 
     if (scored.length === 0) {
-        return { text: '', communityIds: [] };
+        return { text: '', communityIds: [], isMacroIntent: false };
     }
 
     // Sort by score descending
@@ -80,7 +81,7 @@ export function retrieveWorldContext(communities, globalState, userMessagesStrin
     }
 
     if (selected.length === 0) {
-        return { text: '', communityIds: [] };
+        return { text: '', communityIds: [], isMacroIntent: false };
     }
 
     const text = '<world_context>\n' + selected.map((s) => s.entry).join('\n\n') + '\n</world_context>';
@@ -88,6 +89,7 @@ export function retrieveWorldContext(communities, globalState, userMessagesStrin
     return {
         text,
         communityIds: selected.map((s) => s.id),
+        isMacroIntent: false,
     };
 }
 

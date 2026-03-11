@@ -5,6 +5,10 @@
  */
 
 import { countTokens } from '../utils/tokens.js';
+import { assignMemoriesToBuckets, getMemoryPosition } from '../utils/text.js';
+
+// Re-export for external consumers
+export { assignMemoriesToBuckets, getMemoryPosition };
 
 // Narrative engine constants
 export const CURRENT_SCENE_SIZE = 100; // "Current Scene" = last 100 messages
@@ -52,61 +56,6 @@ function formatEmotionalTrajectory(emotionalInfo, limit = 5) {
 
     if (lines.length === 0) return null;
     return `Emotions: ${lines.slice(0, limit).join(', ')}`;
-}
-
-/**
- * Get the effective position of a memory in the chat timeline
- * @param {Object} memory - Memory object
- * @returns {number} Position as message number
- */
-export function getMemoryPosition(memory) {
-    const msgIds = memory.message_ids || [];
-    if (msgIds.length > 0) {
-        const sum = msgIds.reduce((a, b) => a + b, 0);
-        return Math.round(sum / msgIds.length);
-    }
-    if (memory.sequence) {
-        return Math.floor(memory.sequence / 1000);
-    }
-    return 0;
-}
-
-/**
- * Assign memories to temporal buckets based on chat position
- * @param {Object[]} memories - Array of memory objects
- * @param {number} chatLength - Current chat length
- * @returns {Object} Object with old, mid, recent arrays
- */
-export function assignMemoriesToBuckets(memories, chatLength) {
-    const result = { old: [], mid: [], recent: [] };
-
-    if (!memories || memories.length === 0) {
-        return result;
-    }
-
-    // Fixed window thresholds
-    const recentThreshold = Math.max(0, chatLength - CURRENT_SCENE_SIZE);
-    const midThreshold = Math.max(0, chatLength - LEADING_UP_SIZE);
-
-    for (const memory of memories) {
-        const position = getMemoryPosition(memory);
-
-        if (chatLength === 0 || position >= recentThreshold) {
-            result.recent.push(memory);
-        } else if (position >= midThreshold) {
-            result.mid.push(memory);
-        } else {
-            result.old.push(memory);
-        }
-    }
-
-    // Sort each bucket chronologically by sequence
-    const sortBySequence = (a, b) => (a.sequence || 0) - (b.sequence || 0);
-    result.old.sort(sortBySequence);
-    result.mid.sort(sortBySequence);
-    result.recent.sort(sortBySequence);
-
-    return result;
 }
 
 /**

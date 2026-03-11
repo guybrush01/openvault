@@ -154,3 +154,62 @@ export function sortMemoriesBySequence(memories, ascending = true) {
         return ascending ? seqA - seqB : seqB - seqA;
     });
 }
+
+/**
+ * Get the effective position of a memory in the chat timeline
+ * @param {Object} memory - Memory object
+ * @returns {number} Position as message number
+ */
+export function getMemoryPosition(memory) {
+    const msgIds = memory.message_ids || [];
+    if (msgIds.length > 0) {
+        const sum = msgIds.reduce((a, b) => a + b, 0);
+        return Math.round(sum / msgIds.length);
+    }
+    if (memory.sequence) {
+        return Math.floor(memory.sequence / 1000);
+    }
+    return 0;
+}
+
+// Narrative engine constants
+const CURRENT_SCENE_SIZE = 100; // "Current Scene" = last 100 messages
+const LEADING_UP_SIZE = 500; // "Leading Up" = messages 101-500 ago
+
+/**
+ * Assign memories to temporal buckets based on chat position
+ * @param {Object[]} memories - Array of memory objects
+ * @param {number} chatLength - Current chat length
+ * @returns {Object} Object with old, mid, recent arrays
+ */
+export function assignMemoriesToBuckets(memories, chatLength) {
+    const result = { old: [], mid: [], recent: [] };
+
+    if (!memories || memories.length === 0) {
+        return result;
+    }
+
+    // Fixed window thresholds
+    const recentThreshold = Math.max(0, chatLength - CURRENT_SCENE_SIZE);
+    const midThreshold = Math.max(0, chatLength - LEADING_UP_SIZE);
+
+    for (const memory of memories) {
+        const position = getMemoryPosition(memory);
+
+        if (chatLength === 0 || position >= recentThreshold) {
+            result.recent.push(memory);
+        } else if (position >= midThreshold) {
+            result.mid.push(memory);
+        } else {
+            result.old.push(memory);
+        }
+    }
+
+    // Sort each bucket chronologically by sequence
+    const sortBySequence = (a, b) => (a.sequence || 0) - (b.sequence || 0);
+    result.old.sort(sortBySequence);
+    result.mid.sort(sortBySequence);
+    result.recent.sort(sortBySequence);
+
+    return result;
+}

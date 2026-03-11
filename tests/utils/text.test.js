@@ -193,4 +193,46 @@ describe('text', () => {
             expect(sortMemoriesBySequence([])).toEqual([]);
         });
     });
+
+    describe('assignMemoriesToBuckets (moved from formatting.js)', () => {
+        it('should be exported from text.js', async () => {
+            const { assignMemoriesToBuckets } = await import('../../src/utils/text.js');
+            expect(typeof assignMemoriesToBuckets).toBe('function');
+        });
+
+        it('should assign memories to old/mid/recent buckets correctly', async () => {
+            const { assignMemoriesToBuckets } = await import('../../src/utils/text.js');
+
+            const memories = [
+                { id: '1', message_ids: [50], sequence: 50000 },   // Old (pos < 500)
+                { id: '2', message_ids: [600], sequence: 30000 },  // Mid (500 <= pos < 900)
+                { id: '3', message_ids: [900], sequence: 9000 },   // Recent (pos >= 900)
+            ];
+            const chatLength = 1000;
+
+            const buckets = assignMemoriesToBuckets(memories, chatLength);
+
+            expect(buckets.old.length).toBe(1);
+            expect(buckets.mid.length).toBe(1);
+            expect(buckets.recent.length).toBe(1);
+            expect(buckets.old[0].id).toBe('1');
+            expect(buckets.mid[0].id).toBe('2');
+            expect(buckets.recent[0].id).toBe('3');
+        });
+    });
+
+    describe('getMemoryPosition (moved from formatting.js)', () => {
+        it('should be exported from text.js', async () => {
+            const { getMemoryPosition } = await import('../../src/utils/text.js');
+            expect(typeof getMemoryPosition).toBe('function');
+        });
+
+        it('should calculate position from message_ids', async () => {
+            const { getMemoryPosition } = await import('../../src/utils/text.js');
+
+            const memory = { message_ids: [100, 200, 300] };
+            const position = getMemoryPosition(memory);
+            expect(position).toBe(200); // Average
+        });
+    });
 });

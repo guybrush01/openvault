@@ -126,16 +126,14 @@ export const QUERY_CONTEXT_DEFAULTS = {
 /**
  * Payload calculator constants — single source of truth.
  * Used by the settings UI to show how much total context the background LLM needs.
- * OVERHEAD = output tokens reserved for LLM response + prompt template estimate + safety buffer.
+ * OVERHEAD = prompt template estimate only (excludes LLM output and safety buffer).
  * Thresholds determine the color-coded severity of the total.
  */
 export const PAYLOAD_CALC = {
-    LLM_OUTPUT_TOKENS: 8000, // Matches maxTokens in all LLM_CONFIGS (see llm.js)
     PROMPT_ESTIMATE: 2000, // Approximate system/user prompt template size
-    SAFETY_BUFFER: 2000, // Headroom for variance in prompt size
     /** Derived: total overhead added on top of user-controlled sliders */
     get OVERHEAD() {
-        return this.LLM_OUTPUT_TOKENS + this.PROMPT_ESTIMATE + this.SAFETY_BUFFER;
+        return this.PROMPT_ESTIMATE;
     },
     /** Color thresholds for total context (sliders + OVERHEAD) */
     THRESHOLD_GREEN: 32000, // ≤ this = safe (green ✅)

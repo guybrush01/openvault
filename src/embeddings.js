@@ -674,7 +674,7 @@ export async function enrichEventsWithEmbeddings(events, { signal } = {}) {
 
     const embeddings = await processInBatches(validEvents, 5, async (e) => {
         if (settings?.debugMode) {
-            logDebug(`Embedding doc: "${e.summary.slice(0, 80)}${e.summary.length > 80 ? '...' : ''}"`);
+            logDebug(`Embedding doc: "${e.summary}"`);
         }
         return strategy.getDocumentEmbedding(e.summary, { signal });
     });

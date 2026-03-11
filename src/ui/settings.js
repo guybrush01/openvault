@@ -109,9 +109,8 @@ function updatePayloadCalculator() {
     // Breakdown: show each component so user understands
     const bStr = Math.round(budget / 1000) + 'k';
     const rStr = Math.round(rearview / 1000) + 'k';
-    const outStr = Math.round(PAYLOAD_CALC.LLM_OUTPUT_TOKENS / 1000) + 'k';
-    const bufStr = Math.round((PAYLOAD_CALC.PROMPT_ESTIMATE + PAYLOAD_CALC.SAFETY_BUFFER) / 1000) + 'k';
-    $('#openvault_payload_breakdown').text(`(${bStr} batch + ${rStr} rearview + ${outStr} output + ${bufStr} buffer)`);
+    const ovhStr = Math.round(PAYLOAD_CALC.OVERHEAD / 1000) + 'k';
+    $('#openvault_payload_breakdown').text(`(${bStr} batch + ${rStr} rearview + ${ovhStr} overhead)`);
 
     // Color thresholds — all from PAYLOAD_CALC, no magic numbers here
     const $calc = $('#openvault_payload_calculator');

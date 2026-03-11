@@ -14,40 +14,40 @@ function getPayloadSeverity(budget, rearview) {
 }
 
 describe('Payload severity calculation', () => {
-    it('defaults (12k + 8k) = 32k = green', () => {
+    it('defaults (12k + 8k) = 22k = green', () => {
         const r = getPayloadSeverity(12000, 8000);
-        expect(r.total).toBe(32000);
+        expect(r.total).toBe(22000);
         expect(r.severity).toBe('safe');
         expect(r.emoji).toBe('✅');
     });
 
-    it('16k + 8k = 36k = yellow', () => {
+    it('16k + 8k = 26k = green', () => {
         const r = getPayloadSeverity(16000, 8000);
-        expect(r.total).toBe(36000);
+        expect(r.total).toBe(26000);
+        expect(r.severity).toBe('safe');
+    });
+
+    it('32k + 8k = 42k = yellow', () => {
+        const r = getPayloadSeverity(32000, 8000);
+        expect(r.total).toBe(42000);
         expect(r.severity).toBe('caution');
     });
 
-    it('32k + 8k = 52k = orange', () => {
-        const r = getPayloadSeverity(32000, 8000);
-        expect(r.total).toBe(52000);
-        expect(r.severity).toBe('warning');
-    });
-
-    it('48k + 16k = 76k = red', () => {
+    it('48k + 16k = 66k = red', () => {
         const r = getPayloadSeverity(48000, 16000);
-        expect(r.total).toBe(76000);
+        expect(r.total).toBe(66000);
         expect(r.severity).toBe('danger');
     });
 
     it('boundary: exactly 32k = green (inclusive)', () => {
-        const r = getPayloadSeverity(12000, 8000);
+        const r = getPayloadSeverity(30000, 0);
         expect(r.total).toBe(32000);
         expect(r.severity).toBe('safe');
     });
 
     it('boundary: 32001 = yellow', () => {
-        // 12001 + 8000 + 12000 = 32001
-        const r = getPayloadSeverity(12001, 8000);
+        // 30001 + 0 + 2000 = 32001
+        const r = getPayloadSeverity(30001, 0);
         expect(r.total).toBe(32001);
         expect(r.severity).toBe('caution');
     });

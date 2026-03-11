@@ -252,13 +252,13 @@ describe('updateCommunitySummaries', () => {
         };
 
         const result = await updateCommunitySummaries(graphData, communityGroups, {});
-        expect(result.C0).toBeDefined();
-        expect(result.C0.title).toBe('The Royal Court');
+        expect(result.communities.C0).toBeDefined();
+        expect(result.communities.C0.title).toBe('The Royal Court');
         // Embedding is stored via codec, check using hasEmbedding
         const { hasEmbedding, getEmbedding } = await import('../../src/utils/embedding-codec.js');
-        expect(hasEmbedding(result.C0)).toBe(true);
-        expect(getEmbedding(result.C0)).toEqual([0.1, 0.2, 0.3]);
-        expect(result.C0.nodeKeys).toEqual(['king', 'castle']);
+        expect(hasEmbedding(result.communities.C0)).toBe(true);
+        expect(getEmbedding(result.communities.C0)).toEqual([0.1, 0.2, 0.3]);
+        expect(result.communities.C0.nodeKeys).toEqual(['king', 'castle']);
     });
 
     it('skips communities whose membership has not changed', async () => {
@@ -281,7 +281,7 @@ describe('updateCommunitySummaries', () => {
         };
 
         const result = await updateCommunitySummaries({}, communityGroups, existingCommunities);
-        expect(result.C0.title).toBe('Old Title'); // Unchanged
+        expect(result.communities.C0.title).toBe('Old Title'); // Unchanged
         expect(mockCallLLM).not.toHaveBeenCalled(); // No LLM call needed
     });
 
@@ -295,7 +295,7 @@ describe('updateCommunitySummaries', () => {
         };
 
         const result = await updateCommunitySummaries({}, communityGroups, {});
-        expect(result.C0).toBeUndefined();
+        expect(result.communities.C0).toBeUndefined();
         expect(mockCallLLM).not.toHaveBeenCalled();
     });
 
@@ -321,7 +321,7 @@ describe('updateCommunitySummaries', () => {
         mockCallLLM.mockRejectedValue(new Error('LLM failed'));
 
         const result = await updateCommunitySummaries({}, communityGroups, existingCommunities);
-        expect(result.C0.title).toBe('Existing Title'); // Kept existing
+        expect(result.communities.C0.title).toBe('Existing Title'); // Kept existing
     });
 
     it('consolidates edges before community summarization', async () => {
@@ -409,5 +409,105 @@ describe('generateGlobalWorldState', () => {
 
         const result = await generateGlobalWorldState(communities, 'auto', 'auto');
         expect(result).toBeNull();
+    });
+});
+
+describe('updateCommunitySummaries with global synthesis', () => {
+    beforeEach(() => {
+        setupTestContext();
+
+        // Mock responses for both community summaries and global synthesis
+        mockCallLLM.mockImplementation((prompt) => {
+            const userContent = typeof prompt === 'string' ? prompt : prompt[1]?.content || JSON.stringify(prompt);
+            // Check if this is a global synthesis prompt
+            if (userContent.includes('communities') || userContent.includes('Communities:')) {
+                // Global synthesis call
+                return Promise.resolve('{"global_summary": "Synthesized narrative..."}');
+            }
+            // Community summary call
+            return Promise.resolve(JSON.stringify({
+                title: 'Test Community',
+                summary: 'Test community summary...',
+                findings: ['Test finding'],
+            }));
+        });
+    });
+
+    afterEach(() => {
+        resetDeps();
+        vi.clearAllMocks();
+    });
+
+    it('should trigger global synthesis when communities are updated', async () => {
+        const graphData = {
+            nodes: {
+                n1: { name: 'Character A', type: 'PERSON' },
+                n2: { name: 'Character B', type: 'PERSON' },
+            },
+            edges: {},
+        };
+
+        const existingCommunities = {}; // No existing communities, so all are new
+
+        const result = await updateCommunitySummaries(
+            graphData,
+            { '0': { nodeKeys: ['n1', 'n2'], nodeLines: [], edgeLines: [] } },
+            existingCommunities,
+            100,
+            100,
+            false
+        );
+
+        // Verify return structure has both communities and global_world_state
+        expect(result).toHaveProperty('communities');
+        expect(result).toHaveProperty('global_world_state');
+        expect(result.global_world_state).not.toBeNull();
+        expect(result.global_world_state.summary).toBeDefined();
+    });
+
+    it('should skip global synthesis when no communities updated', async () => {
+        const graphData = {
+            nodes: { n1: { name: 'A', type: 'PERSON' } },
+            edges: {},
+        };
+
+        const existingCommunities = {
+            C0: {
+                nodeKeys: ['n1'],
+                title: 'Existing',
+                summary: 'Existing summary',
+                findings: [],
+                __mock_embedding: [0.1, 0.2],
+                lastUpdated: Date.now(),
+                lastUpdatedMessageCount: 50,
+            },
+        };
+
+        // Same membership, not stale - no update expected
+        const result = await updateCommunitySummaries(
+            graphData,
+            { '0': { nodeKeys: ['n1'], nodeLines: [], edgeLines: [] } },
+            existingCommunities,
+            100, // currentMessageCount
+            100, // stalenessThreshold
+            false
+        );
+
+        expect(result.global_world_state).toBeNull();
+    });
+
+    it('should skip global synthesis when single node community (skipped)', async () => {
+        // Community with only 1 node should be skipped, so no global synthesis
+        const result = await updateCommunitySummaries(
+            {},
+            { '0': { nodeKeys: ['n1'], nodeLines: [], edgeLines: [] } },
+            {},
+            100,
+            100,
+            false
+        );
+
+        expect(result.communities).toEqual({});
+        expect(result.global_world_state).toBeNull();
     });
 });

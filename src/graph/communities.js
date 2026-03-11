@@ -198,7 +198,7 @@ function sameMembers(a, b) {
  * @param {number} currentMessageCount - Current graph message count for staleness detection
  * @param {number} stalenessThreshold - Message count threshold for forced re-summarization
  * @param {boolean} isSingleCommunity - Whether Louvain produced only one community
- * @returns {Promise<Object>} Updated communities object
+ * @returns {Promise<{ communities: Object, global_world_state: Object|null }>} Updated communities and optional global state
  */
 export async function updateCommunitySummaries(
     _graphData,
@@ -214,6 +214,9 @@ export async function updateCommunitySummaries(
     const preamble = resolveExtractionPreamble(settings);
     const outputLanguage = resolveOutputLanguage(settings);
     const updatedCommunities = {};
+
+    // Track how many communities were actually updated
+    let updatedCount = 0;
 
     for (const [communityId, group] of Object.entries(communityGroups)) {
         await yieldToMain();
@@ -263,6 +266,7 @@ export async function updateCommunitySummaries(
                 setEmbedding(community, embedding);
             }
             updatedCommunities[key] = community;
+            updatedCount++;
 
             logDebug(`Community ${key}: "${parsed.title}" (${group.nodeKeys.length} nodes)`);
         } catch (error) {
@@ -276,7 +280,18 @@ export async function updateCommunitySummaries(
 
     const communityCount = Object.keys(updatedCommunities).length;
     record('llm_communities', performance.now() - t0, `${communityCount} communities`);
-    return updatedCommunities;
+
+    // Trigger global world state synthesis if any communities were updated
+    let globalState = null;
+    if (updatedCount > 0) {
+        globalState = await generateGlobalWorldState(updatedCommunities, preamble, outputLanguage);
+    }
+
+    // Return object with communities and optional global state
+    return {
+        communities: updatedCommunities,
+        global_world_state: globalState,
+    };
 }
 
 /**

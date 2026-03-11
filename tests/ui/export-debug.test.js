@@ -103,10 +103,13 @@ describe('buildExportPayload', () => {
         expect(payload.state.graph.summary.topEntitiesByMentions[0].name).toBe('Alice');
     });
 
-    it('includes graph raw without embeddings', () => {
+    it('excludes embeddings from relevant graph nodes', () => {
+        cacheRetrievalDebug({
+            queryContext: { entities: ['Alice'], embeddingQuery: '', bm25Tokens: { total: 0, entityStems: 0, grounded: 0, nonGrounded: 0 } },
+        });
         const payload = buildExportPayload();
-        expect(payload.state.graph.raw.nodes.alice).toBeDefined();
-        expect(payload.state.graph.raw.nodes.alice.embedding).toBeUndefined();
+        expect(payload.state.graph.relevant.nodes.alice).toBeDefined();
+        expect(payload.state.graph.relevant.nodes.alice.embedding).toBeUndefined();
     });
 
     it('strips embeddings from community details', () => {
@@ -148,6 +151,35 @@ describe('buildExportPayload', () => {
         // So settings should be empty (or contain only truly different values)
         // Since all mock values match defaultSettings, settings should be {}
         expect(payload.settings).toEqual({});
+    });
+
+    describe('graph filtering', () => {
+        it('shows relevant section with matched entities when retrieval cached', () => {
+            cacheRetrievalDebug({
+                queryContext: { entities: ['Alice'], embeddingQuery: 'test', bm25Tokens: { total: 0, entityStems: 0, grounded: 0, nonGrounded: 0 } },
+            });
+            const payload = buildExportPayload();
+            expect(payload.state.graph.relevant).toBeDefined();
+            expect(payload.state.graph.relevant.matchedEntities).toEqual(['Alice']);
+            expect(payload.state.graph.relevant.nodes.alice).toBeDefined();
+            expect(payload.state.graph.relevant.nodes.alice.name).toBe('Alice');
+            // alice__garden edge involves alice, so should be included
+            expect(payload.state.graph.relevant.edges.alice__garden).toBeDefined();
+        });
+
+        it('omits graph.raw (replaced by relevant)', () => {
+            cacheRetrievalDebug({
+                queryContext: { entities: ['Alice'], embeddingQuery: 'test', bm25Tokens: { total: 0, entityStems: 0, grounded: 0, nonGrounded: 0 } },
+            });
+            const payload = buildExportPayload();
+            expect(payload.state.graph.raw).toBeUndefined();
+        });
+
+        it('falls back to summary-only when no retrieval cached', () => {
+            const payload = buildExportPayload();
+            expect(payload.state.graph.summary.nodeCount).toBe(2);
+            expect(payload.state.graph.relevant).toBeUndefined();
+        });
     });
 
     describe('scoring section', () => {

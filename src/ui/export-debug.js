@@ -142,6 +142,45 @@ function buildScoringStats(scoringDetails) {
 }
 
 /**
+ * Filter graph to nodes/edges relevant to query entities.
+ * @param {Object} graph - Full graph with nodes and edges
+ * @param {string[]} entities - Query entity names from retrieval
+ * @returns {{matchedEntities: string[], nodes: Object, edges: Object}|null}
+ */
+function filterGraphByEntities(graph, entities) {
+    if (!entities || entities.length === 0 || !graph) return null;
+
+    const nodes = graph.nodes || {};
+    const edges = graph.edges || {};
+
+    // Build set of matching node keys (case-insensitive)
+    const entityLower = new Set(entities.map((e) => e.toLowerCase()));
+    const matchedKeys = new Set();
+
+    for (const [key, node] of Object.entries(nodes)) {
+        if (entityLower.has(key.toLowerCase()) || entityLower.has((node.name || '').toLowerCase())) {
+            matchedKeys.add(key);
+        }
+    }
+
+    // Filter nodes
+    const filteredNodes = {};
+    for (const key of matchedKeys) {
+        filteredNodes[key] = stripEmbedding(nodes[key]);
+    }
+
+    // Filter edges where source OR target is a matched node
+    const filteredEdges = {};
+    for (const [key, edge] of Object.entries(edges)) {
+        if (matchedKeys.has(edge.source) || matchedKeys.has(edge.target)) {
+            filteredEdges[key] = { ...edge };
+        }
+    }
+
+    return { matchedEntities: entities, nodes: filteredNodes, edges: filteredEdges };
+}
+
+/**
  * @param {Object} obj
  * @returns {Object} Clone without 'embedding' key
  */
@@ -197,21 +236,20 @@ function buildCharacterSummary(characterStates) {
 }
 
 /**
- * Build graph summary + raw (embeddings stripped).
+ * Build graph summary + relevant subgraph filtered by entities.
  * @param {Object} graph
+ * @param {string[]} entities - Query entity names for filtering
  * @returns {Object}
  */
-function buildGraphExport(graph) {
+function buildGraphExport(graph, entities) {
     if (!graph)
         return {
             summary: { nodeCount: 0, edgeCount: 0, typeBreakdown: {}, topEntitiesByMentions: [] },
-            raw: { nodes: {}, edges: {} },
         };
 
     const nodes = graph.nodes || {};
     const edges = graph.edges || {};
     const nodeEntries = Object.values(nodes);
-    const edgeEntries = Object.values(edges);
 
     // Type breakdown
     const typeBreakdown = {};
@@ -227,21 +265,22 @@ function buildGraphExport(graph) {
         .slice(0, 10)
         .map((n) => ({ name: n.name, type: n.type, mentions: n.mentions || 0 }));
 
-    // Raw without embeddings
-    const rawNodes = {};
-    for (const [key, node] of Object.entries(nodes)) {
-        rawNodes[key] = stripEmbedding(node);
-    }
-
-    return {
+    const result = {
         summary: {
             nodeCount: nodeEntries.length,
-            edgeCount: edgeEntries.length,
+            edgeCount: Object.keys(edges).length,
             typeBreakdown,
             topEntitiesByMentions: topEntities,
         },
-        raw: { nodes: rawNodes, edges: { ...edges } },
     };
+
+    // Add relevant subgraph if entities available
+    const relevant = filterGraphByEntities(graph, entities);
+    if (relevant) {
+        result.relevant = relevant;
+    }
+
+    return result;
 }
 
 /**
@@ -292,6 +331,9 @@ export function buildExportPayload() {
     const scoringDetails = getCachedScoringDetails();
     const scoringStats = buildScoringStats(scoringDetails);
 
+    // Extract entities from last retrieval for graph filtering
+    const queryEntities = cached?.queryContext?.entities || [];
+
     // Build selected + top-15-rejected scoring details
     let scoringSection = null;
     if (scoringStats && scoringDetails) {
@@ -328,7 +370,7 @@ export function buildExportPayload() {
         state: {
             memories: buildMemoryStats(memories),
             characterStates: buildCharacterSummary(characterStates),
-            graph: buildGraphExport(graph),
+            graph: buildGraphExport(graph, queryEntities),
             communities: buildCommunitiesExport(communities),
         },
 

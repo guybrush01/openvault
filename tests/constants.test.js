@@ -39,3 +39,25 @@ describe('Exact Phrase Boost Settings', () => {
         expect(UI_DEFAULT_HINTS.exactPhraseBoostWeight).toBeDefined();
     });
 });
+
+describe('Reflection Level Settings', () => {
+    it('should have maxReflectionLevel in defaultSettings', async () => {
+        const { defaultSettings } = await import('../src/constants.js');
+        expect(defaultSettings.maxReflectionLevel).toBe(3);
+    });
+
+    it('should have reflectionLevelMultiplier in defaultSettings', async () => {
+        const { defaultSettings } = await import('../src/constants.js');
+        expect(defaultSettings.reflectionLevelMultiplier).toBe(2.0);
+    });
+
+    it('should have maxReflectionLevel in UI_DEFAULT_HINTS', async () => {
+        const { UI_DEFAULT_HINTS } = await import('../src/constants.js');
+        expect(UI_DEFAULT_HINTS.maxReflectionLevel).toBeDefined();
+    });
+
+    it('should have reflectionLevelMultiplier in UI_DEFAULT_HINTS', async () => {
+        const { UI_DEFAULT_HINTS } = await import('../src/constants.js');
+        expect(UI_DEFAULT_HINTS.reflectionLevelMultiplier).toBeDefined();
+    });
+});

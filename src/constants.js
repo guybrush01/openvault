@@ -80,6 +80,8 @@ export const defaultSettings = {
     // 750 gives medium-length chats (~700 msgs) breathing room before decay kicks in.
     reflectionDecayThreshold: 750,
     maxReflectionsPerCharacter: 50,
+    maxReflectionLevel: 3, // Maximum reflection tree depth
+    reflectionLevelMultiplier: 2.0, // Decay slows by 2x per level
     // Community staleness settings
     communityStalenessThreshold: 100,
     // Preamble & prefill settings
@@ -178,6 +180,8 @@ export const UI_DEFAULT_HINTS = {
     forgetfulnessBaseLambda: defaultSettings.forgetfulnessBaseLambda,
     forgetfulnessImportance5Floor: defaultSettings.forgetfulnessImportance5Floor,
     reflectionDecayThreshold: defaultSettings.reflectionDecayThreshold,
+    maxReflectionLevel: defaultSettings.maxReflectionLevel,
+    reflectionLevelMultiplier: defaultSettings.reflectionLevelMultiplier,
     // Graph cap settings
     entityDescriptionCap: defaultSettings.entityDescriptionCap,
     maxReflectionsPerCharacter: defaultSettings.maxReflectionsPerCharacter,

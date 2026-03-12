@@ -121,7 +121,7 @@ function parseStructuredResponse(content, schema) {
         parsed = JSON.parse(repaired);
     } catch (e) {
         logError('JSON parse failed in structured response', e, {
-            rawContent: content.slice(0, 2000),
+            rawContent: content,
         });
         throw new Error(`JSON parse failed: ${e.message}`);
     }
@@ -172,7 +172,7 @@ export function parseEventExtractionResponse(content) {
         parsed = JSON.parse(repaired);
     } catch (e) {
         logError('JSON parse failed in event extraction', e, {
-            rawContent: content.slice(0, 2000),
+            rawContent: content,
         });
         throw new Error(`JSON parse failed: ${e.message}`);
     }
@@ -225,7 +225,7 @@ export function parseGraphExtractionResponse(content) {
         parsed = JSON.parse(repaired);
     } catch (e) {
         logError('JSON parse failed in graph extraction', e, {
-            rawContent: content.slice(0, 2000),
+            rawContent: content,
         });
         throw new Error(`JSON parse failed: ${e.message}`);
     }

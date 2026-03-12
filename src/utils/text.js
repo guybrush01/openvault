@@ -136,7 +136,7 @@ export function safeParseJSON(input) {
 
         return parsed;
     } catch (e) {
-        logError('JSON parse failed', e, { rawInput: input.slice(0, 2000) });
+        logError('JSON parse failed', e, { rawInput: input });
         return null;
     }
 }

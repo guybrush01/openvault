@@ -36,8 +36,7 @@ export function resolveLanguageInstruction(text, outputLanguage) {
 
     // 'auto' mode — heuristic detection for non-Latin scripts
     if (!text) return '';
-    const sample = text.slice(0, 2000);
-    const allLetters = sample.match(/\p{L}/gu) || [];
+    const allLetters = text.match(/\p{L}/gu) || [];
     const latinLetters = allLetters.filter((c) => /[a-zA-Z]/.test(c)).length;
     const nonLatinLetters = allLetters.length - latinLetters;
     if (nonLatinLetters > latinLetters * 0.5) {

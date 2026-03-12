@@ -112,6 +112,13 @@ export function safeParseJSON(input) {
             cleanedInput = extracted;
         }
 
+        // Handle case where LLM returns JSON without opening brace
+        // e.g., "entities": [...], "relationships": [...]} instead of {"entities": [...], "relationships": [...]}
+        if (cleanedInput.startsWith('"') && !cleanedInput.startsWith('{"')) {
+            // Try adding the opening brace
+            cleanedInput = '{' + cleanedInput;
+        }
+
         // Handle stringified JSON (LLM returns JSON wrapped in quotes)
         // This happens when LLM outputs: "{\"entities\": [...], \"relationships\": [...]}"
         // We need to parse it twice - first to unescape, then to get the actual object

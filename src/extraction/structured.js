@@ -121,8 +121,9 @@ function parseStructuredResponse(content, schema) {
     // - Bracket balancing for nested structures
     const parsed = safeParseJSON(jsonContent);
     if (!parsed) {
+        // Log the raw content without stringification to avoid double-encoding
         logError('JSON parse failed in structured response', null, {
-            rawContent: content,
+            rawContent: jsonContent,
         });
         throw new Error('JSON parse failed: Could not extract valid JSON from response');
     }

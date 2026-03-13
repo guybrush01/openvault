@@ -168,15 +168,18 @@ export function parseEventExtractionResponse(content) {
     const cleanedContent = stripThinkingTags(content);
     const jsonContent = stripMarkdown(cleanedContent);
 
-    let parsed;
-    try {
-        const repaired = jsonrepair(jsonContent);
-        parsed = JSON.parse(repaired);
-    } catch (e) {
-        logError('JSON parse failed in event extraction', e, {
-            rawContent: content.slice(0, 2000),
+    // Use safeParseJSON which handles:
+    // - Thinking tags
+    // - Markdown code blocks
+    // - Stringified JSON (JSON wrapped in quotes)
+    // - Extra content after JSON (like extra closing braces)
+    // - Bracket balancing for nested structures
+    const parsed = safeParseJSON(jsonContent);
+    if (!parsed) {
+        logError('JSON parse failed in event extraction', null, {
+            rawContent: jsonContent,
         });
-        throw new Error(`JSON parse failed: ${e.message}`);
+        throw new Error('JSON parse failed: Could not extract valid JSON from response');
     }
 
     // Array recovery

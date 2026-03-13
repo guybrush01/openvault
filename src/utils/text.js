@@ -107,6 +107,7 @@ export function safeParseJSON(input) {
         }
 
         // Extract JSON using bracket balancing to handle nested structures
+        // This also handles extra content after the JSON (like </ChatGPT>)
         const extracted = extractBalancedJSON(cleanedInput);
         if (extracted) {
             cleanedInput = extracted;

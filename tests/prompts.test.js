@@ -100,6 +100,15 @@ describe('buildEventExtractionPrompt', () => {
         expect(outputSchema).not.toContain('"entities"');
         expect(outputSchema).not.toContain('"relationships"');
     });
+
+    it('event schema contains anti-tool-call rule', () => {
+        const result = buildEventExtractionPrompt({
+            messages: '[Alice]: Hello',
+            names: { char: 'Alice', user: 'Bob' },
+        });
+        const system = result[0].content;
+        expect(system).toContain('Do NOT use <tool_call>');
+    });
 });
 
 describe('buildEventExtractionPrompt output conventions', () => {
@@ -397,6 +406,14 @@ describe('preamble and prefill exports', () => {
 
     it('none preset has empty string value', () => {
         expect(PREFILL_PRESETS.none.value).toBe('');
+    });
+
+    it('CN preamble contains anti-tool-call directive', () => {
+        expect(SYSTEM_PREAMBLE_CN).toContain('禁止使用 tool calls');
+    });
+
+    it('EN preamble contains anti-tool-call directive', () => {
+        expect(SYSTEM_PREAMBLE_EN).toContain('DO NOT use tool calls or function calls');
     });
 });
 

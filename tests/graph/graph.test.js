@@ -11,6 +11,7 @@ import {
     mergeOrInsertEntity,
     normalizeKey,
     redirectEdges,
+    shouldMergeEntities,
     upsertEntity,
     upsertRelationship,
 } from '../../src/graph/graph.js';
@@ -791,5 +792,61 @@ describe('consolidateEdges', () => {
         // Should only process 10 (MAX_CONSOLIDATION_BATCH), 5 should remain
         expect(result).toBe(10);
         expect(graph._edgesNeedingConsolidation).toHaveLength(5);
+    });
+});
+
+describe('shouldMergeEntities', () => {
+    it('returns true when cosine is above threshold (token overlap skipped)', () => {
+        // cosine=0.96, threshold=0.94 → above threshold → merge directly
+        const tokensA = new Set(['king', 'aldric']);
+        expect(shouldMergeEntities(0.96, 0.94, tokensA, 'king aldric', 'completely different')).toBe(true);
+    });
+
+    it('returns true when cosine is exactly at threshold', () => {
+        const tokensA = new Set(['king']);
+        expect(shouldMergeEntities(0.94, 0.94, tokensA, 'king', 'queen')).toBe(true);
+    });
+
+    it('returns true in grey zone when token overlap passes', () => {
+        // cosine=0.90, threshold=0.94, greyZoneFloor=0.84 → grey zone
+        // tokensA='vova house', keyB='vova apartment' → 'vova' overlaps → pass
+        const tokensA = new Set(['vova', 'house']);
+        expect(shouldMergeEntities(0.90, 0.94, tokensA, 'vova house', 'vova apartment')).toBe(true);
+    });
+
+    it('returns false in grey zone when token overlap fails', () => {
+        // cosine=0.90, threshold=0.94, greyZoneFloor=0.84 → grey zone
+        // tokensA='alpha', keyB='omega' → no overlap → fail
+        const tokensA = new Set(['alpha']);
+        expect(shouldMergeEntities(0.90, 0.94, tokensA, 'alpha', 'omega')).toBe(false);
+    });
+
+    it('returns false when cosine is below grey zone', () => {
+        // cosine=0.80, threshold=0.94, greyZoneFloor=0.84 → below grey zone
+        const tokensA = new Set(['king', 'aldric']);
+        expect(shouldMergeEntities(0.80, 0.94, tokensA, 'king aldric', 'king aldric')).toBe(false);
+    });
+
+    it('does not construct tokensB when cosine is above threshold', () => {
+        // Even with completely non-overlapping keys, cosine >= threshold means merge
+        const tokensA = new Set(['абсолютно']);
+        expect(shouldMergeEntities(0.95, 0.94, tokensA, 'абсолютно', 'совершенно другое')).toBe(true);
+    });
+
+    it('does not construct tokensB when cosine is below grey zone', () => {
+        // cosine=0.70, threshold=0.94 → below 0.84 floor → skip
+        const tokensA = new Set(['king']);
+        expect(shouldMergeEntities(0.70, 0.94, tokensA, 'king', 'king')).toBe(false);
+    });
+
+    it('respects custom threshold values', () => {
+        // threshold=0.80, greyZoneFloor=0.70
+        const tokensA = new Set(['castle']);
+        // cosine=0.82 → above 0.80 threshold → true
+        expect(shouldMergeEntities(0.82, 0.80, tokensA, 'castle', 'fortress')).toBe(true);
+        // cosine=0.75 → grey zone (0.70-0.80) → depends on token overlap
+        expect(shouldMergeEntities(0.75, 0.80, tokensA, 'castle', 'fortress')).toBe(false); // no overlap
+        // cosine=0.65 → below 0.70 floor → false
+        expect(shouldMergeEntities(0.65, 0.80, tokensA, 'castle', 'castle')).toBe(false);
     });
 });

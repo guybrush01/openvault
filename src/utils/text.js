@@ -39,14 +39,15 @@ export function stripThinkingTags(text) {
     if (typeof text !== 'string') return text;
     return (
         text
-            // Paired XML tags: <think>...</think>, <thinking>...</thinking>, etc.
-            .replace(/<(think|thinking|thought|reasoning|reflection)>[\s\S]*?<\/\1>/gi, '')
-            // Paired bracket tags: [THINK]...[/THINK], etc.
-            .replace(/\[(THINK|THOUGHT|REASONING)\][\s\S]*?\[\/\1\]/gi, '')
+            // Paired XML tags: <think>...</think>, <tool_call>...</tool_call>, etc.
+            // (?:s+[^>]*)? matches optional attributes like <tool_call name="extract_events">
+            .replace(/<(think|thinking|thought|reasoning|reflection|tool_call|search)(?:\s+[^>]*)?>\s*[\s\S]*?<\/\1>/gi, '')
+            // Paired bracket tags: [THINK]...[/THINK], [TOOL_CALL]...[/TOOL_CALL], etc.
+            .replace(/\[(THINK|THOUGHT|REASONING|TOOL_CALL)\][\s\S]*?\[\/\1\]/gi, '')
             .replace(/\*thinks?:[\s\S]*?\*/gi, '')
             .replace(/\(thinking:[\s\S]*?\)/gi, '')
             // Orphaned closing tags (opening tag was in assistant prefill)
-            .replace(/^[\s\S]*?<\/(think|thinking|thought|reasoning)>\s*/i, '')
+            .replace(/^[\s\S]*?<\/(think|thinking|thought|reasoning|tool_call|search)>\s*/i, '')
             .trim()
     );
 }

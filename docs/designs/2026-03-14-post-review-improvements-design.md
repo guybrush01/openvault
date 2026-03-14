@@ -19,9 +19,9 @@
 ```
 
 ### Fix
-Add `tool_call` and `search` to both regex alternations:
+Add `tool_call` and `search` to both regex alternations. Include `(?:\s+[^>]*)?` to match tag attributes (Qwen models emit `<tool_call name="extract_events">`):
 ```javascript
-.replace(/<(think|thinking|thought|reasoning|reflection|tool_call|search)>[\s\S]*?<\/\1>/gi, '')
+.replace(/<(think|thinking|thought|reasoning|reflection|tool_call|search)(?:\s+[^>]*)?>[\\s\\S]*?<\/\1>/gi, '')
 // ...
 .replace(/^[\s\S]*?<\/(think|thinking|thought|reasoning|tool_call|search)>\s*/i, '')
 ```
@@ -35,7 +35,7 @@ Also add `TOOL_CALL` to the bracket-tag regex:
 - `src/utils/text.js` — `stripThinkingTags()`
 
 ### Tests
-- Existing `stripThinkingTags` unit tests — add cases for `<tool_call>` paired tags, orphaned closing `</tool_call>`, and `[TOOL_CALL]` bracket tags.
+- Existing `stripThinkingTags` unit tests — add cases for `<tool_call>` paired tags, `<tool_call name="...">` with attributes, orphaned closing `</tool_call>`, and `[TOOL_CALL]` bracket tags.
 
 ---
 
@@ -184,6 +184,8 @@ async function synthesizeInChunks(communityList, preamble, outputLanguage) {
     }
 
     // Map phase: chunk communities, get regional summaries
+    // Each chunk is independently try/caught so a single LLM failure
+    // doesn't lose the entire global state.
     const chunks = [];
     for (let i = 0; i < communityList.length; i += GLOBAL_SYNTHESIS_CHUNK_SIZE) {
         chunks.push(communityList.slice(i, i + GLOBAL_SYNTHESIS_CHUNK_SIZE));
@@ -191,11 +193,17 @@ async function synthesizeInChunks(communityList, preamble, outputLanguage) {
 
     const regionalSummaries = [];
     for (const chunk of chunks) {
-        const prompt = buildGlobalSynthesisPrompt(chunk, preamble, outputLanguage);
-        const response = await callLLM(prompt, LLM_CONFIGS.community, { structured: true });
-        const parsed = parseGlobalSynthesisResponse(response);
-        regionalSummaries.push(parsed.global_summary);
+        try {
+            const prompt = buildGlobalSynthesisPrompt(chunk, preamble, outputLanguage);
+            const response = await callLLM(prompt, LLM_CONFIGS.community, { structured: true });
+            const parsed = parseGlobalSynthesisResponse(response);
+            regionalSummaries.push(parsed.global_summary);
+        } catch (err) {
+            logDebug(`Regional synthesis chunk failed, skipping: ${err.message}`);
+        }
     }
+
+    if (regionalSummaries.length === 0) return null; // All chunks failed
 
     // Reduce phase: synthesize regional summaries into final global summary
     const pseudoCommunities = regionalSummaries.map((summary, i) => ({
@@ -249,6 +257,8 @@ Add `GLOBAL_SYNTHESIS_CHUNK_SIZE = 10` to `src/constants.js` or keep local to `c
 - Unit test `synthesizeInChunks` with mocked `callLLM`:
   - <= 10 communities: single call
   - 25 communities: 3 map calls + 1 reduce call
+  - 1 of 3 chunks fails: reduce still runs with 2 regional summaries
+  - All chunks fail: returns null
   - Verify `buildGlobalSynthesisPrompt` called with correct chunks
 
 ---
@@ -324,18 +334,22 @@ Extract the decision logic into a shared helper in `graph.js`:
  * Grey zone (threshold - 0.10 to threshold): requires token overlap confirmation.
  * Below grey zone: no merge.
  *
+ * tokensA is pre-computed by the caller (outer loop). tokensB is constructed
+ * lazily from keyB only when cosine lands in the grey zone, avoiding
+ * Set allocation on every iteration of the tight inner loop.
+ *
  * @param {number} cosine - Cosine similarity between embeddings
  * @param {number} threshold - entityMergeSimilarityThreshold from settings
- * @param {Set<string>} tokensA - Word tokens from entity A's key
- * @param {Set<string>} tokensB - Word tokens from entity B's key
+ * @param {Set<string>} tokensA - Word tokens from entity A's key (pre-computed)
  * @param {string} keyA - Entity A's normalized key (for LCS/substring checks)
  * @param {string} keyB - Entity B's normalized key
  * @returns {boolean}
  */
-export function shouldMergeEntities(cosine, threshold, tokensA, tokensB, keyA, keyB) {
+export function shouldMergeEntities(cosine, threshold, tokensA, keyA, keyB) {
     if (cosine >= threshold) return true;
     const greyZoneFloor = threshold - 0.10;
     if (cosine >= greyZoneFloor) {
+        const tokensB = new Set(keyB.split(/\s+/));
         return hasSufficientTokenOverlap(tokensA, tokensB, 0.5, keyA, keyB);
     }
     return false;
@@ -346,7 +360,7 @@ export function shouldMergeEntities(cosine, threshold, tokensA, tokensB, keyA, k
 ```javascript
 for (const [existingKey, existingEmbedding] of existingEmbeddings) {
     const sim = cosineSimilarity(newEmbedding, existingEmbedding);
-    if (!shouldMergeEntities(sim, threshold, newTokens, new Set(existingKey.split(/\s+/)), key, existingKey)) {
+    if (!shouldMergeEntities(sim, threshold, newTokens, key, existingKey)) {
         continue;
     }
     if (sim > bestScore) {
@@ -362,7 +376,7 @@ for (let j = i + 1; j < keys.length; j++) {
     if (mergeMap.has(keys[j])) continue;
     const nodeB = graphData.nodes[keys[j]];
     const sim = cosineSimilarity(getEmbedding(nodeA), getEmbedding(nodeB));
-    if (!shouldMergeEntities(sim, threshold, tokensI, new Set(keys[j].split(/\s+/)), keys[i], keys[j])) {
+    if (!shouldMergeEntities(sim, threshold, tokensI, keys[i], keys[j])) {
         continue;
     }
     // merge logic...
@@ -382,10 +396,10 @@ This change means more cosine computations per entity (previously short-circuite
 
 ### Tests
 - Unit test `shouldMergeEntities()`:
-  - cosine above threshold → true (no token overlap needed)
+  - cosine above threshold → true (no token overlap needed, tokensB never constructed)
   - cosine in grey zone + token overlap passes → true
   - cosine in grey zone + token overlap fails → false
-  - cosine below grey zone → false
+  - cosine below grey zone → false (tokensB never constructed)
 - Update existing `mergeOrInsertEntity` / `consolidateGraph` tests if they assert on call order.
 
 ---

@@ -4,6 +4,7 @@ import {
     buildCommunityGroups,
     detectCommunities,
     generateGlobalWorldState,
+    synthesizeInChunks,
     toGraphology,
     updateCommunitySummaries,
 } from '../../src/graph/communities.js';
@@ -509,5 +510,133 @@ describe('updateCommunitySummaries with global synthesis', () => {
 
         expect(result.communities).toEqual({});
         expect(result.global_world_state).toBeNull();
+    });
+});
+
+describe('synthesizeInChunks', () => {
+    beforeEach(() => {
+        setupTestContext();
+        vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        resetDeps();
+        vi.clearAllMocks();
+    });
+
+    it('uses single-pass for <= 10 communities', async () => {
+        mockCallLLM.mockResolvedValue('{"global_summary": "Single pass result"}');
+
+        const communities = Array.from({ length: 8 }, (_, i) => ({
+            title: `Community ${i}`,
+            summary: `Summary ${i}`,
+            findings: [`finding ${i}`],
+        }));
+
+        const result = await synthesizeInChunks(communities, 'auto', 'auto');
+        expect(result).toBe('Single pass result');
+        // Single-pass: exactly 1 LLM call
+        expect(mockCallLLM).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses map-reduce for > 10 communities', async () => {
+        let callCount = 0;
+        mockCallLLM.mockImplementation(() => {
+            callCount++;
+            if (callCount <= 3) {
+                // Map phase: 3 regional summaries
+                return Promise.resolve(`{"global_summary": "Regional summary ${callCount}"}`);
+            }
+            // Reduce phase: final synthesis
+            return Promise.resolve('{"global_summary": "Final synthesized narrative"}');
+        });
+
+        const communities = Array.from({ length: 25 }, (_, i) => ({
+            title: `Community ${i}`,
+            summary: `Summary ${i}`,
+            findings: [`finding ${i}`],
+        }));
+
+        const result = await synthesizeInChunks(communities, 'auto', 'auto');
+        expect(result).toBe('Final synthesized narrative');
+        // 25 communities / 10 per chunk = 3 map calls + 1 reduce call = 4
+        expect(mockCallLLM).toHaveBeenCalledTimes(4);
+    });
+
+    it('continues when one chunk fails (partial results)', async () => {
+        let callCount = 0;
+        mockCallLLM.mockImplementation(() => {
+            callCount++;
+            if (callCount === 2) {
+                // Second chunk fails
+                return Promise.reject(new Error('LLM timeout'));
+            }
+            if (callCount <= 3) {
+                return Promise.resolve(`{"global_summary": "Regional summary ${callCount}"}`);
+            }
+            return Promise.resolve('{"global_summary": "Final from 2 regions"}');
+        });
+
+        const communities = Array.from({ length: 25 }, (_, i) => ({
+            title: `Community ${i}`,
+            summary: `Summary ${i}`,
+            findings: [`finding ${i}`],
+        }));
+
+        const result = await synthesizeInChunks(communities, 'auto', 'auto');
+        expect(result).toBe('Final from 2 regions');
+        // 3 map calls (1 failed) + 1 reduce call = 4 total
+        expect(mockCallLLM).toHaveBeenCalledTimes(4);
+    });
+
+    it('returns null when all chunks fail', async () => {
+        mockCallLLM.mockRejectedValue(new Error('LLM down'));
+
+        const communities = Array.from({ length: 25 }, (_, i) => ({
+            title: `Community ${i}`,
+            summary: `Summary ${i}`,
+            findings: [`finding ${i}`],
+        }));
+
+        const result = await synthesizeInChunks(communities, 'auto', 'auto');
+        expect(result).toBeNull();
+        // 3 map calls, all failed, no reduce call
+        expect(mockCallLLM).toHaveBeenCalledTimes(3);
+    });
+
+    it('handles exactly 10 communities as single-pass', async () => {
+        mockCallLLM.mockResolvedValue('{"global_summary": "Boundary test"}');
+
+        const communities = Array.from({ length: 10 }, (_, i) => ({
+            title: `Community ${i}`,
+            summary: `Summary ${i}`,
+            findings: [`finding ${i}`],
+        }));
+
+        const result = await synthesizeInChunks(communities, 'auto', 'auto');
+        expect(result).toBe('Boundary test');
+        expect(mockCallLLM).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles exactly 11 communities as map-reduce', async () => {
+        let callCount = 0;
+        mockCallLLM.mockImplementation(() => {
+            callCount++;
+            if (callCount <= 2) {
+                return Promise.resolve(`{"global_summary": "Regional ${callCount}"}`);
+            }
+            return Promise.resolve('{"global_summary": "Final 11"}');
+        });
+
+        const communities = Array.from({ length: 11 }, (_, i) => ({
+            title: `Community ${i}`,
+            summary: `Summary ${i}`,
+            findings: [`finding ${i}`],
+        }));
+
+        const result = await synthesizeInChunks(communities, 'auto', 'auto');
+        expect(result).toBe('Final 11');
+        // 11 communities / 10 per chunk = 2 map calls + 1 reduce call = 3
+        expect(mockCallLLM).toHaveBeenCalledTimes(3);
     });
 });

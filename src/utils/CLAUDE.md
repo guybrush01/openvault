@@ -37,7 +37,7 @@
 - **Turn-Boundary Snapping** (`snapToTurnBoundary`): Trims message index arrays backward until it finds a valid `Bot -> User` transition or End-of-Chat. **CRITICAL**: Prevents auto-hide or batching from splitting a User message from its Bot response.
 
 ### `text.js`
-- `stripThinkingTags()`: Strips `<think>`, `<reasoning>`, etc. (Case insensitive). Also handles orphaned closing tags (e.g., `</think>` without opening) from assistant prefill continuations — strips everything before and including the orphaned tag.
+- `stripThinkingTags()`: Strips `<think>`, `<reasoning>`, `<tool_call>`, `<search>`, etc. (Case insensitive). Handles tag attributes (`<tool_call name="extract">`). Also strips bracket variants (`[TOOL_CALL]...[/TOOL_CALL]`). Handles orphaned closing tags (e.g., `</think>`, `</tool_call>` without opening) from assistant prefill continuations — strips everything before and including the orphaned tag.
 - `safeParseJSON()`: Multi-layer recovery. Extracts markdown codeblocks -> uses bracket-balancing to isolate JSON -> applies `jsonrepair`. Wraps bare arrays in an `{ events: [] }` object if the LLM forgot the root key.
 - `getMemoryPosition(memory)`: Returns average position from `message_ids` for bucket assignment.
 - `assignMemoriesToBuckets(memories, chatLength)`: Assigns memories to old/mid/recent buckets. Old: < (len-500), Mid: (len-500) to (len-100), Recent: >= (len-100). Used by soft balance budgeting.

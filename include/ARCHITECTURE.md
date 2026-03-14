@@ -80,8 +80,11 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
 - Replaces hard 50% quota in formatting layer.
 
 **Entity Semantic Merging**: Prevents duplicates ("The King" vs "King Aldric").
-- *Guard 1*: Embeddings (type + name + description) cosine sim >= `0.94`.
-- *Guard 2*: Token Overlap >= 50% filtering base EN+RU stopwords. Old names saved to `aliases`. Does NOT bridge script boundaries (Latin↔Cyrillic) — prompt rules enforce name preservation instead.
+- *Guard 1*: Embeddings (type + name + description) cosine sim checked first via `shouldMergeEntities()`:
+  - **Above threshold** (>= `0.94`): merge directly (cosine alone sufficient).
+  - **Grey zone** (threshold - 0.10 to threshold): proceeds to token overlap guard.
+  - **Below grey zone**: skip.
+- *Guard 2*: Token Overlap >= 50% filtering base EN+RU stopwords. `tokensB` lazily constructed only in grey zone. Old names saved to `aliases`. Does NOT bridge script boundaries (Latin↔Cyrillic) — prompt rules enforce name preservation instead.
 - *Guard 3 (LCS)*: Longest Common Substring ratio >= 60% for keys longer than 2 chars (lowered from 3 to catch short names like "Кай"/"Каю").
 - *Guard 4 (Stems)*: `stemWord()`-based token overlap catches Russian morphological variants (e.g., "ошейник"/"ошейником").
 
@@ -92,7 +95,7 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
 - Explicit `known_events` tracking for additional access.
 - **Exact Phrase Matching**: `hasExactPhrase(phrase, memory)` checks if memory contains multi-word phrase (case-insensitive, whitespace-normalized, punctuation-stripped). Used by Layer 0 BM25 scoring.
 - *Pre-flight*: Aborts if recent events >85% similar to existing insights.
-- *Candidate Set*: Recent events (top 100) + old reflections (all levels) for synthesis.
+- *Candidate Set*: Recent events (top `REFLECTION_CANDIDATE_LIMIT` = 50) + old reflections (all levels) for synthesis.
 - *Tier 1 (Reject >=90%)*: Duplicate, discard.
 - *Tier 2 (Replace 80-89%)*: Same theme. Old set to `archived: true`, new added.
 - *Tier 3 (Add <80%)*: Genuinely new.
@@ -100,6 +103,7 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
 **GraphRAG Communities**:
 - *Pruning*: Edges involving User/Char temporarily removed before Louvain to prevent "hairball" clusters. Re-assigned after.
 - *Injection*: Intent-based routing. Macro queries (summarize, recap, вкратце) use pre-computed global state (map-reduce over all communities). Local queries use vector search on individual community embeddings.
+- *Map-Reduce Synthesis*: `synthesizeInChunks()` handles global state generation. <= `GLOBAL_SYNTHESIS_CHUNK_SIZE` (10) communities: single-pass LLM call. Larger sets: chunked into regional summaries (with per-chunk error recovery), then reduced into final narrative. Prevents 502 timeouts from oversized prompts.
 
 **Embeddings**: Stored as Base64 Float32Array, decoded to `Float32Array` at runtime (not `number[]`). Legacy JSON arrays wrapped in `Float32Array` on read (lazy migration). True LRU cache (max 500). All cosine similarity uses 4x loop-unrolled dot product on typed arrays. WebGPU attempts first -> falls back to WASM. `device.lost` not monitored (implicitly retries pipeline on next call). Failures degrade gracefully to BM25.
 

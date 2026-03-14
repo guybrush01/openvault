@@ -7,7 +7,7 @@ Synthesizes raw event memories into high-level psychological insights, adapting 
 1. **Accumulate**: Each extracted event adds its `importance` to the involved characters' `importance_sum`.
 2. **Trigger**: When `importance_sum >= 40`, reflection begins.
 3. **Pre-flight Gate**: Aborts if top recent events are >85% similar to existing reflections (prevents wasting tokens on repetitive insights).
-4. **Candidate Set**: Recent events (top 100) + **old reflections** (all levels). Enables synthesizing higher-level insights (level 2+).
+4. **Candidate Set**: Recent events (top `REFLECTION_CANDIDATE_LIMIT` = 50) + **old reflections** (all levels). Enables synthesizing higher-level insights (level 2+).
 5. **Generate**: Single unified LLM call generates 1-3 question+insight pairs with evidence citations (`UNIFIED_REFLECTION_EXAMPLES` - 6 bilingual EN/RU).
 6. **3-Tier Dedup & Embed**: (See below).
 7. **Reset**: Clears accumulator to 0.

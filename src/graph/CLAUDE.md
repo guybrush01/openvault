@@ -10,15 +10,18 @@ Flat-JSON entity and relationship storage with rigorous semantic deduplication, 
 
 ## EDGE CONSOLIDATION
 - **Token Tracking**: Each edge stores `_descriptionTokens` count (updated on every `upsertRelationship` call).
-- **Trigger**: When `_descriptionTokens > CONSOLIDATION.TOKEN_THRESHOLD` (500), edge marked for consolidation via `_edgesNeedingConsolidation` queue.
+- **Trigger**: When `_descriptionTokens > CONSOLIDATION.TOKEN_THRESHOLD` (250), edge marked for consolidation via `_edgesNeedingConsolidation` queue.
 - **Batch Processing**: During community detection, `consolidateEdges()` processes up to `MAX_CONSOLIDATION_BATCH` (10) edges per run.
 - **LLM Consolidation**: Uses `LLM_CONFIGS.edge_consolidation` and `buildEdgeConsolidationPrompt()` (standard `buildMessages()` pattern with preamble + prefill). Bloated pipe-separated descriptions synthesized into single coherent summary (<100 tokens), re-embedded for RAG accuracy.
 
 ## SEMANTIC MERGE LOGIC
-Prevents duplicate nodes (e.g., "The King" vs "King Aldric").
+Prevents duplicate nodes (e.g., "The King" vs "King Aldric"). Uses `shouldMergeEntities()` DRY helper (cosine-first check order):
 1. **Fast Path**: Exact key match -> basic upsert.
-2. **Slow Path**: Embeds `Type: Name - Description`. If Cosine Sim >= `0.94`, proceeds to Guard.
-3. **Token Overlap Guard**: Extracts tokens, strips base EN+RU stopwords (via `stopword` lib). Requires >= 50% overlap OR direct substring match.
+2. **Slow Path**: Embeds `Type: Name - Description`. Cosine computed first, then routed:
+   - **Above threshold** (>= 0.94): Merge directly (cosine alone sufficient).
+   - **Grey zone** (threshold - 0.10 to threshold): Token overlap confirmation required. `tokensB` lazily constructed only here.
+   - **Below grey zone**: Skip (no merge).
+3. **Token Overlap Guard** (grey zone only): Strips base EN+RU stopwords (via `stopword` lib). Requires >= 50% overlap OR direct substring match.
 4. **Aliases**: If merged, the absorbed name is pushed to the surviving node's `aliases` array for future retrieval matching.
 5. **Redirects**: Transient `_mergeRedirects` map ensures edges pointing to the old node route to the merged one.
 
@@ -28,10 +31,10 @@ Prevents duplicate nodes (e.g., "The King" vs "King Aldric").
 - **Edge Consolidation**: Runs before summarization (`consolidateEdges()`). Processes bloated edges flagged in `_edgesNeedingConsolidation` queue.
 - **Hairball Pruning**: Edges involving main characters (User/Char + their aliases) are temporarily removed. Prevents the "protagonist hairball" where all entities group into one giant cluster. Nodes re-assigned to strongest neighbor's community after.
 - **Summarization**: LLM generates Title, Summary, and Findings. Injected into ST context.
-- **Global World State**: `generateGlobalWorldState()` synthesizes all communities into single narrative (~300 tokens). Stored in `chatMetadata.openvault.global_world_state` as `{ summary, last_updated, community_count }`. Used for macro-intent queries.
+- **Global World State**: `generateGlobalWorldState()` delegates to `synthesizeInChunks()` for map-reduce synthesis. <= `GLOBAL_SYNTHESIS_CHUNK_SIZE` (10) communities: single-pass. Larger sets: chunked into regional summaries, then reduced into final narrative (~300 tokens). Per-chunk try/catch for resiliency. Stored in `chatMetadata.openvault.global_world_state` as `{ summary, last_updated, community_count }`. Used for macro-intent queries.
 
 ## GOTCHAS & RULES
 - **Embedding Storage**: Embeddings are stored as Base64-encoded `Float32Array` strings (`embedding_b64`) via the codec in `src/utils/embedding-codec.js`. Legacy `number[]` format (`embedding`) is read transparently but never written.
 - **Orphaned Edges**: `upsertRelationship` quietly skips if source/target nodes don't exist.
-- **CONSOLIDATION Constants**: `TOKEN_THRESHOLD: 500`, `MAX_CONSOLIDATION_BATCH: 10` defined in `src/constants.js`.
+- **CONSOLIDATION Constants**: `TOKEN_THRESHOLD: 250`, `MAX_CONSOLIDATION_BATCH: 10` defined in `src/constants.js`.
 - **ESM Libraries**: Relies on `https://esm.sh/graphology`. Mapped in `vitest.config.js`.

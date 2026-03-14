@@ -18,7 +18,7 @@ Agentic memory extension for SillyTavern providing POV-aware memory, witness tra
 
 ## GOTCHAS & DEBUG SAUCE
 - **Bucket Utilities**: `assignMemoriesToBuckets()` and `getMemoryPosition()` moved from `formatting.js` to `utils/text.js` to avoid circular deps with `scoring.js`.
-- **`<think>` Tags**: LLMs often return reasoning before JSON. ALWAYS pass output through `stripThinkingTags()` (`src/utils/text.js`) before parsing. Handles both paired tags and orphaned closing tags (from prefill continuations).
+- **`<think>`/`<tool_call>` Tags**: LLMs often return reasoning or tool wrappers before JSON. ALWAYS pass output through `stripThinkingTags()` (`src/utils/text.js`) before parsing. Handles paired tags (with attributes), bracket variants, and orphaned closing tags (from prefill continuations).
 - **Payload Calculator**: `PAYLOAD_CALC` in `src/constants.js` is the single source of truth for LLM context overhead (12k tokens). Don't hardcode it elsewhere.
 - **Thread Yielding**: Use `yieldToMain()` (`src/utils/st-helpers.js`). It polyfills `scheduler.yield()` with `setTimeout(0)` fallback.
 - **State Locks**: `operationState.extractionInProgress` (`src/state.js`) is for MANUAL backfill only. Background worker uses `isRunning` (`worker.js`). They mutually exclude.

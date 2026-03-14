@@ -53,43 +53,74 @@ export function stripThinkingTags(text) {
 }
 
 /**
- * Extract the first balanced JSON object or array from a string.
- * Uses bracket counting to correctly handle nested structures.
+ * Extract the LAST balanced JSON object or array from a string.
+ * Scans all balanced blocks and returns the final one found.
+ *
+ * "Last block" is correct because LLMs output reasoning/tool_call noise
+ * BEFORE the payload. The real JSON is always the last thing in the response.
+ * When stripThinkingTags succeeds (common case), there is only one block —
+ * first = last, no behavior change.
+ *
  * @param {string} str - Input string potentially containing JSON
  * @returns {string|null} Extracted JSON substring or null
  */
 function extractBalancedJSON(str) {
-    const startIdx = str.search(/[[{]/);
-    if (startIdx === -1) return null;
+    let lastMatch = null;
+    let searchFrom = 0;
 
-    const open = str[startIdx];
-    const close = open === '{' ? '}' : ']';
-    let depth = 0;
-    let inString = false;
-    let isEscaped = false;
+    while (searchFrom < str.length) {
+        // Find next opening bracket
+        let startIdx = -1;
+        for (let i = searchFrom; i < str.length; i++) {
+            if (str[i] === '{' || str[i] === '[') {
+                startIdx = i;
+                break;
+            }
+        }
+        if (startIdx === -1) break;
 
-    for (let i = startIdx; i < str.length; i++) {
-        const ch = str[i];
-        if (isEscaped) {
-            isEscaped = false;
-            continue;
+        const open = str[startIdx];
+        const close = open === '{' ? '}' : ']';
+        let depth = 0;
+        let inString = false;
+        let isEscaped = false;
+        let endIdx = -1;
+
+        for (let i = startIdx; i < str.length; i++) {
+            const ch = str[i];
+            if (isEscaped) {
+                isEscaped = false;
+                continue;
+            }
+            if (ch === '\\' && inString) {
+                isEscaped = true;
+                continue;
+            }
+            if (ch === '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) continue;
+            if (ch === open) depth++;
+            else if (ch === close) {
+                depth--;
+                if (depth === 0) {
+                    endIdx = i;
+                    break;
+                }
+            }
         }
-        if (ch === '\\' && inString) {
-            isEscaped = true;
-            continue;
-        }
-        if (ch === '"') {
-            inString = !inString;
-            continue;
-        }
-        if (inString) continue;
-        if (ch === open) depth++;
-        else if (ch === close) {
-            depth--;
-            if (depth === 0) return str.slice(startIdx, i + 1);
+
+        if (endIdx !== -1) {
+            lastMatch = str.slice(startIdx, endIdx + 1);
+            searchFrom = endIdx + 1;
+        } else {
+            // Unbalanced — skip past this opening bracket
+            searchFrom = startIdx + 1;
         }
     }
-    return null;
+
+    return lastMatch;
 }
 
 /**

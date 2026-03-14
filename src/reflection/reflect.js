@@ -13,7 +13,7 @@
  *   align with existing insights (>85%).
  */
 
-import { extensionName } from '../constants.js';
+import { extensionName, REFLECTION_CANDIDATE_LIMIT } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { enrichEventsWithEmbeddings } from '../embeddings.js';
 import { parseUnifiedReflectionResponse } from '../extraction/structured.js';
@@ -214,7 +214,7 @@ export async function generateReflections(characterName, allMemories, characterS
     // Filter memories to what this character knows
     const data = { character_states: characterStates };
     const accessibleMemories = filterMemoriesByPOV(allMemories, [characterName], data);
-    const recentMemories = sortMemoriesBySequence(accessibleMemories, false).slice(0, 100);
+    const recentMemories = sortMemoriesBySequence(accessibleMemories, false).slice(0, REFLECTION_CANDIDATE_LIMIT);
 
     // Include old reflections for potential synthesis
     const oldReflections = accessibleMemories.filter(m =>

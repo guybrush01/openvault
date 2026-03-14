@@ -232,3 +232,7 @@ export const CONSOLIDATION = {
     MAX_CONSOLIDATION_BATCH: 10,    // Max edges to consolidate per community detection run
     CONSOLIDATED_DESCRIPTION_CAP: 2, // After consolidation, cap future additions to 2 segments
 };
+
+// Maximum number of recent memories to consider as reflection candidates.
+// Reducing from 100 to 50 cuts reflection prompt size without losing signal quality.
+export const REFLECTION_CANDIDATE_LIMIT = 50;

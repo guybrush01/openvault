@@ -144,6 +144,9 @@ export function safeParseJSON(input) {
             cleanedInput = extracted;
         }
 
+        // Fix string concatenation hallucinations: "text " + "more text" -> "text more text"
+        cleanedInput = cleanedInput.replace(/"\s*\+\s*"/g, '');
+
         const repaired = jsonrepair(cleanedInput);
         const parsed = JSON.parse(repaired);
 

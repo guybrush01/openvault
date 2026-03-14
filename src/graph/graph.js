@@ -299,6 +299,35 @@ export function hasSufficientTokenOverlap(tokensA, tokensB, minOverlapRatio = 0.
     return overlapRatio >= minOverlapRatio;
 }
 
+/**
+ * Determine if two entities should merge based on cosine similarity
+ * and optional token overlap confirmation.
+ *
+ * Above threshold: cosine alone is sufficient (catches true synonyms).
+ * Grey zone (threshold - 0.10 to threshold): requires token overlap confirmation.
+ * Below grey zone: no merge.
+ *
+ * tokensA is pre-computed by the caller (outer loop). tokensB is constructed
+ * lazily from keyB only when cosine lands in the grey zone, avoiding
+ * Set allocation on every iteration of the tight inner loop.
+ *
+ * @param {number} cosine - Cosine similarity between embeddings
+ * @param {number} threshold - entityMergeSimilarityThreshold from settings
+ * @param {Set<string>} tokensA - Word tokens from entity A's key (pre-computed)
+ * @param {string} keyA - Entity A's normalized key (for LCS/substring checks)
+ * @param {string} keyB - Entity B's normalized key
+ * @returns {boolean}
+ */
+export function shouldMergeEntities(cosine, threshold, tokensA, keyA, keyB) {
+    if (cosine >= threshold) return true;
+    const greyZoneFloor = threshold - 0.10;
+    if (cosine >= greyZoneFloor) {
+        const tokensB = new Set(keyB.split(/\s+/));
+        return hasSufficientTokenOverlap(tokensA, tokensB, 0.5, keyA, keyB);
+    }
+    return false;
+}
+
 export async function mergeOrInsertEntity(graphData, name, type, description, cap, settings) {
     const key = normalizeKey(name);
 
@@ -337,16 +366,11 @@ export async function mergeOrInsertEntity(graphData, name, type, description, ca
     }
 
     for (const [existingKey, existingEmbedding] of existingEmbeddings) {
-        const node = graphData.nodes[existingKey];
-        const existingTokens = new Set(existingKey.split(/\s+/));
-
-        // Use improved token overlap guard
-        if (!hasSufficientTokenOverlap(newTokens, existingTokens, 0.5, key, existingKey)) {
+        const sim = cosineSimilarity(newEmbedding, existingEmbedding);
+        if (!shouldMergeEntities(sim, threshold, newTokens, key, existingKey)) {
             continue;
         }
-
-        const sim = cosineSimilarity(newEmbedding, existingEmbedding);
-        if (sim >= threshold && sim > bestScore) {
+        if (sim > bestScore) {
             bestMatch = existingKey;
             bestScore = sim;
         }
@@ -481,24 +505,19 @@ export async function consolidateGraph(graphData, settings) {
             for (let j = i + 1; j < keys.length; j++) {
                 if (mergeMap.has(keys[j])) continue;
 
-                const tokensJ = new Set(keys[j].split(/\s+/));
-
-                // Use improved token overlap guard
-                if (!hasSufficientTokenOverlap(tokensI, tokensJ, 0.5, keys[i], keys[j])) {
-                    continue;
-                }
-
                 const nodeA = graphData.nodes[keys[i]];
                 const nodeB = graphData.nodes[keys[j]];
                 const sim = cosineSimilarity(getEmbedding(nodeA), getEmbedding(nodeB));
 
-                if (sim >= threshold) {
-                    // Merge B into A (A has lower index = likely older/more established)
-                    const keepKey = nodeA.mentions >= nodeB.mentions ? keys[i] : keys[j];
-                    const removeKey = keepKey === keys[i] ? keys[j] : keys[i];
-
-                    mergeMap.set(removeKey, keepKey);
+                if (!shouldMergeEntities(sim, threshold, tokensI, keys[i], keys[j])) {
+                    continue;
                 }
+
+                // Merge B into A (A has lower index = likely older/more established)
+                const keepKey = nodeA.mentions >= nodeB.mentions ? keys[i] : keys[j];
+                const removeKey = keepKey === keys[i] ? keys[j] : keys[i];
+
+                mergeMap.set(removeKey, keepKey);
             }
         }
     }

@@ -23,23 +23,24 @@ We fix the root causes so the backup provider succeeds and the primary provider 
 
 **File**: `src/utils/text.js`
 
-### 1a. Largest Balanced Block Extraction
+### 1a. Last Balanced Block Extraction
 
-Replace `extractBalancedJSON` to scan *all* balanced JSON blocks in the string and return the **largest** by character count.
+Replace `extractBalancedJSON` to scan *all* balanced JSON blocks in the string and return the **last** one found.
 
-**Why largest?** The real extraction payload (`{"events": [...]}`) is always orders of magnitude larger than any noise JSON that leaks through from `<tool_call>` tags or `<think>` blocks. Current "first block" approach is fragile when tag stripping fails.
+**Why last, not largest?** The original rpz2.txt analysis proposed "largest block wins", but this has a critical flaw: when the LLM correctly determines nothing happened and outputs `{"events": []}` (14 chars), a leaked `<tool_call>{"name": "extract_events", "args": {}}` noise block (41 chars) would be selected instead — breaking valid empty extractions.
+
+"Last block" is correct because LLMs always output reasoning/tool_call *before* the payload. The real JSON is the last thing in the response. This handles both "noise is larger than payload" and "noise is smaller than payload" cases without requiring schema-aware key checks.
 
 **Algorithm**:
 ```
 for each `{` or `[` in the string:
     count brackets (respecting string escapes)
-    if balanced: record as candidate
-    if candidate.length > best.length: best = candidate
+    if balanced: record as lastMatch
     advance startIdx past this opening bracket
-return best
+return lastMatch
 ```
 
-Edge case: if the real JSON is very small (e.g., `{"events": []}`) and noise JSON is larger, largest-wins could grab the wrong block. In practice, this doesn't happen — empty responses are caught upstream as "Empty response from LLM" before reaching the parser.
+When `stripThinkingTags` succeeds (the common case), there's only one JSON block — first = last, no behavior change.
 
 ### 1b. String Concatenation Hallucination Fix
 
@@ -47,10 +48,12 @@ Add `cleanedInput.replace(/"\s*\+\s*"/g, "")` after balanced block extraction, b
 
 This transforms `"text " + "more text"` into `"text more text"` — the `+` and surrounding quotes are stripped, merging the two string fragments.
 
+**Minor risk**: If a character's dialogue literally contains `" + "` inside a JSON string value, the regex would merge it. In practice, this pattern only appears from LLM hallucinated concatenation syntax, never from RP content. Acceptable tradeoff.
+
 **Placement in `safeParseJSON` pipeline**:
 1. `stripThinkingTags(input)`
 2. Strip markdown code fences
-3. `extractBalancedJSON(cleaned)` — **new: largest block**
+3. `extractBalancedJSON(cleaned)` — **new: last block**
 4. `cleaned.replace(/"\s*\+\s*"/g, "")` — **new: concatenation fix**
 5. `jsonrepair(cleaned)`
 6. `JSON.parse(repaired)`
@@ -110,6 +113,8 @@ DO NOT use tool calls or function calls. Return ONLY plain text and JSON.
 
 **Why both locations?** The preamble is a system-level instruction that covers all 5 prompt types. The EVENT_SCHEMA rule provides reinforcement specifically for the most commonly affected prompt (event extraction), since models weight rules closer to the output schema more heavily.
 
+**Pink elephant risk**: Negative constraints ("do NOT use tool_call") can sometimes *increase* the forbidden behavior in RLHF-tuned models. If `<tool_call>` frequency increases after deployment, the fallback plan is to remove the negative directives and rely solely on `stripThinkingTags` (which already handles `<tool_call>` paired and orphaned tags) plus the last-block parser as the safety net.
+
 ## Component 4: Prefill Dropdown CSS Fix
 
 **File**: `css/prefill.css`
@@ -124,9 +129,9 @@ DO NOT use tool calls or function calls. Return ONLY plain text and JSON.
 
 New test cases for `safeParseJSON`:
 
-1. **Largest block extraction**: Input with a small JSON inside `<tool_call>` noise followed by a large real payload → parser returns the large payload.
-2. **Concatenation fix**: Input with `"text " + "more text"` → parser returns merged string.
-3. **Combined**: Input with both noise blocks and concatenation → correct extraction.
+1. **Last block extraction**: Input with a small JSON inside `<tool_call>` noise followed by a large real payload -> parser returns the last (real) payload.
+2. **Last block with empty events**: Input with `<tool_call>{"name":"extract"}` noise followed by `{"events": []}` -> parser returns the small real payload, not the larger noise.
+3. **Concatenation fix**: Input with `"text " + "more text"` -> parser returns merged string.
 4. **Regression**: All existing `safeParseJSON` tests must still pass (normal JSON, markdown-wrapped, array recovery, etc.).
 
 ### Tier 2: Manual Integration Testing
@@ -140,7 +145,7 @@ New test cases for `safeParseJSON`:
 
 | File | Change |
 |---|---|
-| `src/utils/text.js` | Replace `extractBalancedJSON` with largest-block algorithm; add `" + "` fix in `safeParseJSON` |
+| `src/utils/text.js` | Replace `extractBalancedJSON` with last-block algorithm; add `" + "` fix in `safeParseJSON` |
 | `src/llm.js` | Bump 4 timeout values in `LLM_CONFIGS` |
 | `src/prompts/preambles.js` | Add `cn_compliance` prefill preset; add anti-tool-call lines to both preambles |
 | `src/prompts/index.js` | Add anti-tool-call rule 5 to `EVENT_SCHEMA` |

@@ -119,9 +119,9 @@ describe('buildEventExtractionPrompt output conventions', () => {
     it('instructs scene continuation suppression in dedup rules', () => {
         const result = buildEventExtractionPrompt(baseArgs);
         const sys = result[0].content;
-        expect(sys).toContain('scene concludes');
-        expect(sys).toContain('power dynamic fundamentally reverses');
-        expect(sys).toContain('safeword is explicitly used');
+        expect(sys).toContain('scene concluding');
+        expect(sys).toContain('power dynamic reversal');
+        expect(sys).toContain('safeword explicitly used');
     });
 
     it('does not mandate minimum importance of 4 for routine intimate acts', () => {

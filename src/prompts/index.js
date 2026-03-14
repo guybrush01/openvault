@@ -225,17 +225,17 @@ This is the MOST IMPORTANT rule. Duplicating memories already in established_mem
 
 BEFORE creating ANY event, you MUST check the <established_memories> section in the user message.
 
-If an intimate, combat, or social scene is ALREADY recorded there, DO NOT extract every new physical action (e.g., position changes, new implements, individual gestures, routine dialogue). ONLY create a new event if ONE of these conditions is true:
-1. The scene concludes (e.g., climax, falling asleep, location change, combat ends).
-2. The power dynamic fundamentally reverses (e.g., submissive takes control, ambush turns into retreat).
-3. A safeword is explicitly used to halt the scene.
-4. A fundamentally NEW type of action begins (e.g., conversation → combat, foreplay → penetration).
-5. A new element changes the scene's nature (new character arrives, weapon drawn, secret revealed).
+If a scene is already recorded there, DO NOT repeat the same actions. Instead, look for the NEWEST change within that scene:
+1. A shift in emotional state (e.g., confidence → vulnerability, pleasure → discomfort).
+2. A new phase or escalation (e.g., foreplay → penetration, sparring → real fight).
+3. The scene concluding (e.g., climax, falling asleep, location change, combat ends).
+4. A power dynamic reversal (e.g., submissive takes control, ambush turns into retreat).
+5. A new element changing the scene's nature (new character arrives, weapon drawn, secret revealed).
+6. A safeword explicitly used to halt the scene.
 
-If NONE of those conditions apply, the current messages are continuing an existing scene.
-In that case, you MUST set "events" to an empty array [].
+If the messages contain ONLY a continuation of the exact same action with no shift, escalation, or conclusion — then output "events": [].
 
-When in doubt, output fewer events rather than duplicate existing memories.
+When in doubt, extract a brief progression event rather than output nothing. The system will automatically filter true duplicates.
 </dedup>
 
 <importance_scale>
@@ -254,7 +254,7 @@ Follow these steps IN ORDER. Write your work inside <think> tags BEFORE outputti
 
 Step 1: List the specific actions, emotions, and facts in the new messages.
 Step 2: Check <established_memories>. Is any of this already recorded?
-Step 3: Apply dedup rules. If this is a continuation with no escalation, plan to output "events": [].
+Step 3: Apply dedup rules. If this is a continuation, look for the newest progression. If there is none at all, plan to output "events": [].
 Step 4: For genuinely NEW events, assign importance (1-5) and write a specific factual summary.
 Step 5: Output the final JSON object with the "events" key.
 </thinking_process>`;

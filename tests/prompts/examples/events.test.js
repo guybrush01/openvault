@@ -55,7 +55,7 @@ describe('EVENT_EXAMPLES', () => {
         const dedupExamples = EVENT_EXAMPLES.filter(
             (ex) => ex.output.includes('"events": []') || ex.output.includes('"events":[]')
         );
-        expect(dedupExamples.length).toBeGreaterThanOrEqual(2);
+        expect(dedupExamples.length).toBeGreaterThanOrEqual(1);
     });
 
     it('JSON in output fields is valid', () => {

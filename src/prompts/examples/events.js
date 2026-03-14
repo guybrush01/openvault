@@ -182,18 +182,18 @@ Step 4: Importance 4 (new domination dynamic, safeword established). Writing sum
 }`,
     },
     {
-        label: 'Dedup - continuation (EN/Edge)',
+        label: 'Dedup - progression extraction (EN/Edge)',
         input: `The crop came down again — three, four, five. His thighs were crisscrossed with welts now. "Color?" she asked. "Green," he whispered, voice shaking.
 She traced a welt with her fingertip, watching him shiver.
 
 <established_memories>
 [★★★★] She restrained him with leather cuffs and struck him with a riding crop after a green-light color check
 </established_memories>`,
-        thinking: `Step 1: Continuation of crop impact play. More strikes, another color check.
-Step 2: Existing memory already covers: restraints, crop strikes, color check.
-Step 3: Same action type continuing (impact play). No reversal, no safeword, no new element. This is a continuation.
-Step 4: Output empty events array.`,
-        output: `{ "events": [] }`,
+        thinking: `Step 1: More crop strikes, welts accumulating, another color check, aftercare touch (tracing welt).
+Step 2: Existing memory covers: restraints, crop strikes, initial color check.
+Step 3: The scene is intensifying — welts accumulating, his voice is shaking (emotional shift from composure to strain). But the core action (crop impact) is the same type. Borderline.
+Step 4: The emotional shift (shaking voice) and physical escalation (welts accumulating) are a genuine progression from the initial strike.`,
+        output: `{ "events": [{ "summary": "His thighs became crisscrossed with welts from repeated crop strikes; his voice shook during the color check", "importance": 2, "characters_involved": ["She", "He"], "witnesses": [], "location": null, "is_secret": false, "emotional_impact": { "He": "strained but consenting" }, "relationship_impact": {} }] }`,
     },
     {
         label: 'Dedup - continuation (RU/Edge)',
@@ -203,9 +203,9 @@ Step 4: Output empty events array.`,
 [★★★] Саша села на Вову сверху, они занялись сексом в позе наездницы до близости к оргазму
 </established_memories>`,
         thinking: `Step 1: Input is Russian. Continuation of sex in same position. Rhythm acceleration.
-Step 2: Existing memory: cowgirl sex — already recorded.
-Step 3: Same action type (penetration, same position). No dynamic shift, no new element. This is a continuation.
-Step 4: Output empty events array.`,
+Step 2: Existing memory: cowgirl sex, near-orgasm — already recorded.
+Step 3: Same position, same act. The rhythm acceleration and mutual intensity are continuation, not a new phase. No dynamic shift, no new element.
+Step 4: This is a continuation of the exact same action with no shift, escalation, or conclusion. Output empty.`,
         output: `{ "events": [] }`,
     },
 ];

@@ -88,6 +88,26 @@ describe('text', () => {
         it('does not strip content when no orphaned closing tag exists', () => {
             expect(stripThinkingTags('{"pure": "json"}')).toBe('{"pure": "json"}');
         });
+
+        it('strips <tool_call> paired tags', () => {
+            const input = '<tool_call>{"name":"extract"}</tool_call>{"events": []}';
+            expect(stripThinkingTags(input)).toBe('{"events": []}');
+        });
+
+        it('strips <tool_call> tags with attributes', () => {
+            const input = '<tool_call name="extract_events">{"name":"extract"}</tool_call>{"events": []}';
+            expect(stripThinkingTags(input)).toBe('{"events": []}');
+        });
+
+        it('strips orphaned </tool_call> closing tag', () => {
+            const input = 'calling the tool now\n</tool_call>\n{"events": []}';
+            expect(stripThinkingTags(input)).toBe('{"events": []}');
+        });
+
+        it('strips [TOOL_CALL] bracket tags', () => {
+            const input = '[TOOL_CALL]function call here[/TOOL_CALL]{"result": true}';
+            expect(stripThinkingTags(input)).toBe('{"result": true}');
+        });
     });
 
     describe('safeParseJSON', () => {

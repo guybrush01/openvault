@@ -42,6 +42,28 @@ describe('LLM_CONFIGS split extraction', () => {
     });
 });
 
+describe('LLM_CONFIGS timeout values', () => {
+    it('extraction_events has 240s timeout', () => {
+        expect(LLM_CONFIGS.extraction_events.timeoutMs).toBe(240000);
+    });
+
+    it('extraction_graph has 180s timeout', () => {
+        expect(LLM_CONFIGS.extraction_graph.timeoutMs).toBe(180000);
+    });
+
+    it('reflection has 180s timeout', () => {
+        expect(LLM_CONFIGS.reflection.timeoutMs).toBe(180000);
+    });
+
+    it('community has 180s timeout', () => {
+        expect(LLM_CONFIGS.community.timeoutMs).toBe(180000);
+    });
+
+    it('edge_consolidation stays at 60s', () => {
+        expect(LLM_CONFIGS.edge_consolidation.timeoutMs).toBe(60000);
+    });
+});
+
 describe('callLLM backup profile failover', () => {
     const testConfig = {
         profileSettingKey: 'extractionProfile',

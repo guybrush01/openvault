@@ -246,9 +246,26 @@ describe('CONSOLIDATION_SCHEMA think tag support', () => {
 
 describe('UNIFIED_REFLECTION_SCHEMA think tag support', () => {
     it('allows think tags before JSON', () => {
-        const result = buildUnifiedReflectionPrompt('Alice', [], 'auto', 'auto');
+        const result = buildUnifiedReflectionPrompt('Alice', [], 'auto', 'auto', '{');
         const sys = result[0].content;
         expect(sys).toContain('You MAY use <thinking> tags');
+    });
+});
+
+describe('buildUnifiedReflectionPrompt prefill parameter', () => {
+    it('throws when prefill is missing', () => {
+        expect(() => buildUnifiedReflectionPrompt('Alice', [], 'auto', 'auto'))
+            .toThrow('prefill is required');
+    });
+
+    it('throws when prefill is empty string', () => {
+        expect(() => buildUnifiedReflectionPrompt('Alice', [], 'auto', 'auto', ''))
+            .toThrow('prefill is required');
+    });
+
+    it('uses provided prefill in assistant message', () => {
+        const result = buildUnifiedReflectionPrompt('Alice', [], 'auto', 'auto', '<thinking>');
+        expect(result[2].content).toBe('<thinking>');
     });
 });
 
@@ -639,7 +656,8 @@ describe('buildUnifiedReflectionPrompt', () => {
                 { id: 'ev_002', summary: 'Alice fought dragon', importance: 5 }
             ],
             'SYSTEM_PREAMBLE_CN',
-            'auto'
+            'auto',
+            '{'
         );
         expect(Array.isArray(result)).toBe(true);
         expect(result).toHaveLength(3);

@@ -445,9 +445,15 @@ Respond with a single JSON object containing 'entities' and 'relationships' keys
  * @param {Array} recentMemories - Top 100 recent memories
  * @param {string} preamble
  * @param {string} outputLanguage
+ * @param {string} prefill - Required prefill for assistant message
  * @returns {object} { system, user } prompt object
  */
-export function buildUnifiedReflectionPrompt(characterName, recentMemories, preamble, outputLanguage = 'auto') {
+export function buildUnifiedReflectionPrompt(characterName, recentMemories, preamble, outputLanguage = 'auto', prefill) {
+    // Validate prefill parameter
+    if (!prefill) {
+        throw new Error('buildUnifiedReflectionPrompt: prefill is required');
+    }
+
     // Detect if candidate set contains existing reflections (for level-aware synthesis)
     const hasOldReflections = recentMemories.some(m => m.type === 'reflection' && (m.level || 1) >= 1);
 
@@ -496,7 +502,7 @@ Based on these memories about ${characterName}:
 
 Respond with a single JSON object containing a "reflections" array with 1-3 items. No other text.`;
 
-    return buildMessages(systemPrompt, userPrompt, '{', preamble);
+    return buildMessages(systemPrompt, userPrompt, prefill, preamble);
 }
 
 /**

@@ -23,6 +23,7 @@ import { filterMemoriesByPOV } from '../pov.js';
 import {
     buildUnifiedReflectionPrompt,
     resolveExtractionPreamble,
+    resolveExtractionPrefill,
     resolveOutputLanguage,
 } from '../prompts/index.js';
 import { cosineSimilarity, tokenize } from '../retrieval/math.js';
@@ -196,6 +197,7 @@ export async function generateReflections(characterName, allMemories, characterS
     const settings = deps.getExtensionSettings()?.[extensionName] || {};
     const preamble = resolveExtractionPreamble(settings);
     const outputLanguage = resolveOutputLanguage(settings);
+    const prefill = resolveExtractionPrefill(settings);
     const maxReflections = settings.maxReflectionsPerCharacter;
 
     // Archive old reflections if cap is reached
@@ -254,7 +256,7 @@ export async function generateReflections(characterName, allMemories, characterS
     }
 
     // Single unified reflection call (replaces Step 1 + Step 2)
-    const reflectionPrompt = buildUnifiedReflectionPrompt(characterName, candidateSet, preamble, outputLanguage);
+    const reflectionPrompt = buildUnifiedReflectionPrompt(characterName, candidateSet, preamble, outputLanguage, prefill);
     const reflectionResponse = await callLLM(reflectionPrompt, LLM_CONFIGS.reflection, { structured: true });
     const { reflections } = parseUnifiedReflectionResponse(reflectionResponse);
 

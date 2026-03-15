@@ -341,7 +341,7 @@ describe('CN preamble and assistant prefill', () => {
             context: {},
         });
         expect(result[2].role).toBe('assistant');
-        expect(result[2].content).toBe('<thinking>\n');
+        expect(result[2].content).toBe('<think>\n');
     });
 
     it('non-think prompts use provided prefill', () => {
@@ -476,7 +476,7 @@ describe('buildMessages via buildEventExtractionPrompt', () => {
             names: { char: 'Alice', user: 'Bob' },
         });
         expect(result).toHaveLength(3);
-        expect(result[2].content).toBe('<thinking>\n');
+        expect(result[2].content).toBe('<think>\n');
     });
 });
 

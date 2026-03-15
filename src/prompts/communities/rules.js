@@ -8,7 +8,7 @@ export const COMMUNITY_RULES = `1. Be specific — reference entity names and re
 4. Use EXACT entity names from the input data — do NOT transliterate, abbreviate, or translate entity names. If the input shows "Vova", use "Vova" — not "Во", "Вова", or any other variant.
 
 <thinking_process>
-Follow these steps IN ORDER. Write your work inside <thinking> tags BEFORE outputting the JSON:
+Follow these steps IN ORDER. Write your work inside <think> tags BEFORE outputting the JSON:
 
 Step 1: Entity inventory — List all entities with their types from the provided data.
 Step 2: Relationship map — Trace directed connections between entities, noting the nature of each.
@@ -23,7 +23,7 @@ export const GLOBAL_SYNTHESIS_RULES = `1. Synthesize ALL provided communities in
 5. Reference community titles to ground your synthesis in specific details.
 
 <thinking_process>
-Follow these steps IN ORDER. Write your work inside <thinking> tags BEFORE outputting the JSON:
+Follow these steps IN ORDER. Write your work inside <think> tags BEFORE outputting the JSON:
 
 Step 1: Community scan — Summarize each community's core conflict and key entities.
 Step 2: Cross-links — Identify shared characters, causal connections, and thematic parallels between communities.

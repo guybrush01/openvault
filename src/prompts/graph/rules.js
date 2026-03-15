@@ -14,7 +14,7 @@ Also extract relationships between pairs of entities when the connection is stat
 IMPORTANT: Extract entities and relationships even when no events are extracted. Entity data builds world knowledge over time and is always valuable.
 
 <thinking_process>
-Follow these steps IN ORDER. Write your work inside <thinking>... </thinking> tags BEFORE outputting the JSON:
+Follow these steps IN ORDER. Write your work inside <think> tags BEFORE outputting the JSON:
 
 Step 1: Entity scan — List every named entity mentioned or implied. Include type (PERSON, PLACE, ORGANIZATION, OBJECT, CONCEPT).
 Step 2: Type validation — Verify each entity type against the allowed set. Skip mundane objects unless plot-critical.

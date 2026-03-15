@@ -8,7 +8,7 @@ export const UNIFIED_REFLECTION_RULES = `1. Generate 1-3 salient high-level ques
 4. Quality over quantity — generate only as many reflections as you can support with strong evidence.
 
 <thinking_process>
-Follow these steps IN ORDER. Write your work inside <thinking> tags BEFORE outputting the JSON:
+Follow these steps IN ORDER. Write your work inside <think> tags BEFORE outputting the JSON:
 
 Step 1: Pattern scan — Identify recurring themes, emotional patterns, and behavioral clusters across the memories. Tag memory indices.
 Step 2: Causal chains — Trace cause-effect sequences linking memories together.

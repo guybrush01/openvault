@@ -14,8 +14,7 @@ describe('graph/rules', () => {
         expect(GRAPH_RULES).toContain('Step 4: Output');
     });
 
-    it('should reference <thinking> tags in thinking_process', () => {
-        expect(GRAPH_RULES).toContain('<thinking>');
-        expect(GRAPH_RULES).toContain('</thinking>');
+    it('should reference <think> tags in thinking_process', () => {
+        expect(GRAPH_RULES).toContain('<think>');
     });
 });

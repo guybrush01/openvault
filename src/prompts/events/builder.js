@@ -10,10 +10,10 @@ import {
     formatEstablishedMemories,
     resolveLanguageInstruction,
 } from '../shared/formatters.js';
-import { EVENT_ROLE } from './role.js';
-import { EVENT_SCHEMA } from './schema.js';
-import { EVENT_RULES } from './rules.js';
 import { getExamples } from './examples/index.js';
+import { EVENT_ROLE } from './role.js';
+import { EVENT_RULES } from './rules.js';
+import { EVENT_SCHEMA } from './schema.js';
 
 /**
  * Build the event extraction prompt (Stage 1).
@@ -62,5 +62,5 @@ Use EXACT character names: ${characterName}, ${userName}. Never transliterate th
 
 ${constraints}`;
 
-    return buildMessages(systemPrompt, userPrompt, prefill ?? '<thinking>\n', preamble);
+    return buildMessages(systemPrompt, userPrompt, prefill ?? '<think>\n', preamble);
 }

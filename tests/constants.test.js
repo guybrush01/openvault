@@ -63,7 +63,7 @@ describe('Reflection Level Settings', () => {
 describe('Bucket Balance Settings', () => {
     it('should have bucketMinRepresentation in defaultSettings', async () => {
         const { defaultSettings } = await import('../src/constants.js');
-        expect(defaultSettings.bucketMinRepresentation).toBe(0.20);
+        expect(defaultSettings.bucketMinRepresentation).toBe(0.2);
     });
 
     it('should have bucketSoftBalanceBudget in defaultSettings', async () => {
@@ -79,5 +79,16 @@ describe('Bucket Balance Settings', () => {
     it('should have bucketSoftBalanceBudget in UI_DEFAULT_HINTS', async () => {
         const { UI_DEFAULT_HINTS } = await import('../src/constants.js');
         expect(UI_DEFAULT_HINTS.bucketSoftBalanceBudget).toBeDefined();
+    });
+});
+
+describe('Concurrency Settings', () => {
+    it('should have maxConcurrency in defaultSettings with default of 1', () => {
+        expect(defaultSettings.maxConcurrency).toBe(1);
+    });
+
+    it('should have maxConcurrency in UI_DEFAULT_HINTS', () => {
+        expect(UI_DEFAULT_HINTS.maxConcurrency).toBeDefined();
+        expect(UI_DEFAULT_HINTS.maxConcurrency).toBe(1);
     });
 });

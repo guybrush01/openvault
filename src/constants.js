@@ -38,6 +38,8 @@ export const defaultSettings = {
     visibleChatBudget: 16000, // Maximum tokens visible in chat history
     // Backfill settings
     backfillMaxRPM: 20,
+    // Concurrency settings (Phase 2 parallelism)
+    maxConcurrency: 1, // Default to 1 to protect local/VRAM-bound LLM users
     // Embedding settings (Local RAG)
     embeddingSource: 'multilingual-e5-small', // model name or 'ollama'
     ollamaUrl: '',
@@ -83,7 +85,7 @@ export const defaultSettings = {
     maxReflectionLevel: 3, // Maximum reflection tree depth
     reflectionLevelMultiplier: 2.0, // Decay slows by 2x per level
     // Bucket balance settings (score-first budgeting with soft chronological balancing)
-    bucketMinRepresentation: 0.20, // 20% minimum per bucket
+    bucketMinRepresentation: 0.2, // 20% minimum per bucket
     bucketSoftBalanceBudget: 0.05, // 5% budget for soft balancing
     // Community staleness settings
     communityStalenessThreshold: 100,
@@ -168,6 +170,7 @@ export const UI_DEFAULT_HINTS = {
     contextWindowSize: defaultSettings.extractionRearviewTokens,
     backfillRateLimit: defaultSettings.backfillMaxRPM,
     // Features
+    maxConcurrency: defaultSettings.maxConcurrency,
     reflectionThreshold: defaultSettings.reflectionThreshold,
     maxInsightsPerReflection: defaultSettings.maxInsightsPerReflection,
     reflectionDedupThreshold: defaultSettings.reflectionDedupThreshold,
@@ -201,7 +204,7 @@ export const PERF_THRESHOLDS = {
     idf_calculation: 100, // Full IDF setup: tokenization + calculation (larger corpus)
     llm_events: 30000,
     llm_graph: 30000,
-    llm_reflection: 20000,  // Reduced from 45000 (was 4-call, now 1-call)
+    llm_reflection: 20000, // Reduced from 45000 (was 4-call, now 1-call)
     llm_communities: 30000,
     embedding_generation: 10000,
     louvain_detection: 1000,
@@ -228,8 +231,8 @@ export const PERF_METRICS = {
 
 // Edge consolidation constants
 export const CONSOLIDATION = {
-    TOKEN_THRESHOLD: 250,           // Trigger consolidation when description exceeds this
-    MAX_CONSOLIDATION_BATCH: 10,    // Max edges to consolidate per community detection run
+    TOKEN_THRESHOLD: 250, // Trigger consolidation when description exceeds this
+    MAX_CONSOLIDATION_BATCH: 10, // Max edges to consolidate per community detection run
     CONSOLIDATED_DESCRIPTION_CAP: 2, // After consolidation, cap future additions to 2 segments
 };
 

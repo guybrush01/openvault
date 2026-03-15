@@ -27,6 +27,7 @@ Agentic memory extension for SillyTavern providing POV-aware memory, witness tra
 ## ARCHITECTURE MAP (Lazy Loaded Context)
 - `include/ARCHITECTURE.md` - Global pipeline, Data Schema, Retrieval Math.
 - `src/extraction/CLAUDE.md` - 2-phase async worker, JSON validation, Zod schemas.
+- `src/prompts/CLAUDE.md` - Domain prompt structure, `<think>` tag convention, few-shot examples.
 - `src/retrieval/CLAUDE.md` - Alpha-Blend scoring, Forgetfulness curve.
 - `src/graph/CLAUDE.md` - Flat JSON graph, Semantic Merge, GraphRAG Louvain communities.
 - `src/reflection/CLAUDE.md` - Per-character insight pipeline, 3-tier replacement.

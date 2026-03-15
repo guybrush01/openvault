@@ -4,6 +4,7 @@
 
 import {
     assembleSystemPrompt,
+    assembleUserConstraints,
     buildMessages,
     resolveLanguageInstruction,
 } from '../shared/formatters.js';
@@ -35,8 +36,6 @@ export function buildUnifiedReflectionPrompt(characterName, recentMemories, prea
 
     const systemPrompt = assembleSystemPrompt({
         role: UNIFIED_REFLECTION_ROLE,
-        schema: UNIFIED_REFLECTION_SCHEMA,
-        rules,
         examples: getExamples('REFLECTIONS', outputLanguage),
         outputLanguage,
     });
@@ -44,8 +43,14 @@ export function buildUnifiedReflectionPrompt(characterName, recentMemories, prea
     const languageInstruction = resolveLanguageInstruction(memoryList, outputLanguage);
 
     const levelAwareInstruction = hasOldReflections
-        ? `\n\nLEVEL-AWARE SYNTHESIS MODE:\nSome memories are existing reflections (marked [Ref L1], [Ref L2]). You may synthesize them into higher-level meta-insights.\n- Level 2 insights should distill common patterns across multiple Level 1 reflections.\n- When synthesizing reflections, cite the reflection IDs as evidence_ids.\n`
+        ? `\nLEVEL-AWARE SYNTHESIS MODE:\nSome memories are existing reflections (marked [Ref L1], [Ref L2]). You may synthesize them into higher-level meta-insights.\n- Level 2 insights should distill common patterns across multiple Level 1 reflections.\n- When synthesizing reflections, cite the reflection IDs as evidence_ids.\n`
         : '';
+
+    const constraints = assembleUserConstraints({
+        rules,
+        schema: UNIFIED_REFLECTION_SCHEMA,
+        languageInstruction,
+    });
 
     const userPrompt = `<character>${characterName}</character>
 
@@ -53,13 +58,12 @@ export function buildUnifiedReflectionPrompt(characterName, recentMemories, prea
 ${memoryList}
 </recent_memories>
 
-${languageInstruction}${levelAwareInstruction}
 Based on these memories about ${characterName}:
 1. Generate 1-3 salient high-level questions about their current psychological state, relationships, goals, or unresolved conflicts.
 2. For each question, provide a deep insight that synthesizes patterns across the memories.
 3. Cite specific memory IDs as evidence for each insight. You MUST use IDs exactly as shown above.
-
-Respond with a single JSON object containing a "reflections" array with 1-3 items. No other text.`;
+${levelAwareInstruction}
+${constraints}`;
 
     return buildMessages(systemPrompt, userPrompt, prefill, preamble);
 }

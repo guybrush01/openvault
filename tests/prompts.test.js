@@ -30,17 +30,17 @@ describe('buildCommunitySummaryPrompt', () => {
 
     it('system prompt contains report structure instructions', () => {
         const result = buildCommunitySummaryPrompt([], [], 'auto', 'auto', '{');
-        const system = result[0].content;
-        expect(system).toContain('title');
-        expect(system).toContain('summary');
-        expect(system).toContain('findings');
+        const user = result[1].content;
+        expect(user).toContain('title');
+        expect(user).toContain('summary');
+        expect(user).toContain('findings');
     });
 
-    it('system prompt specifies 1-5 findings limit', () => {
+    it('user prompt specifies 1-5 findings limit', () => {
         const result = buildCommunitySummaryPrompt([], [], 'auto', 'auto', '{');
-        const system = result[0].content;
-        expect(system).toContain('1-5');
-        expect(system).toContain('findings');
+        const user = result[1].content;
+        expect(user).toContain('1-5');
+        expect(user).toContain('findings');
     });
 
     it('user prompt wraps nodes in community_entities tag', () => {
@@ -69,8 +69,9 @@ describe('buildCommunitySummaryPrompt', () => {
     it('uses unified XML structure with role, output_schema, and examples', () => {
         const result = buildCommunitySummaryPrompt([], [], 'auto', 'auto', '{');
         const sys = result[0].content;
+        const user = result[1].content;
         expect(sys).toContain('<role>');
-        expect(sys).toContain('<output_schema>');
+        expect(user).toContain('<output_schema>');
         expect(sys).toContain('<examples>');
     });
 });
@@ -93,8 +94,8 @@ describe('buildEventExtractionPrompt', () => {
             names: { char: 'Alice', user: 'Bob' },
             context: {},
         });
-        const systemContent = result[0].content;
-        const outputSchemaMatch = systemContent.match(/<output_schema>([\s\S]*?)<\/output_schema>/);
+        const userContent = result[1].content;
+        const outputSchemaMatch = userContent.match(/<output_schema>([\s\S]*?)<\/output_schema>/);
         expect(outputSchemaMatch).not.toBeNull();
         const outputSchema = outputSchemaMatch[1];
         expect(outputSchema).not.toContain('"entities"');
@@ -106,8 +107,8 @@ describe('buildEventExtractionPrompt', () => {
             messages: '[Alice]: Hello',
             names: { char: 'Alice', user: 'Bob' },
         });
-        const system = result[0].content;
-        expect(system).toContain('Do NOT use <tool_call>');
+        const user = result[1].content;
+        expect(user).toContain('No tool calls');
     });
 });
 
@@ -127,23 +128,23 @@ describe('buildEventExtractionPrompt output conventions', () => {
 
     it('instructs scene continuation suppression in dedup rules', () => {
         const result = buildEventExtractionPrompt(baseArgs);
-        const sys = result[0].content;
-        expect(sys).toContain('scene concluding');
-        expect(sys).toContain('power dynamic reversal');
-        expect(sys).toContain('safeword explicitly used');
+        const user = result[1].content;
+        expect(user).toContain('scene concluding');
+        expect(user).toContain('power dynamic reversal');
+        expect(user).toContain('safeword explicitly used');
     });
 
     it('does not mandate minimum importance of 4 for routine intimate acts', () => {
         const result = buildEventExtractionPrompt(baseArgs);
-        const sys = result[0].content;
+        const user = result[1].content;
         // Old: "MANDATORY MINIMUM of 4 for: any first sexual act"
-        expect(sys).not.toContain('MANDATORY MINIMUM');
+        expect(user).not.toContain('MANDATORY MINIMUM');
     });
 
     it('instructs raw JSON output without markdown', () => {
         const result = buildEventExtractionPrompt(baseArgs);
-        const sys = result[0].content;
-        expect(sys).toContain('Start your response with {');
+        const user = result[1].content;
+        expect(user).toContain('raw JSON');
     });
 });
 
@@ -154,14 +155,14 @@ describe('all prompts use raw JSON instruction', () => {
             names: { char: 'TestChar', user: 'TestUser' },
             prefill: '{',
         });
-        const sys = result[0].content;
-        expect(sys).toContain('Do NOT wrap output in markdown code blocks');
+        const user = result[1].content;
+        expect(user).toContain('no markdown');
     });
 
     it('community summary prompt forbids markdown wrapping', () => {
         const result = buildCommunitySummaryPrompt(['Node A'], ['A -> B'], 'auto', 'auto', '{');
-        const sys = result[0].content;
-        expect(sys).toContain('Do NOT wrap output in markdown code blocks');
+        const user = result[1].content;
+        expect(user).toContain('no markdown');
     });
 });
 
@@ -238,9 +239,9 @@ describe('GRAPH_SCHEMA think tag support', () => {
             names: { char: 'A', user: 'B' },
             prefill: '{',
         });
-        const sys = result[0].content;
-        expect(sys).toContain('You MAY use <thinking> tags');
-        expect(sys).toContain('JSON object must still be valid');
+        const user = result[1].content;
+        expect(user).toContain('reasoning');
+        expect(user).toContain('OUTPUT FORMAT');
     });
 });
 
@@ -248,16 +249,16 @@ describe('CONSOLIDATION_SCHEMA think tag support', () => {
     it('allows think tags before JSON', () => {
         const edge = { source: 'A', target: 'B', description: 'Test', weight: 1 };
         const result = buildEdgeConsolidationPrompt(edge, 'auto', 'auto', '{');
-        const sys = result[0].content;
-        expect(sys).toContain('You MAY use <thinking> tags');
+        const user = result[1].content;
+        expect(user).toContain('reasoning');
     });
 });
 
 describe('UNIFIED_REFLECTION_SCHEMA think tag support', () => {
     it('allows think tags before JSON', () => {
         const result = buildUnifiedReflectionPrompt('Alice', [], 'auto', 'auto', '{');
-        const sys = result[0].content;
-        expect(sys).toContain('You MAY use <thinking> tags');
+        const user = result[1].content;
+        expect(user).toContain('reasoning');
     });
 });
 
@@ -281,8 +282,8 @@ describe('buildUnifiedReflectionPrompt prefill parameter', () => {
 describe('COMMUNITY_SCHEMA think tag support', () => {
     it('allows think tags before JSON', () => {
         const result = buildCommunitySummaryPrompt(['- Node'], ['- Edge'], 'auto', 'auto', '{');
-        const sys = result[0].content;
-        expect(sys).toContain('You MAY use <thinking> tags');
+        const user = result[1].content;
+        expect(user).toContain('reasoning');
     });
 });
 
@@ -306,8 +307,8 @@ describe('buildCommunitySummaryPrompt prefill parameter', () => {
 describe('GLOBAL_SYNTHESIS_SCHEMA think tag support', () => {
     it('allows think tags before JSON', () => {
         const result = buildGlobalSynthesisPrompt([{ title: 'C1', summary: 'S1' }], 'auto', 'auto', '{');
-        const sys = result[0].content;
-        expect(sys).toContain('You MAY use <thinking> tags');
+        const user = result[1].content;
+        expect(user).toContain('reasoning');
     });
 });
 
@@ -651,8 +652,8 @@ describe('multilingual prompt compliance', () => {
 
     it('all prompts contain mirror language rules', () => {
         for (const result of [eventResult, graphResult, communityResult]) {
-            expect(result[0].content).toContain('<language_rules>');
-            expect(result[0].content).toContain('SAME LANGUAGE');
+            expect(result[1].content).toContain('<language_rules>');
+            expect(result[1].content).toContain('SAME LANGUAGE');
         }
     });
 
@@ -704,11 +705,11 @@ describe('buildUnifiedReflectionPrompt', () => {
         expect(result).toHaveLength(3);
         expect(result[0].role).toBe('system');
         expect(result[1].role).toBe('user');
-        expect(result[0].content).toContain('expert psychological analyst');
+        expect(result[0].content).toContain('<role>');
         expect(result[1].content).toContain('<character>Alice</character>');
         expect(result[1].content).toContain('ev_001');
         expect(result[1].content).toContain('ev_002');
-        expect(result[0].content).toContain('CRITICAL ID GROUNDING RULE');
+        expect(result[1].content).toContain('CRITICAL ID GROUNDING RULE');
     });
 });
 
@@ -726,7 +727,7 @@ describe('buildEdgeConsolidationPrompt', () => {
         expect(result[1].role).toBe('user');
         expect(result[2].role).toBe('assistant');
         expect(result[2].content).toBe('{');
-        expect(result[0].content).toContain('relationship state synthesizer');
+        expect(result[0].content).toContain('<role>');
         expect(result[1].content).toContain('alice');
         expect(result[1].content).toContain('bob');
         expect(result[1].content).toContain('Met at tavern');
@@ -743,7 +744,7 @@ describe('buildEdgeConsolidationPrompt', () => {
         expect(result[0].content).toContain('SYSTEM: Interactive Fiction Archival Database');
     });
 
-    it('includes language rules in system prompt', () => {
+    it('includes language rules in user prompt', () => {
         const edge = {
             source: 'alice',
             target: 'bob',
@@ -751,7 +752,7 @@ describe('buildEdgeConsolidationPrompt', () => {
             weight: 2
         };
         const result = buildEdgeConsolidationPrompt(edge, 'auto', 'auto', '{');
-        expect(result[0].content).toContain('<language_rules>');
+        expect(result[1].content).toContain('<language_rules>');
     });
 
     it('parses consolidation response', () => {
@@ -797,16 +798,16 @@ describe('buildGlobalSynthesisPrompt', () => {
         expect(result[1].role).toBe('user');
         expect(result[2].role).toBe('assistant');
         expect(result[2].content).toBe('{');
-        expect(result[0].content).toContain('role');
+        expect(result[0].content).toContain('<role>');
         expect(result[1].content).toContain('Community A');
         expect(result[1].content).toContain('Community B');
     });
 
-    it('should include language rules from assembleSystemPrompt', () => {
+    it('should include language rules in user prompt from assembleUserConstraints', () => {
         const communities = [{ title: 'C1', summary: 'S1', findings: [] }];
         const result = buildGlobalSynthesisPrompt(communities, SYSTEM_PREAMBLE_EN, 'auto', '{');
 
-        expect(result[0].content).toContain('<language_rules>');
+        expect(result[1].content).toContain('<language_rules>');
     });
 
     it('should include preamble in system message', () => {

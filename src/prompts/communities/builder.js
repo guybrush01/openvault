@@ -4,6 +4,7 @@
 
 import {
     assembleSystemPrompt,
+    assembleUserConstraints,
     buildMessages,
     resolveLanguageInstruction,
 } from '../shared/formatters.js';
@@ -18,14 +19,18 @@ export function buildCommunitySummaryPrompt(nodeLines, edgeLines, preamble, outp
     }
     const systemPrompt = assembleSystemPrompt({
         role: COMMUNITIES_ROLE,
-        schema: COMMUNITY_SCHEMA,
-        rules: COMMUNITY_RULES,
         examples: getExamples('COMMUNITIES', outputLanguage),
         outputLanguage,
     });
 
     const entityText = nodeLines.join('\n');
     const languageInstruction = resolveLanguageInstruction(entityText, outputLanguage);
+    const constraints = assembleUserConstraints({
+        rules: COMMUNITY_RULES,
+        schema: COMMUNITY_SCHEMA,
+        languageInstruction,
+    });
+
     const userPrompt = `<community_entities>
 ${entityText}
 </community_entities>
@@ -33,9 +38,10 @@ ${entityText}
 <community_relationships>
 ${edgeLines.join('\n')}
 </community_relationships>
-${languageInstruction}
+
 Write a comprehensive report about this community of entities.
-Respond with a single JSON object containing title, summary, and 1-5 findings. No other text.`;
+
+${constraints}`;
 
     return buildMessages(systemPrompt, userPrompt, prefill, preamble);
 }
@@ -47,8 +53,6 @@ export function buildGlobalSynthesisPrompt(communities, preamble, outputLanguage
 
     const systemPrompt = assembleSystemPrompt({
         role: GLOBAL_SYNTHESIS_ROLE,
-        schema: GLOBAL_SYNTHESIS_SCHEMA,
-        rules: GLOBAL_SYNTHESIS_RULES,
         examples: getExamples('GLOBAL_SYNTHESIS', outputLanguage),
         outputLanguage,
     });
@@ -58,15 +62,20 @@ export function buildGlobalSynthesisPrompt(communities, preamble, outputLanguage
     ).join('\n\n');
 
     const languageInstruction = resolveLanguageInstruction(communityText, outputLanguage);
+    const constraints = assembleUserConstraints({
+        rules: GLOBAL_SYNTHESIS_RULES,
+        schema: GLOBAL_SYNTHESIS_SCHEMA,
+        languageInstruction,
+    });
+
     const userPrompt = `<communities>
 ${communityText}
 </communities>
 
-${languageInstruction}
 Synthesize these community summaries into a single global narrative (max ~300 tokens).
 Focus on macro-relationships, overarching tensions, and plot trajectory.
 
-Respond with a single JSON object containing "global_summary". No other text.`;
+${constraints}`;
 
     return buildMessages(systemPrompt, userPrompt, prefill, preamble);
 }

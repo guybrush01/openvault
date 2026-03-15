@@ -4,6 +4,7 @@
 
 import {
     assembleSystemPrompt,
+    assembleUserConstraints,
     buildMessages,
     formatCharacters,
     resolveLanguageInstruction,
@@ -30,8 +31,6 @@ export function buildGraphExtractionPrompt({
 
     const systemPrompt = assembleSystemPrompt({
         role: GRAPH_ROLE,
-        schema: GRAPH_SCHEMA,
-        rules: GRAPH_RULES,
         examples: getExamples(outputLanguage),
         outputLanguage,
     });
@@ -42,15 +41,21 @@ export function buildGraphExtractionPrompt({
         extractedEvents.length > 0 ? `<extracted_events>\n${extractedEvents.join('\n')}\n</extracted_events>\n` : '';
 
     const languageInstruction = resolveLanguageInstruction(messages, outputLanguage);
+    const constraints = assembleUserConstraints({
+        rules: GRAPH_RULES,
+        schema: GRAPH_SCHEMA,
+        languageInstruction,
+    });
+
     const userPrompt = `${contextSection}
 <messages>
 ${messages}
 </messages>
 
-${eventsSection}${languageInstruction}
-Based on the messages${extractedEvents.length > 0 ? ' and extracted events above' : ''}, extract named entities and relationships.
+${eventsSection}Based on the messages${extractedEvents.length > 0 ? ' and extracted events above' : ''}, extract named entities and relationships.
 Use EXACT character names: ${characterName}, ${userName}. Never transliterate these names into another script.
-Respond with a single JSON object containing 'entities' and 'relationships' keys. No other text.`;
+
+${constraints}`;
 
     return buildMessages(systemPrompt, userPrompt, prefill, preamble);
 }
@@ -62,8 +67,6 @@ export function buildEdgeConsolidationPrompt(edgeData, preamble, outputLanguage 
 
     const systemPrompt = assembleSystemPrompt({
         role: EDGE_CONSOLIDATION_ROLE,
-        schema: EDGE_CONSOLIDATION_SCHEMA,
-        rules: EDGE_CONSOLIDATION_RULES,
         examples: [],
         outputLanguage,
     });
@@ -71,6 +74,12 @@ export function buildEdgeConsolidationPrompt(edgeData, preamble, outputLanguage 
     const segments = edgeData.description.split(' | ');
     const segmentText = segments.map((s, i) => `${i + 1}. ${s}`).join('\n');
     const languageInstruction = resolveLanguageInstruction(segmentText, outputLanguage);
+    const constraints = assembleUserConstraints({
+        rules: EDGE_CONSOLIDATION_RULES,
+        schema: EDGE_CONSOLIDATION_SCHEMA,
+        languageInstruction,
+    });
+
     const userPrompt = `<edge_data>
 Source: ${edgeData.source}
 Target: ${edgeData.target}
@@ -79,9 +88,10 @@ Weight: ${edgeData.weight}
 Timeline segments:
 ${segmentText}
 </edge_data>
-${languageInstruction}
+
 Synthesize these relationship developments into ONE unified description.
-Respond with a single JSON object containing "consolidated_description". No other text.`;
+
+${constraints}`;
 
     return buildMessages(systemPrompt, userPrompt, prefill, preamble);
 }

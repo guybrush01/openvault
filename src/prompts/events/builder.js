@@ -4,6 +4,7 @@
 
 import {
     assembleSystemPrompt,
+    assembleUserConstraints,
     buildMessages,
     formatCharacters,
     formatEstablishedMemories,
@@ -16,8 +17,7 @@ import { getExamples } from './examples/index.js';
 
 /**
  * Build the event extraction prompt (Stage 1).
- * Extracts events only, not entities or relationships.
- * @returns {Array<{role: string, content: string}>} Array of message objects
+ * @returns {Array<{role: string, content: string}>}
  */
 export function buildEventExtractionPrompt({
     messages,
@@ -36,8 +36,6 @@ export function buildEventExtractionPrompt({
 
     const systemPrompt = assembleSystemPrompt({
         role: EVENT_ROLE,
-        schema: EVENT_SCHEMA,
-        rules: EVENT_RULES,
         examples: getExamples(outputLanguage),
         outputLanguage,
     });
@@ -48,14 +46,21 @@ export function buildEventExtractionPrompt({
     const contextSection = contextParts ? `<context>\n${contextParts}\n</context>\n` : '';
 
     const languageInstruction = resolveLanguageInstruction(messages, outputLanguage);
+    const constraints = assembleUserConstraints({
+        rules: EVENT_RULES,
+        schema: EVENT_SCHEMA,
+        languageInstruction,
+    });
+
     const userPrompt = `${contextSection}
 <messages>
 ${messages}
 </messages>
-${languageInstruction}
+
 Analyze the messages above. Extract events only.
 Use EXACT character names: ${characterName}, ${userName}. Never transliterate these names into another script.
-Write your analysis inside <thinking> tags FIRST, then output the JSON object with "events" key. No other text.`;
+
+${constraints}`;
 
     return buildMessages(systemPrompt, userPrompt, prefill ?? '<thinking>\n', preamble);
 }

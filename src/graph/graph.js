@@ -335,7 +335,7 @@ export function shouldMergeEntities(cosine, threshold, tokensA, keyA, keyB) {
     const greyZoneFloor = threshold - 0.1;
     if (cosine >= greyZoneFloor) {
         const tokensB = new Set(keyB.split(/\s+/));
-        return hasSufficientTokenOverlap(tokensA, tokensB, 0.5, keyA, keyB);
+        return hasSufficientTokenOverlap(tokensA, tokensB, 0.6, keyA, keyB);
     }
     return false;
 }

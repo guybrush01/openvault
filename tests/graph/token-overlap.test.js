@@ -2,11 +2,40 @@ import { describe, expect, it } from 'vitest';
 import { hasSufficientTokenOverlap } from '../../src/graph/graph.js';
 
 describe('hasSufficientTokenOverlap', () => {
-    it('should accept 50%+ token overlap', () => {
+    it('should accept 60%+ token overlap', () => {
         const tokensA = new Set(['king', 'aldric', 'northern']);
         const tokensB = new Set(['king', 'aldric', 'southern']);
 
-        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.5)).toBe(true);
+        // 2/3 = 0.67 ≥ 0.6 → passes
+        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.6)).toBe(true);
+    });
+
+    it('should NOT merge бордовая свеча / бордовый дилдо (stem overlap 1/2=0.5 < 0.6)', () => {
+        const tokensA = new Set(['бордовая', 'свеча']);
+        const tokensB = new Set(['бордовый', 'силиконовый', 'дилдо']);
+        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.6, 'бордовая свеча', 'бордовый силиконовый дилдо')).toBe(
+            false
+        );
+    });
+
+    it('should NOT merge продуктовый магазин / цветочный магазин (token overlap 1/2=0.5 < 0.6)', () => {
+        const tokensA = new Set(['продуктовый', 'магазин']);
+        const tokensB = new Set(['цветочный', 'магазин']);
+        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.6, 'продуктовый магазин', 'цветочный магазин')).toBe(
+            false
+        );
+    });
+
+    it('should NOT merge силиконовое кольцо / силиконовый дилдо (stem overlap 1/2=0.5 < 0.6)', () => {
+        const tokensA = new Set(['силиконовое', 'кольцо']);
+        const tokensB = new Set(['силиконовый', 'дилдо']);
+        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.6, 'силиконовое кольцо', 'силиконовый дилдо')).toBe(false);
+    });
+
+    it('should still merge king aldric northern / king aldric southern at 0.6 ratio (2/3=0.67)', () => {
+        const tokensA = new Set(['king', 'aldric', 'northern']);
+        const tokensB = new Set(['king', 'aldric', 'southern']);
+        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.6)).toBe(true);
     });
 
     it('should handle substring containment separately', () => {

@@ -38,4 +38,36 @@ describe('hasSufficientTokenOverlap', () => {
         const tokensB = new Set(['машина']);
         expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.5, 'малина', 'машина')).toBe(false);
     });
+
+    it('should NOT merge расчёска/миска (short suffix "-ска" = 3 chars < 4 min)', () => {
+        const tokensA = new Set(['расчёска']);
+        const tokensB = new Set(['миска']);
+        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.6, 'расчёска', 'миска')).toBe(false);
+    });
+
+    it('should NOT merge anything with воск (LCS 3 chars < 4 min)', () => {
+        const tokensA = new Set(['чёрный', 'кружевной', 'бюстгальтер', 'с', 'носками', 'в', 'чашках']);
+        const tokensB = new Set(['воск']);
+        expect(
+            hasSufficientTokenOverlap(tokensA, tokensB, 0.6, 'чёрный кружевной бюстгальтер с носками в чашках', 'воск')
+        ).toBe(false);
+    });
+
+    it('should NOT merge кольцо/колокольчик (LCS "коль" 4/6=0.67 < 0.7)', () => {
+        const tokensA = new Set(['кольцо']);
+        const tokensB = new Set(['колокольчик']);
+        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.6, 'кольцо', 'колокольчик')).toBe(false);
+    });
+
+    it('should still merge Свечи/Свеча (LCS "свеч" 4/5=0.8 ≥ 0.7)', () => {
+        const tokensA = new Set(['свечи']);
+        const tokensB = new Set(['свеча']);
+        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.6, 'свечи', 'свеча')).toBe(true);
+    });
+
+    it('should still merge верёвки/верёвка (LCS "верёвк" 6/7=0.86 ≥ 0.7)', () => {
+        const tokensA = new Set(['верёвки']);
+        const tokensB = new Set(['верёвка']);
+        expect(hasSufficientTokenOverlap(tokensA, tokensB, 0.6, 'верёвки', 'верёвка')).toBe(true);
+    });
 });

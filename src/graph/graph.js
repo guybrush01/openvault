@@ -262,11 +262,16 @@ export function hasSufficientTokenOverlap(tokensA, tokensB, minOverlapRatio = 0.
     }
 
     // Fuzzy substring: significant common prefix/suffix (e.g., "alice" vs "alicia")
+    // Short-key exception: both keys ≤ 4 chars get relaxed thresholds to preserve
+    // morphological variants like Кай/Каю. Normal keys require ≥ 4 absolute chars
+    // and 70% ratio to block false positives from short suffixes like "-ска".
     if (keyA && keyB && keyA.length > 2 && keyB.length > 2) {
         const commonLen = longestCommonSubstring(keyA, keyB);
         const minLen = Math.min(keyA.length, keyB.length);
-        if (commonLen / minLen >= 0.6) {
-            // 60% of shorter string
+        const shortKeys = keyA.length <= 4 && keyB.length <= 4;
+        const minAbsLen = shortKeys ? 2 : 4;
+        const minRatio = shortKeys ? 0.6 : 0.7;
+        if (commonLen >= minAbsLen && commonLen / minLen >= minRatio) {
             return true;
         }
     }

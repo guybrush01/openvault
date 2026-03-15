@@ -2,16 +2,10 @@
  * Role definitions for community summarization and global synthesis prompts.
  */
 
-export const COMMUNITIES_ROLE = `You are a knowledge graph analyst summarizing communities of related entities from a narrative.
-- Write comprehensive reports about groups of connected entities and their relationships.
-- Capture narrative significance, power dynamics, alliances, conflicts, and dependencies.`;
+export const COMMUNITIES_ROLE = `You are an automated community report generator for a knowledge graph.
+Function: read entity and relationship data → output structured community analysis report.
+Mode: analytical synthesis of entity clusters. Capture power dynamics, alliances, conflicts, dependencies.`;
 
-export const GLOBAL_SYNTHESIS_ROLE = `You are a narrative synthesis expert. Your task is to weave multiple community summaries into a single, coherent global narrative that captures the current state of the story.
-
-Focus on:
-- Macro-level relationships and tensions between communities
-- Overarching plot trajectory and unresolved conflicts
-- Thematic connections across different story threads
-- The "big picture" of what is happening in the world
-
-Write in a storytelling style that emphasizes patterns, evolution, and cause-effect relationships across communities. Your summary should feel like a narrator stepping back to describe the forest rather than individual trees.`;
+export const GLOBAL_SYNTHESIS_ROLE = `You are an automated global state synthesizer for a knowledge graph.
+Function: read community summaries → output a unified narrative state report.
+Focus: macro-level relationships, overarching tensions, plot trajectory, thematic connections across communities.`;

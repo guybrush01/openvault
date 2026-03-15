@@ -1,57 +1,69 @@
 import { describe, expect, it } from 'vitest';
 import { EVENT_ROLE } from '../../src/prompts/events/role.js';
-import { GRAPH_ROLE } from '../../src/prompts/graph/role.js';
-import { COMMUNITIES_ROLE } from '../../src/prompts/communities/role.js';
-import { QUESTIONS_ROLE, INSIGHTS_ROLE } from '../../src/prompts/reflection/role.js';
+import { GRAPH_ROLE, EDGE_CONSOLIDATION_ROLE } from '../../src/prompts/graph/role.js';
+import { COMMUNITIES_ROLE, GLOBAL_SYNTHESIS_ROLE } from '../../src/prompts/communities/role.js';
+import {
+    UNIFIED_REFLECTION_ROLE,
+    QUESTIONS_ROLE,
+    INSIGHTS_ROLE,
+} from '../../src/prompts/reflection/role.js';
 
-describe('Role exports', () => {
-    const roles = { EVENT_ROLE, GRAPH_ROLE, QUESTIONS_ROLE, INSIGHTS_ROLE, COMMUNITIES_ROLE };
+const ALL_ROLES = {
+    EVENT_ROLE,
+    GRAPH_ROLE,
+    EDGE_CONSOLIDATION_ROLE,
+    UNIFIED_REFLECTION_ROLE,
+    QUESTIONS_ROLE,
+    INSIGHTS_ROLE,
+    COMMUNITIES_ROLE,
+    GLOBAL_SYNTHESIS_ROLE,
+};
 
-    it('exports all 5 roles as non-empty strings', () => {
-        for (const [name, role] of Object.entries(roles)) {
+describe('Role exports — Mechanical framing', () => {
+    it('exports all 8 roles as non-empty strings', () => {
+        for (const [name, role] of Object.entries(ALL_ROLES)) {
             expect(typeof role, `${name} should be a string`).toBe('string');
-            expect(role.length, `${name} should be non-empty`).toBeGreaterThan(50);
+            expect(role.length, `${name} should be non-empty`).toBeGreaterThan(30);
         }
     });
 
-    it('EVENT_ROLE contains key extraction framing', () => {
-        expect(EVENT_ROLE).toContain('structured data extraction');
-        expect(EVENT_ROLE).toContain('read-only');
-        expect(EVENT_ROLE).toContain('fiction');
+    it('all roles use automated/pipeline framing', () => {
+        for (const [name, role] of Object.entries(ALL_ROLES)) {
+            expect(
+                /automated|pipeline|consolidator/i.test(role),
+                `${name} must use mechanical framing (automated/pipeline/consolidator)`,
+            ).toBe(true);
+        }
     });
 
-    it('GRAPH_ROLE contains entity extraction framing', () => {
-        expect(GRAPH_ROLE).toContain('knowledge graph');
-        expect(GRAPH_ROLE).toContain('entities');
-        expect(GRAPH_ROLE).toContain('relationships');
+    it('all roles include a Function: line', () => {
+        for (const [name, role] of Object.entries(ALL_ROLES)) {
+            expect(role, `${name} must have Function: descriptor`).toContain('Function:');
+        }
     });
 
-    it('GRAPH_ROLE contains nominative-case normalization rule', () => {
+    it('no role uses human persona framing', () => {
+        for (const [name, role] of Object.entries(ALL_ROLES)) {
+            expect(role, `${name} must not use "expert"`).not.toMatch(/\bexpert\b/i);
+            expect(role, `${name} must not use "psychologist"`).not.toMatch(/\bpsychologist\b/i);
+        }
+    });
+
+    it('GRAPH_ROLE preserves nominative-case normalization rule', () => {
         expect(GRAPH_ROLE).toContain('Nominative');
         expect(GRAPH_ROLE).toContain('base dictionary form');
-        // Must mention Russian example
         expect(GRAPH_ROLE).toContain('ошейник');
     });
 
-    it('QUESTIONS_ROLE contains psychologist framing', () => {
-        expect(QUESTIONS_ROLE).toContain('psycholog');
-        expect(QUESTIONS_ROLE).toContain('character');
+    it('EVENT_ROLE contains extraction framing', () => {
+        expect(EVENT_ROLE).toContain('event extraction');
+        expect(EVENT_ROLE).toContain('read-only');
     });
 
-    it('INSIGHTS_ROLE contains analyst framing', () => {
-        expect(INSIGHTS_ROLE).toContain('analyst');
-        expect(INSIGHTS_ROLE).toContain('insights');
-    });
-
-    it('COMMUNITIES_ROLE contains graph analyst framing', () => {
-        expect(COMMUNITIES_ROLE).toContain('knowledge graph');
-        expect(COMMUNITIES_ROLE).toContain('communities');
-    });
-
-    it('no role contains "Write in ENGLISH" or language enforcement', () => {
-        for (const [name, role] of Object.entries(roles)) {
+    it('no role enforces a specific output language', () => {
+        for (const [name, role] of Object.entries(ALL_ROLES)) {
             expect(role, `${name} must not enforce English`).not.toContain('Write in ENGLISH');
-            expect(role, `${name} must not enforce English`).not.toContain('in English');
+            expect(role, `${name} must not enforce English output`).not.toContain('in English');
         }
     });
 });

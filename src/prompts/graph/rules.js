@@ -11,7 +11,16 @@ export const GRAPH_RULES = `Extract ALL named entities mentioned or clearly impl
 
 Also extract relationships between pairs of entities when the connection is stated or clearly implied.
 
-IMPORTANT: Extract entities and relationships even when no events are extracted. Entity data builds world knowledge over time and is always valuable.`;
+IMPORTANT: Extract entities and relationships even when no events are extracted. Entity data builds world knowledge over time and is always valuable.
+
+<thinking_process>
+Follow these steps IN ORDER. Write your work inside <thinking>... </thinking> tags BEFORE outputting the JSON:
+
+Step 1: Entity scan — List every named entity mentioned or implied. Include type (PERSON, PLACE, ORGANIZATION, OBJECT, CONCEPT).
+Step 2: Type validation — Verify each entity type against the allowed set. Skip mundane objects unless plot-critical.
+Step 3: Relationship map — For each entity pair with a stated or implied connection, note the direction and nature.
+Step 4: Output — Count entities and relationships, then produce the final JSON.
+</thinking_process>`;
 
 export const EDGE_CONSOLIDATION_RULES = `1. Summarize the CURRENT dynamic, but preserve critical historical shifts.
 2. For example: "Started as enemies, but allied after the dragon incident; now close friends."

@@ -2,9 +2,7 @@
  * JSON output schemas for reflection, question, and insight prompts.
  */
 
-export const UNIFIED_REFLECTION_SCHEMA = `You MUST respond with EXACTLY ONE JSON object. No other text, no markdown fences, no commentary.
-
-The JSON object MUST have this EXACT structure:
+export const UNIFIED_REFLECTION_SCHEMA = `Output EXACTLY ONE JSON object with this structure:
 
 {
   "reflections": [
@@ -16,35 +14,28 @@ The JSON object MUST have this EXACT structure:
   ]
 }
 
-CRITICAL FORMAT RULES:
-1. The top level MUST be a JSON object { }, NEVER a bare array [ ].
-2. The "reflections" array MUST contain 1 to 3 reflection objects.
-3. Each reflection MUST have "question", "insight" (strings) and "evidence_ids" (array of strings).
-4. Do NOT wrap output in markdown code blocks.
-5. You MAY use <thinking> tags for reasoning before providing the JSON.
-   The JSON object must still be valid and parseable.
+FORMAT RULES:
+1. Top level MUST be a JSON object { }, NEVER a bare array [ ].
+2. "reflections" array MUST contain 1-3 items, each with "question", "insight" (strings) and "evidence_ids" (array of strings).
+3. Do NOT wrap in markdown code blocks.
+4. NEVER use string concatenation ("+") inside JSON values. Write all text as a single, unbroken line within the quotes.
 
 CRITICAL ID GROUNDING RULE:
-For "evidence_ids", you MUST ONLY use the exact IDs shown in the <recent_memories> list.
-Do NOT invent, hallucinate, or modify IDs. If you cannot find the exact ID in the list, use an empty array [].`;
+"evidence_ids" MUST ONLY use exact IDs from the <recent_memories> list. Do NOT invent or modify IDs.`;
 
-export const QUESTIONS_SCHEMA = `You MUST respond with EXACTLY ONE JSON object. No other text, no markdown fences, no commentary.
-
-The JSON object MUST have this EXACT structure:
+export const QUESTIONS_SCHEMA = `Output EXACTLY ONE JSON object with this structure:
 
 {
   "questions": ["question 1", "question 2", "question 3"]
 }
 
-CRITICAL FORMAT RULES:
-1. The top level MUST be a JSON object { }, NEVER a bare array [ ].
-2. The "questions" array MUST contain EXACTLY 3 strings.
-3. Do NOT wrap output in markdown code blocks.
-4. Do NOT include ANY text outside the JSON object.`;
+FORMAT RULES:
+1. Top level MUST be a JSON object { }, NEVER a bare array [ ].
+2. "questions" array MUST contain EXACTLY 3 strings.
+3. Do NOT wrap in markdown code blocks.
+4. NEVER use string concatenation ("+") inside JSON values. Write all text as a single, unbroken line within the quotes.`;
 
-export const INSIGHTS_SCHEMA = `You MUST respond with EXACTLY ONE JSON object. No other text, no markdown fences, no commentary.
-
-The JSON object MUST have this EXACT structure:
+export const INSIGHTS_SCHEMA = `Output EXACTLY ONE JSON object with this structure:
 
 {
   "insights": [
@@ -55,9 +46,8 @@ The JSON object MUST have this EXACT structure:
   ]
 }
 
-CRITICAL FORMAT RULES:
-1. The top level MUST be a JSON object { }, NEVER a bare array [ ].
-2. The "insights" array MUST contain 1 to 3 insight objects.
-3. Each insight MUST have both "insight" (string) and "evidence_ids" (array of strings).
-4. Do NOT wrap output in markdown code blocks.
-5. Do NOT include ANY text outside the JSON object.`;
+FORMAT RULES:
+1. Top level MUST be a JSON object { }, NEVER a bare array [ ].
+2. "insights" array MUST contain 1-3 items, each with "insight" (string) and "evidence_ids" (array of strings).
+3. Do NOT wrap in markdown code blocks.
+4. NEVER use string concatenation ("+") inside JSON values. Write all text as a single, unbroken line within the quotes.`;

@@ -2,9 +2,7 @@
  * JSON output schemas for community summarization and global synthesis.
  */
 
-export const COMMUNITY_SCHEMA = `You MUST respond with EXACTLY ONE JSON object. No other text, no markdown fences, no commentary.
-
-The JSON object MUST have this EXACT structure:
+export const COMMUNITY_SCHEMA = `Output EXACTLY ONE JSON object with this structure:
 
 {
   "title": "Short name for this community (2-5 words)",
@@ -12,26 +10,20 @@ The JSON object MUST have this EXACT structure:
   "findings": ["finding 1", "finding 2"]
 }
 
-CRITICAL FORMAT RULES:
-1. The top level MUST be a JSON object { }, NEVER a bare array [ ].
-2. "title" must be a short, specific name (2-5 words).
-3. "summary" must be a comprehensive paragraph.
-4. "findings" must be an array of 1-5 strings, each a key insight about the community.
-5. Do NOT wrap output in markdown code blocks.
-6. You MAY use <thinking> tags for reasoning before providing the JSON.
-   The JSON object must still be valid and parseable.`;
+FORMAT RULES:
+1. Top level MUST be a JSON object { }, NEVER a bare array [ ].
+2. "title": short specific name (2-5 words). "summary": comprehensive paragraph. "findings": 1-5 strings.
+3. Do NOT wrap in markdown code blocks.
+4. NEVER use string concatenation ("+") inside JSON values. Write all text as a single, unbroken line within the quotes.`;
 
-export const GLOBAL_SYNTHESIS_SCHEMA = `You MUST respond with EXACTLY ONE JSON object. No other text, no markdown fences, no commentary.
-
-The JSON object MUST have this EXACT structure:
+export const GLOBAL_SYNTHESIS_SCHEMA = `Output EXACTLY ONE JSON object with this structure:
 
 {
   "global_summary": "A 300-token overarching summary of the current story state"
 }
 
-CRITICAL FORMAT RULES:
-1. The top level MUST be a JSON object { }, NEVER a bare array [ ].
+FORMAT RULES:
+1. Top level MUST be a JSON object { }, NEVER a bare array [ ].
 2. "global_summary" must be a single comprehensive string.
-3. Do NOT wrap output in markdown code blocks.
-4. You MAY use <thinking> tags for reasoning before providing the JSON.
-   The JSON object must still be valid and parseable.`;
+3. Do NOT wrap in markdown code blocks.
+4. NEVER use string concatenation ("+") inside JSON values. Write all text as a single, unbroken line within the quotes.`;

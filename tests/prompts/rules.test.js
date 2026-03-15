@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MIRROR_LANGUAGE_RULES } from '../../src/prompts/rules.js';
+import { MIRROR_LANGUAGE_RULES } from '../../src/prompts/shared/rules.js';
 
 describe('MIRROR_LANGUAGE_RULES', () => {
     it('is a non-empty string', () => {

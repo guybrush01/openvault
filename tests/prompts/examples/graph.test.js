@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { GRAPH_EXAMPLES } from '../../../src/prompts/examples/graph.js';
+import { getExamples } from '../../../src/prompts/graph/examples/index.js';
+const GRAPH_EXAMPLES = getExamples('auto');
 
 /**
  * Extract JSON from output that may contain <thinking> tags.

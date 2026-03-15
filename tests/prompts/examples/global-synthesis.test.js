@@ -1,4 +1,5 @@
-import { GLOBAL_SYNTHESIS_EXAMPLES } from '../../../src/prompts/examples/global-synthesis.js';
+import { getExamples } from '../../../src/prompts/communities/examples/index.js';
+const GLOBAL_SYNTHESIS_EXAMPLES = getExamples('GLOBAL_SYNTHESIS', 'auto');
 
 /**
  * Extract JSON from output that may contain <thinking> tags.
@@ -33,10 +34,11 @@ describe('GLOBAL_SYNTHESIS_EXAMPLES', () => {
         });
     });
 
-    it('all outputs have <thinking> tags before JSON', () => {
+    it('all examples have non-empty thinking field', () => {
         for (const ex of GLOBAL_SYNTHESIS_EXAMPLES) {
-            expect(ex.output).toContain('<thinking>');
-            expect(ex.output).toContain('</thinking>');
+            expect(ex).toHaveProperty('thinking');
+            expect(typeof ex.thinking).toBe('string');
+            expect(ex.thinking.length).toBeGreaterThan(10);
         }
     });
 

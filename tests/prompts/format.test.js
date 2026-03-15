@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatExamples } from '../../src/prompts/examples/format.js';
+import { formatExamples } from '../../src/prompts/shared/format-examples.js';
 
 describe('formatExamples', () => {
     it('wraps each example in numbered XML tags', () => {

@@ -160,10 +160,11 @@ export function safeParseJSON(input) {
         // 3. Cut-off dangling plus at EOF or followed by whitespace/EOF: "text" + \n -> "text"
         cleanedInput = cleanedInput.replace(/(?<!\\)(["'])\s*[+＋]\s*(?:\r?\n)?\s*$/g, "$1");
 
-        // 4. NEW: Strip unclosed string quotes at the very end of truncated outputs 
-        // to help jsonrepair reconstruct the array.
-        if (cleanedInput.match(/(?<!\\)["'][^"']*$/)) {
-            cleanedInput = cleanedInput + '"]}]}'; // Blindly pad brackets, jsonrepair will untangle it
+        // 4. Pad truncated outputs: odd number of unescaped " means an unclosed string
+        const withoutEscapedQuotes = cleanedInput.replace(/\\"/g, '');
+        const unescapedQuoteCount = (withoutEscapedQuotes.match(/"/g) || []).length;
+        if (unescapedQuoteCount % 2 !== 0) {
+            cleanedInput = cleanedInput + '"]}]}'; // Pad brackets, jsonrepair will untangle
         }
 
         // Pass sanitized string to repair library

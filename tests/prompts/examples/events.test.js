@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { EVENT_EXAMPLES } from '../../../src/prompts/examples/events.js';
+import { getExamples } from '../../../src/prompts/events/examples/index.js';
+const EVENT_EXAMPLES = getExamples('auto');
 
 describe('EVENT_EXAMPLES', () => {
     it('exports exactly 10 examples', () => {

@@ -338,7 +338,7 @@ describe('CN preamble and assistant prefill', () => {
             context: {},
         });
         expect(result[2].role).toBe('assistant');
-        expect(result[2].content).toBe('<think>\n');
+        expect(result[2].content).toBe('<thinking>\n');
     });
 
     it('non-think prompts use provided prefill', () => {
@@ -423,7 +423,7 @@ describe('defaultSettings preamble/prefill keys', () => {
     });
 
     it('has extractionPrefill defaulting to think_tag', () => {
-        expect(defaultSettings.extractionPrefill).toBe('think_tag');
+        expect(defaultSettings.extractionPrefill).toBe('cn_compliance');
     });
 
     it('has outputLanguage defaulting to auto', () => {
@@ -477,7 +477,7 @@ describe('buildMessages via buildEventExtractionPrompt', () => {
             names: { char: 'Alice', user: 'Bob' },
         });
         expect(result).toHaveLength(3);
-        expect(result[2].content).toBe('<think>\n');
+        expect(result[2].content).toBe('<thinking>\n');
     });
 });
 

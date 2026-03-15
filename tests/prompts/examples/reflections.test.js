@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { UNIFIED_REFLECTION_EXAMPLES } from '../../../src/prompts/examples/reflections.js';
+import { getExamples } from '../../../src/prompts/reflection/examples/index.js';
+const UNIFIED_REFLECTION_EXAMPLES = getExamples('REFLECTIONS', 'auto');
 
 /**
  * Extract JSON from output that may contain <thinking> tags.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { QUESTION_EXAMPLES } from '../../../src/prompts/examples/questions.js';
+import { getExamples } from '../../../src/prompts/reflection/examples/index.js';
+const QUESTION_EXAMPLES = getExamples('QUESTIONS', 'auto');
 
 /**
  * Extract JSON from output that may contain <thinking> tags.

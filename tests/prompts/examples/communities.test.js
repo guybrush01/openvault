@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { COMMUNITY_EXAMPLES } from '../../../src/prompts/examples/communities.js';
+import { getExamples } from '../../../src/prompts/communities/examples/index.js';
+const COMMUNITY_EXAMPLES = getExamples('COMMUNITIES', 'auto');
 
 /**
  * Extract JSON from output that may contain <thinking> tags.
@@ -19,12 +20,14 @@ describe('COMMUNITY_EXAMPLES', () => {
         expect(COMMUNITY_EXAMPLES).toHaveLength(6);
     });
 
-    it('each example has label, input, output (no thinking)', () => {
+    it('each example has label, input, output, and thinking', () => {
         for (const ex of COMMUNITY_EXAMPLES) {
             expect(ex).toHaveProperty('label');
             expect(ex).toHaveProperty('input');
             expect(ex).toHaveProperty('output');
-            expect(ex.thinking).toBeUndefined();
+            expect(ex).toHaveProperty('thinking');
+            expect(typeof ex.thinking).toBe('string');
+            expect(ex.thinking.length).toBeGreaterThan(10);
         }
     });
 
@@ -54,10 +57,10 @@ describe('COMMUNITY_EXAMPLES', () => {
         }
     });
 
-    it('all outputs have <thinking> tags before JSON', () => {
+    it('all examples have non-empty thinking field', () => {
         for (const ex of COMMUNITY_EXAMPLES) {
-            expect(ex.output).toContain('<thinking>');
-            expect(ex.output).toContain('</thinking>');
+            expect(typeof ex.thinking).toBe('string');
+            expect(ex.thinking.length).toBeGreaterThan(10);
         }
     });
 });

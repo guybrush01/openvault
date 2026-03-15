@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { COMMUNITIES_ROLE, EVENT_ROLE, GRAPH_ROLE, INSIGHTS_ROLE, QUESTIONS_ROLE } from '../../src/prompts/roles.js';
+import { EVENT_ROLE } from '../../src/prompts/events/role.js';
+import { GRAPH_ROLE } from '../../src/prompts/graph/role.js';
+import { COMMUNITIES_ROLE } from '../../src/prompts/communities/role.js';
+import { QUESTIONS_ROLE, INSIGHTS_ROLE } from '../../src/prompts/reflection/role.js';
 
 describe('Role exports', () => {
     const roles = { EVENT_ROLE, GRAPH_ROLE, QUESTIONS_ROLE, INSIGHTS_ROLE, COMMUNITIES_ROLE };

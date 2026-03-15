@@ -122,7 +122,7 @@ Worker (`src/extraction/worker.js`) is single-instance, interruptible (checks `w
 - *SFW→Kink Gradient*: Examples progress from safe to explicit content, calibrating model compliance.
 - *Graph Normalization*: Entity names extracted in nominative/base form to prevent morphological duplicates. Names preserved in original script (Suzy stays Latin, Саша stays Cyrillic).
 - *Stem-Augmented Overlap*: `hasSufficientTokenOverlap()` uses `stemWord()` to catch Russian inflected variants (Check 4).
-- *Prompt Modules*: `src/prompts/` contains `rules.js` (shared language rules), `roles.js` (role definitions), `examples/` (bilingual few-shots), `examples/format.js` (XML formatter).
+- *Prompt Modules*: Domain-based structure in `src/prompts/`: `shared/` (formatters, preambles, rules, format-examples), `events/` (event extraction), `graph/` (entity/relationship extraction), `reflection/` (unified reflection), `communities/` (community summaries). All builder functions re-exported via `src/prompts/index.js` barrel file. Bilingual few-shot examples in per-domain `examples/` subdirectories (en.js, ru.js).
 
 **Event Dedup**: Two-phase filtering in `filterSimilarEvents()`:
 - *Phase 1 (Cross-batch)*: Cosine similarity >= threshold AND Jaccard token overlap >= half the Jaccard threshold. Dual-gate prevents false positives where semantically similar but lexically different events share structure (e.g., same actors, different acts).

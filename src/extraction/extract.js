@@ -52,6 +52,7 @@ import { buildCommunityGroups, detectCommunities, updateCommunitySummaries } fro
 import {
     consolidateEdges,
     expandMainCharacterKeys,
+    findCrossScriptCharacterKeys,
     initGraphState,
     mergeOrInsertEntity,
     normalizeKey,
@@ -630,6 +631,8 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
                     // Derive node keys for main characters (user + char) to prune hairball edges
                     const baseKeys = [normalizeKey(characterName), normalizeKey(userName)];
                     const mainCharacterKeys = expandMainCharacterKeys(baseKeys, data.graph.nodes || {});
+                    const crossScriptKeys = findCrossScriptCharacterKeys(baseKeys, data.graph.nodes || {});
+                    mainCharacterKeys.push(...crossScriptKeys.filter((k) => !mainCharacterKeys.includes(k)));
                     const communityResult = detectCommunities(data.graph, mainCharacterKeys);
                     if (communityResult) {
                         // Consolidate bloated edges before summarization
@@ -753,6 +756,8 @@ export async function runPhase2Enrichment(data, settings, targetChatId) {
         try {
             const baseKeys = [normalizeKey(characterName), normalizeKey(userName)];
             const mainCharacterKeys = expandMainCharacterKeys(baseKeys, data.graph.nodes || {});
+            const crossScriptKeys = findCrossScriptCharacterKeys(baseKeys, data.graph.nodes || {});
+            mainCharacterKeys.push(...crossScriptKeys.filter((k) => !mainCharacterKeys.includes(k)));
             const communityResult = detectCommunities(data.graph, mainCharacterKeys);
             if (communityResult) {
                 // Consolidate bloated edges before summarization

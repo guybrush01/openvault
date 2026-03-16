@@ -80,8 +80,51 @@ import { createLadderQueue } from '../utils/queue.js';
 import { isExtensionEnabled, safeSetExtensionPrompt, yieldToMain } from '../utils/st-helpers.js';
 import { sliceToTokenBudget, sortMemoriesBySequence } from '../utils/text.js';
 import { countTokens, getMessageTokenCount } from '../utils/tokens.js';
+import { resolveCharacterName, transliterateCyrToLat } from '../utils/transliterate.js';
 import { getBackfillMessageIds, getExtractedMessageIds, getNextBatch } from './scheduler.js';
 import { parseEventExtractionResponse, parseGraphExtractionResponse } from './structured.js';
+
+/**
+ * Canonicalize character names in extracted events by resolving cross-script
+ * variants (e.g., Cyrillic "Мина" → English "Mina") against known canonical names.
+ * Mutates events in place.
+ *
+ * @param {Object[]} events - Extracted events (mutated)
+ * @param {string[]} contextNames - Known context character names (e.g., [characterName, userName])
+ * @param {Object} graphNodes - Graph nodes keyed by normalized name
+ */
+function canonicalizeEventCharNames(events, contextNames, graphNodes) {
+    // Build canonical name registry: context names + all PERSON graph node names
+    const canonicalNames = [...contextNames];
+    for (const [, node] of Object.entries(graphNodes || {})) {
+        if (node.type === 'PERSON' && !canonicalNames.includes(node.name)) {
+            canonicalNames.push(node.name);
+        }
+    }
+
+    if (canonicalNames.length === 0) return;
+
+    function resolve(name) {
+        const match = resolveCharacterName(name, canonicalNames);
+        return match || name;
+    }
+
+    for (const event of events) {
+        if (event.characters_involved) {
+            event.characters_involved = [...new Set(event.characters_involved.map(resolve))];
+        }
+        if (event.witnesses) {
+            event.witnesses = [...new Set(event.witnesses.map(resolve))];
+        }
+        if (event.emotional_impact) {
+            const newImpact = {};
+            for (const [charName, emotion] of Object.entries(event.emotional_impact)) {
+                newImpact[resolve(charName)] = emotion;
+            }
+            event.emotional_impact = newImpact;
+        }
+    }
+}
 
 /**
  * Update character states based on extracted events
@@ -93,11 +136,29 @@ export function updateCharacterStatesFromEvents(events, data, validCharNames = [
     data[CHARACTERS_KEY] = data[CHARACTERS_KEY] || {};
 
     // Build valid set from known names + all characters_involved from current events
-    const validSet = new Set(validCharNames.map((n) => n.toLowerCase()));
+    // Include both original names and their transliterations for cross-script matching
+    const validSet = new Set();
+    for (const n of validCharNames) {
+        const lower = n.toLowerCase();
+        validSet.add(lower);
+        const translit = transliterateCyrToLat(lower);
+        if (translit !== lower) validSet.add(translit);
+    }
     for (const event of events) {
         for (const char of event.characters_involved || []) {
-            validSet.add(char.toLowerCase());
+            const lower = char.toLowerCase();
+            validSet.add(lower);
+            const translit = transliterateCyrToLat(lower);
+            if (translit !== lower) validSet.add(translit);
         }
+    }
+
+    const CYRILLIC_RE = /\p{Script=Cyrillic}/u;
+    function isValid(name) {
+        const lower = name.toLowerCase();
+        if (validSet.has(lower)) return true;
+        if (CYRILLIC_RE.test(lower)) return validSet.has(transliterateCyrToLat(lower));
+        return false;
     }
 
     for (const event of events) {
@@ -110,7 +171,7 @@ export function updateCharacterStatesFromEvents(events, data, validCharNames = [
         if (event.emotional_impact) {
             for (const [charName, emotion] of Object.entries(event.emotional_impact)) {
                 // Validate character name before creating state entry
-                if (!validSet.has(charName.toLowerCase())) {
+                if (!isValid(charName)) {
                     logDebug(`Skipping invalid character name "${charName}" in emotional_impact`);
                     continue;
                 }
@@ -136,7 +197,7 @@ export function updateCharacterStatesFromEvents(events, data, validCharNames = [
         // Add event to witnesses' knowledge
         for (const witness of event.witnesses || []) {
             // Validate character name before creating state entry
-            if (!validSet.has(witness.toLowerCase())) {
+            if (!isValid(witness)) {
                 logDebug(`Skipping invalid character name "${witness}" in witnesses`);
                 continue;
             }
@@ -166,18 +227,31 @@ export function cleanupCharacterStates(data, validCharNames = []) {
     if (!data[CHARACTERS_KEY]) return;
 
     // Build valid set from known names + all characters_involved from memories
-    const validSet = new Set(validCharNames.map((n) => n.toLowerCase()));
+    // Include both original names and their transliterations for cross-script matching
+    const validSet = new Set();
+    for (const n of validCharNames) {
+        const lower = n.toLowerCase();
+        validSet.add(lower);
+        const translit = transliterateCyrToLat(lower);
+        if (translit !== lower) validSet.add(translit);
+    }
     const memories = data[MEMORIES_KEY] || [];
     for (const memory of memories) {
         for (const char of memory.characters_involved || []) {
-            validSet.add(char.toLowerCase());
+            const lower = char.toLowerCase();
+            validSet.add(lower);
+            const translit = transliterateCyrToLat(lower);
+            if (translit !== lower) validSet.add(translit);
         }
     }
 
     // Remove character state entries that are not in the valid set
+    const CYRILLIC_RE = /\p{Script=Cyrillic}/u;
     const removedEntries = [];
     for (const charName of Object.keys(data[CHARACTERS_KEY])) {
-        if (!validSet.has(charName.toLowerCase())) {
+        const lower = charName.toLowerCase();
+        const isValid = validSet.has(lower) || (CYRILLIC_RE.test(lower) && validSet.has(transliterateCyrToLat(lower)));
+        if (!isValid) {
             removedEntries.push(charName);
             delete data[CHARACTERS_KEY][charName];
         }
@@ -527,8 +601,7 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
                     entity.type,
                     entity.description,
                     entityCap,
-                    settings,
-                    [characterName, userName]
+                    settings
                 );
             }
             record(
@@ -552,6 +625,8 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
         const maxId = processedIds.length > 0 ? Math.max(...processedIds) : 0;
 
         if (events.length > 0) {
+            // Canonicalize cross-script character names before downstream consumption
+            canonicalizeEventCharNames(events, [characterName, userName], data.graph?.nodes);
             data[MEMORIES_KEY] = data[MEMORIES_KEY] || [];
             data[MEMORIES_KEY].push(...events);
             updateCharacterStatesFromEvents(events, data, [characterName, userName]);

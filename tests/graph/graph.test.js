@@ -441,15 +441,14 @@ describe('mergeOrInsertEntity', () => {
             mentions: 28,
         };
 
-        // Act: insert Cyrillic variant with mainCharacterNames
+        // Act: insert Cyrillic variant — universal cross-script merge
         const key = await mergeOrInsertEntity(
             graphData,
             'Сузи',
             'PERSON',
             'Главная героиня',
             3,
-            { entityMergeSimilarityThreshold: 0.95 },
-            ['Suzy', 'Vova']
+            { entityMergeSimilarityThreshold: 0.95 }
         );
 
         // Assert: merged into existing English node
@@ -476,8 +475,7 @@ describe('mergeOrInsertEntity', () => {
             'OBJECT',
             'Some object named Сузи',
             3,
-            { entityMergeSimilarityThreshold: 0.95 },
-            ['Suzy']
+            { entityMergeSimilarityThreshold: 0.95 }
         );
 
         // Should create a new node, not merge
@@ -485,15 +483,67 @@ describe('mergeOrInsertEntity', () => {
         expect(graphData.nodes.сузи).toBeDefined();
     });
 
-    it('works without mainCharacterNames (backward compatible)', async () => {
-        // Existing behavior: no cross-script check when param not provided
+    it('creates new node when no existing PERSON nodes match cross-script', async () => {
+        // No existing PERSON nodes in graph, so no cross-script match possible
         const key = await mergeOrInsertEntity(graphData, 'Сузи', 'PERSON', 'Some person', 3, {
             entityMergeSimilarityThreshold: 0.95,
         });
 
-        // Creates new node since no embedding match and no cross-script names
+        // Creates new node since no existing PERSON nodes to match against
         expect(key).toBe('сузи');
         expect(graphData.nodes.сузи).toBeDefined();
+    });
+
+    it('merges secondary character Cyrillic variant into existing Latin PERSON node', async () => {
+        // Setup: existing English "Mina" node (NOT a main character)
+        graphData.nodes.mina = {
+            name: 'Mina',
+            type: 'PERSON',
+            description: 'A friend',
+            mentions: 5,
+        };
+
+        // Act: insert Cyrillic "Мина" — no mainCharacterNames needed
+        const key = await mergeOrInsertEntity(
+            graphData,
+            'Мина',
+            'PERSON',
+            'Подруга',
+            3,
+            { entityMergeSimilarityThreshold: 0.95 }
+        );
+
+        // Assert: merged into existing Latin node
+        expect(key).toBe('mina');
+        expect(graphData.nodes.mina.aliases).toContain('Мина');
+        expect(graphData.nodes.мина).toBeUndefined();
+        expect(graphData._mergeRedirects?.мина).toBe('mina');
+    });
+
+    it('merges Latin PERSON into existing Cyrillic node (reverse direction)', async () => {
+        // Setup: Cyrillic node exists first
+        graphData.nodes.мина = {
+            name: 'Мина',
+            type: 'PERSON',
+            description: 'Подруга',
+            mentions: 5,
+        };
+
+        // Act: insert Latin "Mina"
+        const key = await mergeOrInsertEntity(
+            graphData,
+            'Mina',
+            'PERSON',
+            'A friend',
+            3,
+            { entityMergeSimilarityThreshold: 0.95 }
+        );
+
+        // Assert: merged into existing Cyrillic node (first-inserted wins)
+        expect(key).toBe('мина');
+        expect(graphData.nodes.мина.aliases).toContain('Mina');
+        expect(graphData.nodes.mina).toBeUndefined();
+        expect(graphData._mergeRedirects?.mina).toBe('мина');
     });
 });
 

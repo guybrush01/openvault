@@ -3,6 +3,8 @@ import { cdnImport } from './cdn.js';
 const CyrillicToTranslit = (await cdnImport('cyrillic-to-translit-js')).default;
 const translit = new CyrillicToTranslit({ preset: 'ru' });
 
+export const CYRILLIC_RE = /\p{Script=Cyrillic}/u;
+
 /**
  * Transliterate a Cyrillic string to Latin characters.
  * Non-Cyrillic characters pass through unchanged.
@@ -44,4 +46,41 @@ export function levenshteinDistance(a, b) {
         [prev, curr] = [curr, prev];
     }
     return prev[b.length];
+}
+
+/**
+ * Resolve a character name against a list of known canonical names,
+ * supporting cross-script matching via transliteration + Levenshtein distance.
+ *
+ * @param {string} name - Character name to resolve (may be Cyrillic or Latin)
+ * @param {string[]} canonicalNames - Known canonical character names
+ * @param {number} [maxDistance=2] - Maximum Levenshtein distance for fuzzy matching
+ * @returns {string|null} Matching canonical name, or null if no match
+ */
+export function resolveCharacterName(name, canonicalNames, maxDistance = 2) {
+    const lower = name.toLowerCase();
+
+    // Exact case-insensitive match
+    for (const canonical of canonicalNames) {
+        if (canonical.toLowerCase() === lower) return canonical;
+    }
+
+    // Cross-script match via transliteration
+    const isCyrillic = CYRILLIC_RE.test(lower);
+    if (isCyrillic) {
+        const translit = transliterateCyrToLat(lower);
+        for (const canonical of canonicalNames) {
+            if (!CYRILLIC_RE.test(canonical) && levenshteinDistance(translit, canonical.toLowerCase()) <= maxDistance) {
+                return canonical;
+            }
+        }
+    } else {
+        for (const canonical of canonicalNames) {
+            if (CYRILLIC_RE.test(canonical) && levenshteinDistance(transliterateCyrToLat(canonical.toLowerCase()), lower) <= maxDistance) {
+                return canonical;
+            }
+        }
+    }
+
+    return null;
 }

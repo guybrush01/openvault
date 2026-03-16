@@ -375,7 +375,7 @@ export function shouldMergeEntities(cosine, threshold, tokensA, keyA, keyB) {
     return false;
 }
 
-export async function mergeOrInsertEntity(graphData, name, type, description, cap, settings, mainCharacterNames = []) {
+export async function mergeOrInsertEntity(graphData, name, type, description, cap, settings) {
     const key = normalizeKey(name);
 
     // Fast path: exact key match
@@ -384,25 +384,34 @@ export async function mergeOrInsertEntity(graphData, name, type, description, ca
         return key;
     }
 
-    // Cross-script merge: if this is a PERSON entity and its transliterated name
-    // matches a known main character, force-merge to prevent character duplication.
-    // This happens BEFORE embedding lookup so it works even when embeddings are unavailable.
-    if (type === 'PERSON' && mainCharacterNames.length > 0) {
-        const transliterated = transliterateCyrToLat(key);
-        for (const mainName of mainCharacterNames) {
-            const mainKey = normalizeKey(mainName);
-            if (graphData.nodes[mainKey] && levenshteinDistance(transliterated, mainKey) <= 2) {
+    // Universal cross-script merge: if this is a PERSON entity, check all existing
+    // PERSON nodes for transliteration matches to prevent cross-script duplicates
+    // (e.g., "Мина" vs "Mina", "Сузи" vs "Suzy").
+    if (type === 'PERSON') {
+        const CYRILLIC_RE = /\p{Script=Cyrillic}/u;
+        const keyIsCyrillic = CYRILLIC_RE.test(key);
+
+        for (const [existingKey, node] of Object.entries(graphData.nodes)) {
+            if (node.type !== 'PERSON') continue;
+
+            const existingIsCyrillic = CYRILLIC_RE.test(existingKey);
+            if (keyIsCyrillic === existingIsCyrillic) continue; // same script, skip
+
+            const cyrKey = keyIsCyrillic ? key : existingKey;
+            const latKey = keyIsCyrillic ? existingKey : key;
+
+            if (levenshteinDistance(transliterateCyrToLat(cyrKey), latKey) <= 2) {
                 logDebug(
-                    `[graph] Cross-script merge: "${name}" (${key}) → "${graphData.nodes[mainKey].name}" (${mainKey}), transliterated: "${transliterated}"`
+                    `[graph] Cross-script merge: "${name}" (${key}) → "${node.name}" (${existingKey}), transliterated: "${transliterateCyrToLat(cyrKey)}"`
                 );
-                upsertEntity(graphData, graphData.nodes[mainKey].name, type, description, cap);
-                if (!graphData.nodes[mainKey].aliases) graphData.nodes[mainKey].aliases = [];
-                graphData.nodes[mainKey].aliases.push(name);
+                upsertEntity(graphData, node.name, type, description, cap);
+                if (!node.aliases) node.aliases = [];
+                node.aliases.push(name);
                 if (!graphData._mergeRedirects) graphData._mergeRedirects = {};
-                if (key !== mainKey) {
-                    graphData._mergeRedirects[key] = mainKey;
+                if (key !== existingKey) {
+                    graphData._mergeRedirects[key] = existingKey;
                 }
-                return mainKey;
+                return existingKey;
             }
         }
     }

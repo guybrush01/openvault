@@ -374,6 +374,40 @@ describe('updateCharacterStatesFromEvents', () => {
         expect(mockData.character_states.Queen).toBeDefined();
         expect(mockData.character_states.Queen.current_emotion).toBe('worried');
     });
+
+    it('accepts Cyrillic witness name matching Latin characters_involved via transliteration', () => {
+        const events = [
+            {
+                id: 'event_1',
+                characters_involved: ['Mina'],
+                witnesses: ['Мина'],
+            },
+        ];
+
+        updateCharacterStatesFromEvents(events, mockData, ['Suzy', 'Vova']);
+
+        // "Мина" should be accepted (transliterates to "mina" matching "Mina" from characters_involved)
+        expect(mockData.character_states['Мина']).toBeDefined();
+        expect(mockData.character_states['Мина'].known_events).toContain('event_1');
+    });
+
+    it('accepts Cyrillic emotional_impact name matching Latin validCharNames via transliteration', () => {
+        const events = [
+            {
+                id: 'event_1',
+                emotional_impact: {
+                    'Мина': 'surprised',
+                },
+                characters_involved: ['Mina'],
+                message_ids: [1],
+            },
+        ];
+
+        updateCharacterStatesFromEvents(events, mockData, ['Suzy', 'Vova']);
+
+        expect(mockData.character_states['Мина']).toBeDefined();
+        expect(mockData.character_states['Мина'].current_emotion).toBe('surprised');
+    });
 });
 
 describe('cleanupCharacterStates', () => {

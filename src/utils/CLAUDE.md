@@ -56,3 +56,9 @@
 - `transliterateCyrToLat(str)`: Cyrillic→Latin via `cyrillic-to-translit-js` (CDN import, Russian preset). Always lowercased.
 - `levenshteinDistance(a, b)`: Standard O(n*m) edit distance. Used for fuzzy cross-script name matching (threshold: ≤ 2).
 - **Use case**: Detecting that "Сузи" = "Suzy" and "Вова" = "Vova" across Cyrillic/Latin scripts for character deduplication.
+
+### `queue.js`
+- `createLadderQueue(maxConcurrency)`: AIMD-governed wrapper around `p-queue`. Implements Additive Increase / Multiplicative Decrease concurrency scaling.
+  - **Additive Increase**: On success, climbs by +0.5 toward `maxConcurrency` ceiling.
+  - **Multiplicative Decrease**: On 429/timeout, halves concurrency (floor 1) and pauses queue for 4000ms cooloff.
+- **Use case**: Phase 2 enrichment parallelism (community summarization, edge consolidation, reflection generation). Phase 1 extraction remains sequential — do NOT use there.

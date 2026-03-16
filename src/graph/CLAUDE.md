@@ -23,13 +23,14 @@ Prevents duplicate nodes (e.g., "The King" vs "King Aldric"). Uses `shouldMergeE
    - **Below grey zone**: Skip (no merge).
 3. **Token Overlap Guard** (grey zone only): Strips base EN+RU stopwords (via `stopword` lib). Requires >= 60% stem/token overlap OR direct substring match OR fuzzy LCS match (≥ 70% ratio AND ≥ 4 absolute chars; short keys ≤ 4 chars: ≥ 60% ratio AND ≥ 2 chars).
 4. **Aliases**: If merged, the absorbed name is pushed to the surviving node's `aliases` array for future retrieval matching.
+4b. **Cross-Script Merge** (PERSON only): Before creating a new node, `mergeOrInsertEntity` checks if the transliterated name matches any known main character (Levenshtein ≤ 2). Force-merges Cyrillic variants (Сузи→Suzy, Вова→Vova) into the English node. English name stays primary, Cyrillic added as alias.
 5. **Redirects**: Transient `_mergeRedirects` map ensures edges pointing to the old node route to the merged one.
 
 ## GRAPHRAG COMMUNITIES (`communities.js`)
 - **Trigger**: Every 50 messages during extraction.
 - **Algorithm**: `graphology-communities-louvain` on an undirected graph.
 - **Edge Consolidation**: Runs before summarization (`consolidateEdges()`). Processes bloated edges flagged in `_edgesNeedingConsolidation` queue.
-- **Hairball Prevention**: Edges involving main characters (User/Char + their aliases) are attenuated by `MAIN_CHARACTER_ATTENUATION` (95% weight reduction) instead of dropped. Prevents the "protagonist hairball" without orphaning objects in hub-and-spoke topologies. Nodes re-anchored to strongest neighbor's community using original un-attenuated weights after Louvain. Fallback for tiny graphs (< 3 nodes) uses logarithmic weight scaling + resolution bump.
+- **Hairball Prevention**: Edges involving main characters (User/Char + their aliases) are attenuated by `MAIN_CHARACTER_ATTENUATION` (95% weight reduction) instead of dropped. Prevents the "protagonist hairball" without orphaning objects in hub-and-spoke topologies. Nodes re-anchored to strongest neighbor's community using original un-attenuated weights after Louvain. Fallback for tiny graphs (< 3 nodes) uses logarithmic weight scaling + resolution bump. `findCrossScriptCharacterKeys()` also expands the key set with Cyrillic PERSON nodes that transliterate close to main character names (Levenshtein ≤ 2).
 - **Summarization**: LLM generates Title, Summary, and Findings. Injected into ST context.
 - **Global World State**: `generateGlobalWorldState()` delegates to `synthesizeInChunks()` for map-reduce synthesis. <= `GLOBAL_SYNTHESIS_CHUNK_SIZE` (10) communities: single-pass. Larger sets: chunked into regional summaries, then reduced into final narrative (~300 tokens). Per-chunk try/catch for resiliency. Stored in `chatMetadata.openvault.global_world_state` as `{ summary, last_updated, community_count }`. Used for macro-intent queries.
 

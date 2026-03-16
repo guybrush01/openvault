@@ -51,3 +51,8 @@
 - **Cyrillic Over-Stem Guard**: Snowball often over-strips Russian (e.g., `елена` -> `ел`). Guard limits stripping to max 3 chars, falling back to 1 char.
 - **Entity Stemming**: `stemName()` intentionally DOES NOT filter stopwords (e.g., "The Castle" retains the "the" stem, because entity names are exact).
 - **Stopwords**: Base EN+RU lists from `stopword` package only. No custom lists.
+
+### `transliterate.js`
+- `transliterateCyrToLat(str)`: Cyrillic→Latin via `cyrillic-to-translit-js` (CDN import, Russian preset). Always lowercased.
+- `levenshteinDistance(a, b)`: Standard O(n*m) edit distance. Used for fuzzy cross-script name matching (threshold: ≤ 2).
+- **Use case**: Detecting that "Сузи" = "Suzy" and "Вова" = "Vova" across Cyrillic/Latin scripts for character deduplication.

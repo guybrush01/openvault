@@ -202,25 +202,26 @@ Expected: FAIL - settings still exist in defaultSettings
 // 4. communityStalenessThreshold: 100
 // 5. combinedBoostWeight: 15
 // 6. forgetfulnessImportance5Floor: 5
-// 7. entityMergeSimilarityThreshold: 0.95 -> keep as user-facing, rename to entityMergeThreshold
+// 7. entityMergeSimilarityThreshold: 0.95
 // 8. reflectionDecayThreshold: 750
 // 9. maxReflectionsPerCharacter: 50 -> KEEP this one (user-facing)
 
-// Note: reflectionDedupThreshold is a 3-tier system. Replace with:
-// reflectionDedupRejectThreshold: 0.9 (but we're removing it entirely)
-// Actually per design, remove the entire 3-tier UI and use internal constants.
+// Note: reflectionDedupThreshold is a 3-tier system. Remove entirely,
+// use internal constants REFLECTION_DEDUP_REJECT_THRESHOLD and
+// REFLECTION_DEDUP_REPLACE_THRESHOLD instead.
 
 // Keep these user-facing (they stay in defaultSettings):
-// - entityMergeSimilarityThreshold -> rename to entityMergeThreshold (kept in Advanced)
 // - maxReflectionsPerCharacter (kept in Memories)
+// All others listed above are now internal constants only.
 
 // Remove from defaultSettings:
 // reflectionDedupThreshold: 0.9,
 // entityDescriptionCap: 3,
 // edgeDescriptionCap: 5,
 // communityStalenessThreshold: 100,
-// combinedBoostWeight: 15, -> Keep this in Advanced (user-facing)
+// combinedBoostWeight: 15,
 // forgetfulnessImportance5Floor: 5,
+// entityMergeSimilarityThreshold: 0.95,
 // reflectionDecayThreshold: 750,
 ```
 
@@ -1503,7 +1504,7 @@ bindSetting('visible_chat_budget', 'visibleChatBudget');
 // - reflection_decay_threshold (removed - now internal constant)
 // - community_staleness (removed - now internal constant)
 // - reflection_dedup_threshold (removed - using internal constants)
-// - entity_merge_threshold (keep this one - user-facing in Advanced)
+// - entity_merge_threshold (removed - now internal constant)
 ```
 
 Also update `updateUI()` to sync relocated settings:

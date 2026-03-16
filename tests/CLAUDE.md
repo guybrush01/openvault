@@ -4,9 +4,10 @@
 
 1. **Zero `vi.mock()`**: NEVER use `vi.mock()` on internal or ST modules (except for minor `embeddings.js` edge cases if explicitly required).
 2. **Single I/O Boundary**: All external ST/Browser boundaries are mocked through `setupTestContext({ deps: { ... } })` in `tests/setup.js`. This overrides the injection in `src/deps.js`.
-3. **Data, Not Implementation**: Assert on output data (`mockData.memories`, `mockData.graph`, prompt slot content), not on spy call counts.
+3. **Data & Structure, Not Implementation**: Assert on output data (`mockData.memories`) and string structure (`expect(prompt).toContain('<tags>')`), NOT on spy call counts or exact string matches (`toBe('Exact long string')`). Prompts change often; exact string matches cause fragile tests.
 4. **Module-Level State**: Worker tests MUST use `vi.resetModules()` in `beforeEach` to reset mutable top-level variables (like `isRunning` in `worker.js`).
 5. **No DOM Mocks for Math/Helpers**: Test pure functions (`helpers.js`, `math.js`) by passing objects directly.
+6. **Fake Timers for Speed**: Any test involving timeouts, backoffs, or queues MUST use `vi.useFakeTimers()`. Never wait for real `setTimeout` delays in tests to keep the CI suite blazing fast.
 
 ---
 
@@ -37,6 +38,13 @@ Test a single exported function by passing plain objects and asserting on return
 ### Integration Tests (`setupTestContext` required — mock LLM, ST context, fetch)
 
 Test pipeline wiring: "does the orchestrator call the right functions in the right order and save the right data?" Keep to 3–5 tests per orchestrator: happy path, graceful degradation, fast-fail.
+
+### The "Integration Bouncer" Rule (LOCKED ORCHESTRATORS)
+Treat `extract.test.js`, `retrieve.test.js`, and `communities.test.js` as **locked files**.
+When adding a new feature (e.g., a new formatting bucket, a new JSON schema field):
+- **DO NOT** add new permutation tests to these orchestrator files.
+- **DO** test the pure logic in `formatting.test.js`, `math.test.js`, or `structured.test.js`.
+- **ONLY** modify orchestrator tests if you are adding a completely new exit/failure path (like a new `AbortError` or major pipeline stage).
 
 | What | Test file | Source |
 |------|-----------|--------|

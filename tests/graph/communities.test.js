@@ -573,7 +573,7 @@ describe('synthesizeInChunks', () => {
                 // Second chunk fails
                 return Promise.reject(new Error('LLM timeout'));
             }
-            if (callCount <= 3) {
+            if (callCount <= 2) {
                 return Promise.resolve(`{"global_summary": "Regional summary ${callCount}"}`);
             }
             return Promise.resolve('{"global_summary": "Final from 2 regions"}');

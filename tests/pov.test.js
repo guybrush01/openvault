@@ -10,8 +10,164 @@ import {
     getActiveCharacters,
     getPOVContext,
 } from '../src/pov.js';
+import { buildMockMemory } from './factories.js';
 
-describe('pov', () => {
+describe('filterMemoriesByPOV', () => {
+    it('returns all memories when no POV characters specified', () => {
+        const memories = [
+            buildMockMemory({ id: '1', witnesses: ['Bob'] }),
+            buildMockMemory({ id: '2', witnesses: ['Charlie'] }),
+        ];
+        const result = filterMemoriesByPOV(memories, [], {});
+        expect(result).toHaveLength(2);
+    });
+
+    it('returns empty array for empty memories', () => {
+        const result = filterMemoriesByPOV([], ['Alice'], {});
+        expect(result).toEqual([]);
+    });
+
+    it('returns empty array for null memories', () => {
+        const result = filterMemoriesByPOV(null, ['Alice'], {});
+        expect(result).toEqual([]);
+    });
+
+    it('includes memories where POV character is witness', () => {
+        const memories = [
+            buildMockMemory({ id: '1', summary: 'Alice saw this', witnesses: ['Alice'], characters_involved: [] }),
+            buildMockMemory({ id: '2', summary: 'Bob only', witnesses: ['Bob'], characters_involved: [] }),
+        ];
+        const result = filterMemoriesByPOV(memories, ['Alice'], { [CHARACTERS_KEY]: {} });
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe('1');
+    });
+
+    it('performs case-insensitive witness matching', () => {
+        const memories = [
+            buildMockMemory({ id: '1', witnesses: ['ALICE'] }),
+            buildMockMemory({ id: '2', witnesses: ['alice'] }),
+        ];
+        const result = filterMemoriesByPOV(memories, ['Alice'], { [CHARACTERS_KEY]: {} });
+        expect(result).toHaveLength(2);
+    });
+
+    it('includes memories where POV character is involved regardless of is_secret', () => {
+        const memories = [
+            buildMockMemory({ id: '1', characters_involved: ['Alice', 'Bob'], is_secret: false, witnesses: [] }),
+            buildMockMemory({ id: '2', characters_involved: ['Alice'], is_secret: true, witnesses: [] }),
+        ];
+        const result = filterMemoriesByPOV(memories, ['Alice'], { [CHARACTERS_KEY]: {} });
+        expect(result).toHaveLength(2);
+    });
+
+    it('excludes secret memories from characters not involved', () => {
+        const memories = [
+            buildMockMemory({ id: '1', characters_involved: ['Alice', 'Bob'], is_secret: true, witnesses: [] }),
+            buildMockMemory({ id: '2', characters_involved: ['Alice'], is_secret: false, witnesses: [] }),
+        ];
+        const result = filterMemoriesByPOV(memories, ['Charlie'], { [CHARACTERS_KEY]: {} });
+        expect(result).toHaveLength(0);
+    });
+
+    it('includes memories in POV character known_events', () => {
+        const memories = [
+            buildMockMemory({ id: 'known-evt', summary: 'Known event', witnesses: ['Bob'], characters_involved: [] }),
+            buildMockMemory({ id: 'unknown-evt', summary: 'Unknown event', witnesses: ['Charlie'], characters_involved: [] }),
+        ];
+        const data = {
+            [CHARACTERS_KEY]: {
+                Alice: {
+                    name: 'Alice',
+                    known_events: ['known-evt'],
+                },
+            },
+        };
+        const result = filterMemoriesByPOV(memories, ['Alice'], data);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe('known-evt');
+    });
+
+    it('handles multiple POV characters', () => {
+        const memories = [
+            buildMockMemory({ id: '1', witnesses: ['Alice'], characters_involved: [] }),
+            buildMockMemory({ id: '2', witnesses: ['Bob'], characters_involved: [] }),
+            buildMockMemory({ id: '3', witnesses: ['Charlie'], characters_involved: [] }),
+        ];
+        const result = filterMemoriesByPOV(memories, ['Alice', 'Bob'], { [CHARACTERS_KEY]: {} });
+        expect(result).toHaveLength(2);
+        expect(result.map((m) => m.id)).toContain('1');
+        expect(result.map((m) => m.id)).toContain('2');
+    });
+
+    it('combines known_events from multiple POV characters', () => {
+        const memories = [
+            buildMockMemory({ id: 'evt-1', witnesses: ['X'] }),
+            buildMockMemory({ id: 'evt-2', witnesses: ['Y'] }),
+        ];
+        const data = {
+            [CHARACTERS_KEY]: {
+                Alice: { known_events: ['evt-1'] },
+                Bob: { known_events: ['evt-2'] },
+            },
+        };
+        const result = filterMemoriesByPOV(memories, ['Alice', 'Bob'], data);
+        expect(result).toHaveLength(2);
+    });
+
+    it('handles memories without witnesses array', () => {
+        const memories = [buildMockMemory({ id: '1', characters_involved: ['Alice'], is_secret: false, witnesses: undefined })];
+        const result = filterMemoriesByPOV(memories, ['Alice'], { [CHARACTERS_KEY]: {} });
+        expect(result).toHaveLength(1);
+    });
+
+    it('matches witness aliases from graph nodes (cross-script names)', () => {
+        const memories = [
+            buildMockMemory({ id: '1', witnesses: ['\u0421\u0443\u0437\u0438'], characters_involved: [] }),
+            buildMockMemory({ id: '2', witnesses: ['Unknown'], characters_involved: [] }),
+        ];
+        const data = {
+            [CHARACTERS_KEY]: {},
+            graph: {
+                nodes: {
+                    suzy: { name: 'Suzy', aliases: ['\u0421\u0443\u0437\u0438'] },
+                },
+            },
+        };
+        const result = filterMemoriesByPOV(memories, ['Suzy'], data);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe('1');
+    });
+
+    it('matches characters_involved aliases from graph nodes', () => {
+        const memories = [buildMockMemory({ id: '1', witnesses: [], characters_involved: ['\u0412\u043e\u0432\u0430'] })];
+        const data = {
+            [CHARACTERS_KEY]: {},
+            graph: {
+                nodes: {
+                    vova: { name: 'Vova', aliases: ['\u0412\u043e\u0432\u0430'] },
+                },
+            },
+        };
+        const result = filterMemoriesByPOV(memories, ['Vova'], data);
+        expect(result).toHaveLength(1);
+    });
+
+    it('falls back to exact matching when graph has no aliases', () => {
+        const memories = [
+            buildMockMemory({ id: '1', witnesses: ['Alice'], characters_involved: [] }),
+            buildMockMemory({ id: '2', witnesses: ['\u0410\u043b\u0438\u0441\u0430'], characters_involved: [] }),
+        ];
+        const data = {
+            [CHARACTERS_KEY]: {},
+            graph: { nodes: { alice: { name: 'Alice' } } },
+        };
+        const result = filterMemoriesByPOV(memories, ['Alice'], data);
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe('1');
+    });
+});
+
+describe('pov (deps-requiring)', () => {
     let mockConsole;
     let mockContext;
 
@@ -40,161 +196,6 @@ describe('pov', () => {
 
     afterEach(() => {
         resetDeps();
-    });
-
-    describe('filterMemoriesByPOV', () => {
-        it('returns all memories when no POV characters specified', () => {
-            const memories = [
-                { id: '1', summary: 'Event 1', witnesses: ['Bob'] },
-                { id: '2', summary: 'Event 2', witnesses: ['Charlie'] },
-            ];
-            const result = filterMemoriesByPOV(memories, [], {});
-            expect(result).toHaveLength(2);
-        });
-
-        it('returns empty array for empty memories', () => {
-            const result = filterMemoriesByPOV([], ['Alice'], {});
-            expect(result).toEqual([]);
-        });
-
-        it('returns empty array for null memories', () => {
-            const result = filterMemoriesByPOV(null, ['Alice'], {});
-            expect(result).toEqual([]);
-        });
-
-        it('includes memories where POV character is witness', () => {
-            const memories = [
-                { id: '1', summary: 'Alice saw this', witnesses: ['Alice'] },
-                { id: '2', summary: 'Bob only', witnesses: ['Bob'] },
-            ];
-            const result = filterMemoriesByPOV(memories, ['Alice'], { [CHARACTERS_KEY]: {} });
-            expect(result).toHaveLength(1);
-            expect(result[0].id).toBe('1');
-        });
-
-        it('performs case-insensitive witness matching', () => {
-            const memories = [
-                { id: '1', witnesses: ['ALICE'] },
-                { id: '2', witnesses: ['alice'] },
-            ];
-            const result = filterMemoriesByPOV(memories, ['Alice'], { [CHARACTERS_KEY]: {} });
-            expect(result).toHaveLength(2);
-        });
-
-        it('includes memories where POV character is involved regardless of is_secret', () => {
-            const memories = [
-                { id: '1', characters_involved: ['Alice', 'Bob'], is_secret: false, witnesses: [] },
-                { id: '2', characters_involved: ['Alice'], is_secret: true, witnesses: [] },
-            ];
-            const result = filterMemoriesByPOV(memories, ['Alice'], { [CHARACTERS_KEY]: {} });
-            expect(result).toHaveLength(2);
-        });
-
-        it('excludes secret memories from characters not involved', () => {
-            const memories = [
-                { id: '1', characters_involved: ['Alice', 'Bob'], is_secret: true, witnesses: [] },
-                { id: '2', characters_involved: ['Alice'], is_secret: false, witnesses: [] },
-            ];
-            const result = filterMemoriesByPOV(memories, ['Charlie'], { [CHARACTERS_KEY]: {} });
-            expect(result).toHaveLength(0);
-        });
-
-        it('includes memories in POV character known_events', () => {
-            const memories = [
-                { id: 'known-evt', summary: 'Known event', witnesses: ['Bob'] },
-                { id: 'unknown-evt', summary: 'Unknown event', witnesses: ['Charlie'] },
-            ];
-            const data = {
-                [CHARACTERS_KEY]: {
-                    Alice: {
-                        name: 'Alice',
-                        known_events: ['known-evt'],
-                    },
-                },
-            };
-            const result = filterMemoriesByPOV(memories, ['Alice'], data);
-            expect(result).toHaveLength(1);
-            expect(result[0].id).toBe('known-evt');
-        });
-
-        it('handles multiple POV characters', () => {
-            const memories = [
-                { id: '1', witnesses: ['Alice'] },
-                { id: '2', witnesses: ['Bob'] },
-                { id: '3', witnesses: ['Charlie'] },
-            ];
-            const result = filterMemoriesByPOV(memories, ['Alice', 'Bob'], { [CHARACTERS_KEY]: {} });
-            expect(result).toHaveLength(2);
-            expect(result.map((m) => m.id)).toContain('1');
-            expect(result.map((m) => m.id)).toContain('2');
-        });
-
-        it('combines known_events from multiple POV characters', () => {
-            const memories = [
-                { id: 'evt-1', witnesses: ['X'] },
-                { id: 'evt-2', witnesses: ['Y'] },
-            ];
-            const data = {
-                [CHARACTERS_KEY]: {
-                    Alice: { known_events: ['evt-1'] },
-                    Bob: { known_events: ['evt-2'] },
-                },
-            };
-            const result = filterMemoriesByPOV(memories, ['Alice', 'Bob'], data);
-            expect(result).toHaveLength(2);
-        });
-
-        it('handles memories without witnesses array', () => {
-            const memories = [{ id: '1', characters_involved: ['Alice'], is_secret: false }];
-            const result = filterMemoriesByPOV(memories, ['Alice'], { [CHARACTERS_KEY]: {} });
-            expect(result).toHaveLength(1);
-        });
-
-        it('matches witness aliases from graph nodes (cross-script names)', () => {
-            const memories = [
-                { id: '1', witnesses: ['\u0421\u0443\u0437\u0438'], characters_involved: [] },
-                { id: '2', witnesses: ['Unknown'], characters_involved: [] },
-            ];
-            const data = {
-                [CHARACTERS_KEY]: {},
-                graph: {
-                    nodes: {
-                        suzy: { name: 'Suzy', aliases: ['\u0421\u0443\u0437\u0438'] },
-                    },
-                },
-            };
-            const result = filterMemoriesByPOV(memories, ['Suzy'], data);
-            expect(result).toHaveLength(1);
-            expect(result[0].id).toBe('1');
-        });
-
-        it('matches characters_involved aliases from graph nodes', () => {
-            const memories = [{ id: '1', witnesses: [], characters_involved: ['\u0412\u043e\u0432\u0430'] }];
-            const data = {
-                [CHARACTERS_KEY]: {},
-                graph: {
-                    nodes: {
-                        vova: { name: 'Vova', aliases: ['\u0412\u043e\u0432\u0430'] },
-                    },
-                },
-            };
-            const result = filterMemoriesByPOV(memories, ['Vova'], data);
-            expect(result).toHaveLength(1);
-        });
-
-        it('falls back to exact matching when graph has no aliases', () => {
-            const memories = [
-                { id: '1', witnesses: ['Alice'] },
-                { id: '2', witnesses: ['\u0410\u043b\u0438\u0441\u0430'] },
-            ];
-            const data = {
-                [CHARACTERS_KEY]: {},
-                graph: { nodes: { alice: { name: 'Alice' } } },
-            };
-            const result = filterMemoriesByPOV(memories, ['Alice'], data);
-            expect(result).toHaveLength(1);
-            expect(result[0].id).toBe('1');
-        });
     });
 
     describe('getActiveCharacters', () => {

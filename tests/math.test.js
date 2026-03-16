@@ -293,23 +293,46 @@ describe('math.js - reflection decay', () => {
 });
 
 describe('math.js - tokenization', () => {
-    it('filters post-stem runt tokens (< 3 chars after stemming)', () => {
-        // "боюсь" (5 chars) stems to "бо" (2 chars) via Russian Snowball
-        const tokens = tokenize('боюсь страшно');
-        // "бо" should be filtered out, "страшн" (stem of страшно) should remain
-        for (const t of tokens) {
-            expect(t.length).toBeGreaterThanOrEqual(3);
-        }
-    });
+  const TOKENIZE_CASES = [
+    {
+      name: 'filters post-stem runt tokens (< 3 chars)',
+      input: 'боюсь страшно',
+      expectMinLength: 3,
+    },
+    {
+      name: 'filters stop words',
+      input: 'the dragon and the princess',
+      notContains: ['the', 'and'],
+      contains: ['dragon', 'princess'],
+    },
+    {
+      name: 'handles Russian stemming',
+      input: 'драконы дракону',
+      contains: ['дракон'],
+    },
+  ];
 
-    it('filters stop words', () => {
-        const tokens = tokenize('the dragon and the princess');
-        // "the" and "and" should be filtered out
-        expect(tokens).not.toContain('the');
-        expect(tokens).not.toContain('and');
-        expect(tokens).toContain('dragon');
-        expect(tokens).toContain('princess');
-    });
+  it.each(TOKENIZE_CASES)('$name', ({ input, expectMinLength, notContains, contains }) => {
+    const tokens = tokenize(input);
+
+    if (expectMinLength) {
+      for (const t of tokens) {
+        expect(t.length).toBeGreaterThanOrEqual(expectMinLength);
+      }
+    }
+
+    if (notContains) {
+      for (const word of notContains) {
+        expect(tokens).not.toContain(word);
+      }
+    }
+
+    if (contains) {
+      for (const word of contains) {
+        expect(tokens).toContain(word);
+      }
+    }
+  });
 });
 
 describe('scoreMemories - dynamic character stopwords', () => {

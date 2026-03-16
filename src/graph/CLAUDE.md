@@ -15,7 +15,7 @@ Flat-JSON entity and relationship storage with rigorous semantic deduplication, 
 - **LLM Consolidation**: Uses `LLM_CONFIGS.edge_consolidation` and `buildEdgeConsolidationPrompt()` (standard `buildMessages()` pattern with preamble + prefill). Bloated pipe-separated descriptions synthesized into single coherent summary (<100 tokens), re-embedded for RAG accuracy.
 
 ## SEMANTIC MERGE LOGIC
-Prevents duplicate nodes (e.g., "The King" vs "King Aldric"). Uses `shouldMergeEntities()` DRY helper (cosine-first check order):
+Prevents duplicate nodes (e.g., "The King" vs "King Aldric"). Uses `shouldMergeEntities()` DRY helper (cosine-first check order). Extraction uses delta approach — focuses on NEW entities or CHANGES to existing ones, not re-describing static relationships. Schema limits to 5 entities/relationships per batch.
 1. **Fast Path**: Exact key match -> basic upsert.
 2. **Slow Path**: Embeds `Type: Name - Description`. Cosine computed first, then routed:
    - **Above threshold** (>= 0.94): Merge directly (cosine alone sufficient).

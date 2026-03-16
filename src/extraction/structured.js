@@ -59,8 +59,8 @@ export const EventExtractionSchema = z.object({
  * Schema for Stage 2: Graph extraction only
  */
 export const GraphExtractionSchema = z.object({
-    entities: z.array(EntitySchema).default([]),
-    relationships: z.array(RelationshipSchema).default([]),
+    entities: z.array(EntitySchema).max(5, 'Limit to 5 most significant entities per batch').default([]),
+    relationships: z.array(RelationshipSchema).max(5, 'Limit to 5 most significant relationships per batch').default([]),
 });
 
 /**

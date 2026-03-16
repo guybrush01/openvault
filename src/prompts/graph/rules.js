@@ -2,16 +2,16 @@
  * Task-specific rules for graph extraction and edge consolidation.
  */
 
-export const GRAPH_RULES = `Extract ALL named entities mentioned or clearly implied in the messages:
+export const GRAPH_RULES = `Extract named entities mentioned or clearly implied in the messages. Focus on NEW entities or CHANGES to existing ones:
 - PERSON: Named characters, NPCs, people mentioned by name
 - PLACE: Named locations, buildings, rooms, cities, regions
 - ORGANIZATION: Named groups, factions, guilds, companies
 - OBJECT: Highly significant unique items, weapons, or plot devices. Do NOT extract mundane furniture, clothing, or food unless they are critical to the scene's dynamic
 - CONCEPT: Named abilities, spells, diseases, prophecies
 
-Also extract relationships between pairs of entities when the connection is stated or clearly implied.
+Also extract relationships between pairs of entities when the connection is stated or clearly implied. Do NOT re-describe existing static relationships unless a specific progression or change occurred in this batch.
 
-IMPORTANT: Extract entities and relationships even when no events are extracted. Entity data builds world knowledge over time and is always valuable.
+IMPORTANT: Extract entities and relationships even when no events are extracted. Entity data builds world knowledge over time and is always valuable. Limit output to the most significant updates per batch.
 
 <thinking_process>
 Follow these steps IN ORDER. Write your work inside <think> tags BEFORE outputting the JSON:

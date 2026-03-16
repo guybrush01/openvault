@@ -15,7 +15,7 @@ Background pipeline converting raw messages -> structured JSON -> Deduplicated M
 1. **Batching**: `scheduler.js` determines unextracted batches via token budget + turn boundaries.
 2. **Stage A (Events)**: LLM uses configurable assistant prefill (default: `<think>`) -> returns `EventExtractionSchema`. Preamble language (CN/EN) and prefill preset resolved from `settings` via `resolveExtractionPreamble()`/`resolveExtractionPrefill()`. Validates events *individually* (one bad event drops itself, doesn't reject whole batch).
 3. **RPM Delay**: Evaluates `lastApiCallTime` and sleeps remaining delta dynamically.
-4. **Stage B (Graph)**: Contextualized by Stage A. Uses same resolved prefill. Returns `GraphExtractionSchema` (Entities + Relationships).
+4. **Stage B (Graph)**: Contextualized by Stage A. Uses same resolved prefill. Returns `GraphExtractionSchema` (Entities + Relationships). **Schema enforces `.max(5)`** on both arrays — only most significant updates per batch.
 5. **Graph Upsert**: `mergeOrInsertEntity()` (Semantic + Token overlap) and `upsertRelationship()`.
 6. **Commit**: Pre-computes BM25 `tokens` (stemmed), updates `MEMORIES_KEY` & `PROCESSED_MESSAGES_KEY`.
 7. **Intermediate Save**: Persists Phase 1 to disk.
@@ -45,6 +45,7 @@ Background pipeline converting raw messages -> structured JSON -> Deduplicated M
 
 ## GOTCHAS & RULES
 - **Split Schemas**: Events, Graph, Community Summary, and Global Synthesis each have separate Zod schemas. No unified schema. Lowers LLM cognitive load.
+- **Graph Schema Limits**: `GraphExtractionSchema` uses `.max(5)` on entities and relationships arrays. Prompt instructs LLM to focus on NEW entities or CHANGES to existing ones, not re-describe static relationships.
 - **GlobalSynthesisSchema**: `global_summary` field, min 50 chars, max ~300 tokens. Map-reduce output over all communities.
 - **JSON Array Recovery**: If LLM forgets object wrapper and returns a bare array, `safeParseJSON` wraps it automatically.
 - **Markdown Stripping**: `_testStripMarkdown` handles open/close orphans (````json\n{...}`).

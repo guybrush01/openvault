@@ -26,6 +26,7 @@ import {
 import { renderPerfTab, updateBudgetIndicators } from './settings.js';
 import { refreshStats } from './status.js';
 import {
+    graphStatsCard,
     renderCharacterState,
     renderCommunityAccordion,
     renderEntityCard,
@@ -391,6 +392,35 @@ function renderWorldTab() {
 }
 
 // =============================================================================
+// Graph Stats Render
+// =============================================================================
+
+/**
+ * Render Graph Stats Card in World tab
+ */
+export function renderGraphStats() {
+    const container = document.getElementById('openvault_graph_stats');
+    if (!container) return;
+
+    const data = getOpenVaultData();
+    const context = getDeps().getContext?.();
+    const currentMessageId = context?.chat?.length || 0;
+
+    const graph = data?.graph || { nodes: [], edges: [] };
+    const communities = data?.communities || [];
+    const lastDetection = data?.lastCommunityDetection || 0;
+
+    const stats = {
+        entities: graph.nodes?.length || 0,
+        relationships: graph.edges?.length || 0,
+        communities: communities.length,
+        lastClustered: currentMessageId - lastDetection,
+    };
+
+    container.innerHTML = graphStatsCard(stats);
+}
+
+// =============================================================================
 // Browser Orchestration Layer
 // =============================================================================
 
@@ -416,6 +446,7 @@ export function refreshAllUI() {
     renderMemoryList();
     renderCharacterStates();
     renderReflectionProgressSection();
+    renderGraphStats();
     renderWorldTab();
     updateBudgetIndicators();
     renderPerfTab();

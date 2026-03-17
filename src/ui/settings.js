@@ -99,7 +99,7 @@ function updateReflectionDedupDisplay(rejectThreshold) {
  * Update the payload calculator readout.
  * Reads current slider values, adds PAYLOAD_CALC.OVERHEAD, sets emoji + color class.
  */
-function updatePayloadCalculator() {
+export function updatePayloadCalculator() {
     const budget = Number($('#openvault_extraction_token_budget').val()) || defaultSettings.extractionTokenBudget;
     const rearview = Number($('#openvault_extraction_rearview').val()) || defaultSettings.extractionRearviewTokens;
     const total = budget + rearview + PAYLOAD_CALC.OVERHEAD;
@@ -130,6 +130,18 @@ function updatePayloadCalculator() {
         emoji = '🔴';
     }
     $('#openvault_payload_emoji').text(emoji);
+
+    // LLM compatibility warning
+    const $warning = $calc.find('.openvault-payload-warning');
+    if (!$warning.length) {
+        $calc.append(`
+            <div class="openvault-payload-warning">
+                Ensure your Extraction Profile supports at least ${Math.ceil(total / 1000)}k context.
+            </div>
+        `);
+    } else {
+        $warning.text(`Ensure your Extraction Profile supports at least ${Math.ceil(total / 1000)}k context.`);
+    }
 }
 
 function getSettings() {

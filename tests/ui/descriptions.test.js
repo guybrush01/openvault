@@ -20,9 +20,10 @@ describe('Setting Descriptions', () => {
         expect(html).toContain('Lower = more frequent insights');
     });
 
-    it('has updated Auto-hide description', () => {
-        expect(html).toContain('Hide old messages from AI context');
-        expect(html).toContain('they remain saved as Memories');
+    // Quick Toggles don't have descriptions - they're minimal by design
+    it('has Auto-hide Messages in Quick Toggles', () => {
+        expect(html).toContain('Auto-hide Messages');
+        expect(html).toContain('openvault_auto_hide');
     });
 
     it('has updated Alpha description', () => {

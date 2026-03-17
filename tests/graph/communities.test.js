@@ -517,7 +517,7 @@ describe('updateCommunitySummaries with global synthesis', () => {
 
 describe('synthesizeInChunks', () => {
     beforeEach(() => {
-        setupTestContext();
+        setupTestContext({ settings: { maxConcurrency: 3 } });
         vi.clearAllMocks();
     });
 

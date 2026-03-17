@@ -147,6 +147,38 @@ export const PAYLOAD_CALC = {
     THRESHOLD_ORANGE: 64000, // ≤ this = warning (orange 🟠), above = danger (red 🔴)
 };
 
+// =============================================================================
+// Internal Constants (Not Exposed in UI)
+// These values are pre-calibrated and should not be user-configurable.
+// =============================================================================
+
+/** Reflection deduplication: reject threshold (cosine similarity) */
+export const REFLECTION_DEDUP_REJECT_THRESHOLD = 0.90;
+
+/** Reflection deduplication: replace threshold (auto: reject - 0.10) */
+export const REFLECTION_DEDUP_REPLACE_THRESHOLD = 0.80;
+
+/** Reflection decay: messages before reflections lose priority */
+export const REFLECTION_DECAY_THRESHOLD = 750;
+
+/** Entity graph: max description segments per entity (FIFO eviction) */
+export const ENTITY_DESCRIPTION_CAP = 3;
+
+/** Entity graph: max description segments per edge (FIFO eviction) */
+export const EDGE_DESCRIPTION_CAP = 5;
+
+/** Community detection: messages before summaries are stale */
+export const COMMUNITY_STALENESS_THRESHOLD = 100;
+
+/** Alpha-blend scoring: max boost weight (BM25 + vector) */
+export const COMBINED_BOOST_WEIGHT = 15;
+
+/** Forgetfulness curve: minimum score for importance-5 memories */
+export const IMPORTANCE_5_FLOOR = 5;
+
+/** Entity merge: semantic similarity threshold for clustering */
+export const ENTITY_MERGE_THRESHOLD = 0.80;
+
 // UI hint defaults - derived from defaultSettings and QUERY_CONTEXT_DEFAULTS
 // Used to populate "(default: X)" hints in settings_panel.html
 export const UI_DEFAULT_HINTS = {

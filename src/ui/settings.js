@@ -325,7 +325,11 @@ const RESETTABLE_KEYS = [
 ];
 
 export async function handleResetSettings() {
-    if (!confirm('Restore default math and threshold values? Your connection profiles and chat data will not be affected.')) {
+    if (
+        !confirm(
+            'Restore default math and threshold values? Your connection profiles and chat data will not be affected.'
+        )
+    ) {
         return;
     }
 

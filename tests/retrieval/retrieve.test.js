@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defaultSettings, extensionName } from '../../src/constants.js';
 import { resetDeps } from '../../src/deps.js';
 import { updateInjection } from '../../src/retrieval/retrieve.js';
@@ -121,9 +121,7 @@ describe('retrieve pipeline', () => {
         await updateInjection();
 
         // With no memories, setExtensionPrompt is called with empty string
-        const memoryCall = mockSetPrompt.mock.calls.find(
-            (c) => c[0] === extensionName && c[1] === ''
-        );
+        const memoryCall = mockSetPrompt.mock.calls.find((c) => c[0] === extensionName && c[1] === '');
         expect(memoryCall).toBeDefined();
     });
 

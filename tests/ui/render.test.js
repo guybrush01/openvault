@@ -1,66 +1,64 @@
-import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
-import { renderGraphStats } from '../../src/ui/render.js';
-import { resetDeps } from '../../src/deps.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { METADATA_KEY } from '../../src/constants.js';
+import { resetDeps } from '../../src/deps.js';
+import { renderGraphStats } from '../../src/ui/render.js';
 
 describe('renderGraphStats', () => {
-  beforeEach(() => {
-    setupTestContext({
-      context: {
-        chat: new Array(112).fill({}), // Simulate 112 messages
-        chatMetadata: {
-          [METADATA_KEY]: {
-            graph: {
-              nodes: [
-                { id: '1', name: 'Alice', type: 'PERSON' },
-                { id: '2', name: 'Bob', type: 'PERSON' },
-                { id: '3', name: 'Castle', type: 'PLACE' },
-              ],
-              edges: [
-                { source: '1', target: '2', relation: 'knows' },
-                { source: '1', target: '3', relation: 'owns' },
-              ],
+    beforeEach(() => {
+        setupTestContext({
+            context: {
+                chat: new Array(112).fill({}), // Simulate 112 messages
+                chatMetadata: {
+                    [METADATA_KEY]: {
+                        graph: {
+                            nodes: [
+                                { id: '1', name: 'Alice', type: 'PERSON' },
+                                { id: '2', name: 'Bob', type: 'PERSON' },
+                                { id: '3', name: 'Castle', type: 'PLACE' },
+                            ],
+                            edges: [
+                                { source: '1', target: '2', relation: 'knows' },
+                                { source: '1', target: '3', relation: 'owns' },
+                            ],
+                        },
+                        communities: [{ id: 'c1', summary: 'Test community' }],
+                        lastCommunityDetection: 100,
+                    },
+                },
             },
-            communities: [
-              { id: 'c1', summary: 'Test community' },
-            ],
-            lastCommunityDetection: 100,
-          },
-        },
-      },
+        });
+        document.body.innerHTML = '<div id="openvault_graph_stats"></div>';
     });
-    document.body.innerHTML = '<div id="openvault_graph_stats"></div>';
-  });
 
-  afterEach(() => {
-    resetDeps();
-  });
-
-  it('renders graph stats into container', () => {
-    renderGraphStats();
-    const container = document.getElementById('openvault_graph_stats');
-    expect(container.innerHTML).toContain('3'); // entities
-    expect(container.innerHTML).toContain('2'); // relationships
-    expect(container.innerHTML).toContain('1'); // communities
-  });
-
-  it('calculates messages since last clustering', () => {
-    renderGraphStats();
-    const container = document.getElementById('openvault_graph_stats');
-    expect(container.innerHTML).toContain('msgs ago');
-  });
-
-  it('handles missing graph data gracefully', () => {
-    setupTestContext({
-      context: {
-        chat: [],
-        chatMetadata: {
-          [METADATA_KEY]: {},
-        },
-      },
+    afterEach(() => {
+        resetDeps();
     });
-    renderGraphStats();
-    const container = document.getElementById('openvault_graph_stats');
-    expect(container.innerHTML).toContain('0');
-  });
+
+    it('renders graph stats into container', () => {
+        renderGraphStats();
+        const container = document.getElementById('openvault_graph_stats');
+        expect(container.innerHTML).toContain('3'); // entities
+        expect(container.innerHTML).toContain('2'); // relationships
+        expect(container.innerHTML).toContain('1'); // communities
+    });
+
+    it('calculates messages since last clustering', () => {
+        renderGraphStats();
+        const container = document.getElementById('openvault_graph_stats');
+        expect(container.innerHTML).toContain('msgs ago');
+    });
+
+    it('handles missing graph data gracefully', () => {
+        setupTestContext({
+            context: {
+                chat: [],
+                chatMetadata: {
+                    [METADATA_KEY]: {},
+                },
+            },
+        });
+        renderGraphStats();
+        const container = document.getElementById('openvault_graph_stats');
+        expect(container.innerHTML).toContain('0');
+    });
 });

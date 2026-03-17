@@ -72,7 +72,12 @@ describe('filterMemoriesByPOV', () => {
     it('includes memories in POV character known_events', () => {
         const memories = [
             buildMockMemory({ id: 'known-evt', summary: 'Known event', witnesses: ['Bob'], characters_involved: [] }),
-            buildMockMemory({ id: 'unknown-evt', summary: 'Unknown event', witnesses: ['Charlie'], characters_involved: [] }),
+            buildMockMemory({
+                id: 'unknown-evt',
+                summary: 'Unknown event',
+                witnesses: ['Charlie'],
+                characters_involved: [],
+            }),
         ];
         const data = {
             [CHARACTERS_KEY]: {
@@ -115,7 +120,9 @@ describe('filterMemoriesByPOV', () => {
     });
 
     it('handles memories without witnesses array', () => {
-        const memories = [buildMockMemory({ id: '1', characters_involved: ['Alice'], is_secret: false, witnesses: undefined })];
+        const memories = [
+            buildMockMemory({ id: '1', characters_involved: ['Alice'], is_secret: false, witnesses: undefined }),
+        ];
         const result = filterMemoriesByPOV(memories, ['Alice'], { [CHARACTERS_KEY]: {} });
         expect(result).toHaveLength(1);
     });
@@ -139,7 +146,9 @@ describe('filterMemoriesByPOV', () => {
     });
 
     it('matches characters_involved aliases from graph nodes', () => {
-        const memories = [buildMockMemory({ id: '1', witnesses: [], characters_involved: ['\u0412\u043e\u0432\u0430'] })];
+        const memories = [
+            buildMockMemory({ id: '1', witnesses: [], characters_involved: ['\u0412\u043e\u0432\u0430'] }),
+        ];
         const data = {
             [CHARACTERS_KEY]: {},
             graph: {

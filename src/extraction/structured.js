@@ -60,7 +60,10 @@ export const EventExtractionSchema = z.object({
  */
 export const GraphExtractionSchema = z.object({
     entities: z.array(EntitySchema).max(5, 'Limit to 5 most significant entities per batch').default([]),
-    relationships: z.array(RelationshipSchema).max(5, 'Limit to 5 most significant relationships per batch').default([]),
+    relationships: z
+        .array(RelationshipSchema)
+        .max(5, 'Limit to 5 most significant relationships per batch')
+        .default([]),
 });
 
 /**

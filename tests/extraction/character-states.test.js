@@ -241,7 +241,15 @@ describe('selectMemoriesForExtraction', () => {
         },
     ];
 
-    it.each(PARAMETERIZED_CASES)('$name', ({ memories, settings, expectedLength, expectedMinImportance, expectedContains, expectedContainsHighImportance, expectedSequenceOrder }) => {
+    it.each(PARAMETERIZED_CASES)('$name', ({
+        memories,
+        settings,
+        expectedLength,
+        expectedMinImportance,
+        expectedContains,
+        expectedContainsHighImportance,
+        expectedSequenceOrder,
+    }) => {
         const data = buildMockData({ memories });
         const result = selectMemoriesForExtraction(data, settings);
 
@@ -251,23 +259,23 @@ describe('selectMemoriesForExtraction', () => {
 
         if (expectedMinImportance !== undefined) {
             for (const m of result) {
-                expect((m.importance || 3)).toBeGreaterThanOrEqual(expectedMinImportance);
+                expect(m.importance || 3).toBeGreaterThanOrEqual(expectedMinImportance);
             }
         }
 
         if (expectedContains !== undefined) {
-            const hasMemory = result.some(m => m.summary.includes(expectedContains));
+            const hasMemory = result.some((m) => m.summary.includes(expectedContains));
             expect(hasMemory).toBe(true);
         }
 
         if (expectedContainsHighImportance !== undefined) {
-            const hasHighImportance = result.some(m => (m.importance || 3) >= 4);
+            const hasHighImportance = result.some((m) => (m.importance || 3) >= 4);
             expect(hasHighImportance).toBe(true);
         }
 
         if (expectedSequenceOrder) {
             for (let i = 1; i < result.length; i++) {
-                expect((result[i].sequence || 0)).toBeGreaterThanOrEqual(result[i - 1].sequence || 0);
+                expect(result[i].sequence || 0).toBeGreaterThanOrEqual(result[i - 1].sequence || 0);
             }
         }
     });
@@ -288,8 +296,8 @@ describe('selectMemoriesForExtraction', () => {
 
         // Should have both recent and important memories
         expect(result.length).toBeGreaterThan(0);
-        const hasRecent = result.some(m => m.sequence >= 500);
-        const hasImportant = result.some(m => (m.importance || 3) >= 5);
+        const hasRecent = result.some((m) => m.sequence >= 500);
+        const hasImportant = result.some((m) => (m.importance || 3) >= 5);
         expect(hasRecent || hasImportant).toBe(true);
     });
 
@@ -318,7 +326,7 @@ describe('selectMemoriesForExtraction', () => {
         const result = selectMemoriesForExtraction(data, settings);
 
         // Each memory should appear only once
-        const ids = result.map(m => m.id);
+        const ids = result.map((m) => m.id);
         const uniqueIds = new Set(ids);
         expect(ids.length).toBe(uniqueIds.size);
     });

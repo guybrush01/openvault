@@ -108,11 +108,11 @@ export const styles = `
  * Call this when initializing the settings panel
  */
 export function injectStyles() {
-  const existingStyle = document.getElementById('openvault-ui-styles');
-  if (existingStyle) return; // Already injected
+    const existingStyle = document.getElementById('openvault-ui-styles');
+    if (existingStyle) return; // Already injected
 
-  const styleEl = document.createElement('style');
-  styleEl.id = 'openvault-ui-styles';
-  styleEl.textContent = styles;
-  document.head.appendChild(styleEl);
+    const styleEl = document.createElement('style');
+    styleEl.id = 'openvault-ui-styles';
+    styleEl.textContent = styles;
+    document.head.appendChild(styleEl);
 }

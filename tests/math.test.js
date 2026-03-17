@@ -293,46 +293,46 @@ describe('math.js - reflection decay', () => {
 });
 
 describe('math.js - tokenization', () => {
-  const TOKENIZE_CASES = [
-    {
-      name: 'filters post-stem runt tokens (< 3 chars)',
-      input: 'боюсь страшно',
-      expectMinLength: 3,
-    },
-    {
-      name: 'filters stop words',
-      input: 'the dragon and the princess',
-      notContains: ['the', 'and'],
-      contains: ['dragon', 'princess'],
-    },
-    {
-      name: 'handles Russian stemming',
-      input: 'драконы дракону',
-      contains: ['дракон'],
-    },
-  ];
+    const TOKENIZE_CASES = [
+        {
+            name: 'filters post-stem runt tokens (< 3 chars)',
+            input: 'боюсь страшно',
+            expectMinLength: 3,
+        },
+        {
+            name: 'filters stop words',
+            input: 'the dragon and the princess',
+            notContains: ['the', 'and'],
+            contains: ['dragon', 'princess'],
+        },
+        {
+            name: 'handles Russian stemming',
+            input: 'драконы дракону',
+            contains: ['дракон'],
+        },
+    ];
 
-  it.each(TOKENIZE_CASES)('$name', ({ input, expectMinLength, notContains, contains }) => {
-    const tokens = tokenize(input);
+    it.each(TOKENIZE_CASES)('$name', ({ input, expectMinLength, notContains, contains }) => {
+        const tokens = tokenize(input);
 
-    if (expectMinLength) {
-      for (const t of tokens) {
-        expect(t.length).toBeGreaterThanOrEqual(expectMinLength);
-      }
-    }
+        if (expectMinLength) {
+            for (const t of tokens) {
+                expect(t.length).toBeGreaterThanOrEqual(expectMinLength);
+            }
+        }
 
-    if (notContains) {
-      for (const word of notContains) {
-        expect(tokens).not.toContain(word);
-      }
-    }
+        if (notContains) {
+            for (const word of notContains) {
+                expect(tokens).not.toContain(word);
+            }
+        }
 
-    if (contains) {
-      for (const word of contains) {
-        expect(tokens).toContain(word);
-      }
-    }
-  });
+        if (contains) {
+            for (const word of contains) {
+                expect(tokens).toContain(word);
+            }
+        }
+    });
 });
 
 describe('scoreMemories - dynamic character stopwords', () => {
@@ -367,84 +367,88 @@ describe('scoreMemories - dynamic character stopwords', () => {
 });
 
 describe('cosineSimilarity - parameterized', () => {
-  const COSINE_CASES = [
-    {
-      name: 'Float32Array orthogonal vectors',
-      a: new Float32Array([1, 0, 0]),
-      b: new Float32Array([0, 1, 0]),
-      expected: 0,
-    },
-    {
-      name: 'identical Float32Array vectors',
-      a: new Float32Array([0.5, 0.5, 0.5]),
-      b: null, // Will use 'a' (isSelf flag)
-      expected: 1.0,
-      isSelf: true,
-    },
-    {
-      name: 'mixed Float32Array + number[]',
-      a: new Float32Array([1, 0, 0]),
-      b: [1, 0, 0],
-      expected: 1.0,
-    },
-    {
-      name: 'vectors with length not divisible by 4',
-      a: new Float32Array([1, 2, 3, 4, 5]),
-      b: new Float32Array([1, 2, 3, 4, 5]),
-      expected: 1.0,
-    },
-    {
-      name: 'length=1 vector (all remainder)',
-      a: new Float32Array([1]),
-      b: new Float32Array([1]),
-      expected: 1.0,
-    },
-    {
-      name: 'length=4 vector (exact unrolled iteration)',
-      a: new Float32Array([1, 0, 0, 0]),
-      b: new Float32Array([0, 1, 0, 0]),
-      expected: 0,
-    },
-  ];
+    const COSINE_CASES = [
+        {
+            name: 'Float32Array orthogonal vectors',
+            a: new Float32Array([1, 0, 0]),
+            b: new Float32Array([0, 1, 0]),
+            expected: 0,
+        },
+        {
+            name: 'identical Float32Array vectors',
+            a: new Float32Array([0.5, 0.5, 0.5]),
+            b: null, // Will use 'a' (isSelf flag)
+            expected: 1.0,
+            isSelf: true,
+        },
+        {
+            name: 'mixed Float32Array + number[]',
+            a: new Float32Array([1, 0, 0]),
+            b: [1, 0, 0],
+            expected: 1.0,
+        },
+        {
+            name: 'vectors with length not divisible by 4',
+            a: new Float32Array([1, 2, 3, 4, 5]),
+            b: new Float32Array([1, 2, 3, 4, 5]),
+            expected: 1.0,
+        },
+        {
+            name: 'length=1 vector (all remainder)',
+            a: new Float32Array([1]),
+            b: new Float32Array([1]),
+            expected: 1.0,
+        },
+        {
+            name: 'length=4 vector (exact unrolled iteration)',
+            a: new Float32Array([1, 0, 0, 0]),
+            b: new Float32Array([0, 1, 0, 0]),
+            expected: 0,
+        },
+    ];
 
-  it.each(COSINE_CASES)('$name', ({ a, b, expected, isSelf }) => {
-    const result = cosineSimilarity(a, isSelf ? a : b);
-    expect(result).toBeCloseTo(expected, 10);
-  });
+    it.each(COSINE_CASES)('$name', ({ a, b, expected, isSelf }) => {
+        const result = cosineSimilarity(a, isSelf ? a : b);
+        expect(result).toBeCloseTo(expected, 10);
+    });
 
-  // High-dimension reference tests kept separate (computationally heavy)
-  it('produces identical results on 384-dim vs naive reference', () => {
-    const a = new Float32Array(384);
-    const b = new Float32Array(384);
-    for (let i = 0; i < 384; i++) {
-      a[i] = Math.sin(i * 0.1);
-      b[i] = Math.cos(i * 0.1);
-    }
-    // Naive reference
-    let dot = 0, na = 0, nb = 0;
-    for (let i = 0; i < 384; i++) {
-      dot += a[i] * b[i];
-      na += a[i] * a[i];
-      nb += b[i] * b[i];
-    }
-    const expected = dot / (Math.sqrt(na) * Math.sqrt(nb));
-    expect(cosineSimilarity(a, b)).toBeCloseTo(expected, 10);
-  });
+    // High-dimension reference tests kept separate (computationally heavy)
+    it('produces identical results on 384-dim vs naive reference', () => {
+        const a = new Float32Array(384);
+        const b = new Float32Array(384);
+        for (let i = 0; i < 384; i++) {
+            a[i] = Math.sin(i * 0.1);
+            b[i] = Math.cos(i * 0.1);
+        }
+        // Naive reference
+        let dot = 0,
+            na = 0,
+            nb = 0;
+        for (let i = 0; i < 384; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+        const expected = dot / (Math.sqrt(na) * Math.sqrt(nb));
+        expect(cosineSimilarity(a, b)).toBeCloseTo(expected, 10);
+    });
 
-  it('produces identical results on 768-dim vs naive reference', () => {
-    const a = new Float32Array(768);
-    const b = new Float32Array(768);
-    for (let i = 0; i < 768; i++) {
-      a[i] = Math.sin(i * 0.05);
-      b[i] = Math.cos(i * 0.05);
-    }
-    let dot = 0, na = 0, nb = 0;
-    for (let i = 0; i < 768; i++) {
-      dot += a[i] * b[i];
-      na += a[i] * a[i];
-      nb += b[i] * b[i];
-    }
-    const expected = dot / (Math.sqrt(na) * Math.sqrt(nb));
-    expect(cosineSimilarity(a, b)).toBeCloseTo(expected, 10);
-  });
+    it('produces identical results on 768-dim vs naive reference', () => {
+        const a = new Float32Array(768);
+        const b = new Float32Array(768);
+        for (let i = 0; i < 768; i++) {
+            a[i] = Math.sin(i * 0.05);
+            b[i] = Math.cos(i * 0.05);
+        }
+        let dot = 0,
+            na = 0,
+            nb = 0;
+        for (let i = 0; i < 768; i++) {
+            dot += a[i] * b[i];
+            na += a[i] * a[i];
+            nb += b[i] * b[i];
+        }
+        const expected = dot / (Math.sqrt(na) * Math.sqrt(nb));
+        expect(cosineSimilarity(a, b)).toBeCloseTo(expected, 10);
+    });
 });

@@ -281,11 +281,9 @@ export function renderEntityCard(entity) {
  * @returns {string} HTML string
  */
 export function graphStatsCard(stats) {
-  const lastClusteredText = stats.lastClustered > 0
-    ? `${stats.lastClustered} msgs ago`
-    : 'Not yet clustered';
+    const lastClusteredText = stats.lastClustered > 0 ? `${stats.lastClustered} msgs ago` : 'Not yet clustered';
 
-  return `
+    return `
     <div class="openvault-card openvault-graph-stats">
       <div class="openvault-card-header">
         <span class="openvault-card-title">

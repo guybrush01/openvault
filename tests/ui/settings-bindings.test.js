@@ -1,6 +1,6 @@
 // tests/ui/settings-bindings.test.js
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { defaultSettings, extensionName } from '../../src/constants.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { defaultSettings } from '../../src/constants.js';
 
 describe('Settings Bindings', () => {
     let mockExtensionSettings;
@@ -11,7 +11,7 @@ describe('Settings Bindings', () => {
 
     // Mock jQuery $ function that tracks event bindings
     const mockJQuery = (selector) => {
-        const callbacks = [];
+        const _callbacks = [];
 
         const $obj = {
             on: vi.fn((event, handler) => {
@@ -47,21 +47,24 @@ describe('Settings Bindings', () => {
             })),
             parent: vi.fn(() => $obj),
             closest: vi.fn(() => $obj),
-            each: vi.fn((fn) => $obj),
+            each: vi.fn((_fn) => $obj),
             append: vi.fn(() => $obj),
             empty: vi.fn(() => $obj),
             show: vi.fn(() => $obj),
             hide: vi.fn(() => $obj),
             toggle: vi.fn(() => $obj),
             remove: vi.fn(() => $obj),
-            get: vi.fn((url, callback) => { callback(''); return $obj; }),
+            get: vi.fn((_url, callback) => {
+                callback('');
+                return $obj;
+            }),
         };
 
         return $obj;
     };
 
     // make sure $.get works for HTML template loading
-    mockJQuery.get = vi.fn((url, callback) => {
+    mockJQuery.get = vi.fn((_url, callback) => {
         if (callback) callback('<div id="extensions_settings2"></div>');
         return Promise.resolve('<div id="extensions_settings2"></div>');
     });
@@ -193,7 +196,7 @@ describe('Settings Bindings', () => {
             openvault: {
                 ...defaultSettings,
                 // Add missing properties used in settings.js but not in defaultSettings
-                reflectionDedupThreshold: 0.90,
+                reflectionDedupThreshold: 0.9,
                 combinedBoostWeight: 1.5,
                 entityMergeSimilarityThreshold: 0.85,
                 edgeDescriptionCap: 3,
@@ -231,7 +234,7 @@ describe('Settings Bindings', () => {
 
     function hasBinding(selector, eventType) {
         const bindings = boundElements.get(selector);
-        return bindings && bindings.some((b) => b.event === eventType);
+        return bindings?.some((b) => b.event === eventType);
     }
 
     it('binds relocated max_concurrency from Memories to Dashboard', async () => {

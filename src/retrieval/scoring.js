@@ -167,12 +167,7 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit, allHiddenMemor
  * @param {number} [minRepresentation=0.20] - Minimum 20% per bucket
  * @returns {Object[]} Selected memories
  */
-export function selectMemoriesWithSoftBalance(
-    scoredMemories,
-    tokenBudget,
-    chatLength,
-    minRepresentation = 0.2
-) {
+export function selectMemoriesWithSoftBalance(scoredMemories, tokenBudget, chatLength, minRepresentation = 0.2) {
     if (!scoredMemories || scoredMemories.length === 0) return [];
     if (tokenBudget <= 0) return [];
 

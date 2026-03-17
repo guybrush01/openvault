@@ -288,14 +288,11 @@ describe('text', () => {
             { messageIds: [1000, 2000, 3000, 4000, 5000], expected: 3000, desc: 'five values average' },
         ];
 
-        it.each(POSITION_CALC_CASES)(
-            'calculates $desc',
-            async ({ messageIds, expected }) => {
-                const { getMemoryPosition } = await import('../../src/utils/text.js');
-                const memory = { message_ids: messageIds };
-                expect(getMemoryPosition(memory)).toBe(expected);
-            }
-        );
+        it.each(POSITION_CALC_CASES)('calculates $desc', async ({ messageIds, expected }) => {
+            const { getMemoryPosition } = await import('../../src/utils/text.js');
+            const memory = { message_ids: messageIds };
+            expect(getMemoryPosition(memory)).toBe(expected);
+        });
 
         it('should be exported from text.js', async () => {
             const { getMemoryPosition } = await import('../../src/utils/text.js');
@@ -308,13 +305,10 @@ describe('text', () => {
             { sequence: 999, expected: 0, desc: 'sequence less than 1000' },
         ];
 
-        it.each(SEQUENCE_FALLBACK_CASES)(
-            'falls back to sequence: $desc',
-            async ({ sequence, expected }) => {
-                const { getMemoryPosition } = await import('../../src/utils/text.js');
-                const memory = { sequence };
-                expect(getMemoryPosition(memory)).toBe(expected);
-            }
-        );
+        it.each(SEQUENCE_FALLBACK_CASES)('falls back to sequence: $desc', async ({ sequence, expected }) => {
+            const { getMemoryPosition } = await import('../../src/utils/text.js');
+            const memory = { sequence };
+            expect(getMemoryPosition(memory)).toBe(expected);
+        });
     });
 });

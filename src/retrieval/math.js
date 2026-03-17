@@ -353,7 +353,8 @@ export async function scoreMemories(
         if (tokens.length > 0) {
             // Check if we have a valid cached IDF map
             const totalCorpusSize = memories.length + hiddenMemories.length;
-            const cacheValid = idfCache &&
+            const cacheValid =
+                idfCache &&
                 idfCache.memoryCount === totalCorpusSize &&
                 idfCache.idfMap &&
                 typeof idfCache.avgDL === 'number';
@@ -469,9 +470,7 @@ export async function scoreMemories(
         const isTopCandidate = candidateSet.has(memory.id);
 
         // Use cached vector similarity if available, null otherwise
-        const memoryContextEmbedding = isTopCandidate && vectorScores.has(memory.id)
-            ? contextEmbedding
-            : null;
+        const memoryContextEmbedding = isTopCandidate && vectorScores.has(memory.id) ? contextEmbedding : null;
 
         // For top candidates, we need to pass the actual embedding and similarity
         // For others, skip vector scoring entirely

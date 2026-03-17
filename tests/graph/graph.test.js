@@ -452,14 +452,9 @@ describe('mergeOrInsertEntity', () => {
         };
 
         // Act: insert Cyrillic variant — universal cross-script merge
-        const key = await mergeOrInsertEntity(
-            graphData,
-            'Сузи',
-            'PERSON',
-            'Главная героиня',
-            3,
-            { entityMergeSimilarityThreshold: 0.95 }
-        );
+        const key = await mergeOrInsertEntity(graphData, 'Сузи', 'PERSON', 'Главная героиня', 3, {
+            entityMergeSimilarityThreshold: 0.95,
+        });
 
         // Assert: merged into existing English node
         expect(key).toBe('suzy');
@@ -479,14 +474,9 @@ describe('mergeOrInsertEntity', () => {
         };
 
         // Insert a Cyrillic OBJECT — should NOT merge into Suzy even if name matches
-        const key = await mergeOrInsertEntity(
-            graphData,
-            'Сузи',
-            'OBJECT',
-            'Some object named Сузи',
-            3,
-            { entityMergeSimilarityThreshold: 0.95 }
-        );
+        const key = await mergeOrInsertEntity(graphData, 'Сузи', 'OBJECT', 'Some object named Сузи', 3, {
+            entityMergeSimilarityThreshold: 0.95,
+        });
 
         // Should create a new node, not merge
         expect(key).toBe('сузи');
@@ -514,14 +504,9 @@ describe('mergeOrInsertEntity', () => {
         };
 
         // Act: insert Cyrillic "Мина" — no mainCharacterNames needed
-        const key = await mergeOrInsertEntity(
-            graphData,
-            'Мина',
-            'PERSON',
-            'Подруга',
-            3,
-            { entityMergeSimilarityThreshold: 0.95 }
-        );
+        const key = await mergeOrInsertEntity(graphData, 'Мина', 'PERSON', 'Подруга', 3, {
+            entityMergeSimilarityThreshold: 0.95,
+        });
 
         // Assert: merged into existing Latin node
         expect(key).toBe('mina');
@@ -540,14 +525,9 @@ describe('mergeOrInsertEntity', () => {
         };
 
         // Act: insert Latin "Mina"
-        const key = await mergeOrInsertEntity(
-            graphData,
-            'Mina',
-            'PERSON',
-            'A friend',
-            3,
-            { entityMergeSimilarityThreshold: 0.95 }
-        );
+        const key = await mergeOrInsertEntity(graphData, 'Mina', 'PERSON', 'A friend', 3, {
+            entityMergeSimilarityThreshold: 0.95,
+        });
 
         // Assert: merged into existing Cyrillic node (first-inserted wins)
         expect(key).toBe('мина');

@@ -1,5 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { defaultSettings } from '../../src/constants.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('updatePayloadCalculator', () => {
     let mockJQuery;
@@ -25,7 +24,9 @@ describe('updatePayloadCalculator', () => {
             const $obj = {
                 val: vi.fn((newValue) => {
                     if (newValue !== undefined) {
-                        elements.forEach(el => el.value = newValue);
+                        elements.forEach((el) => {
+                            el.value = newValue;
+                        });
                         return $obj;
                     }
                     // Always re-query to get latest DOM values

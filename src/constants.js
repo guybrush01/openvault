@@ -144,10 +144,10 @@ export const PAYLOAD_CALC = {
 // =============================================================================
 
 /** Reflection deduplication: reject threshold (cosine similarity) */
-export const REFLECTION_DEDUP_REJECT_THRESHOLD = 0.90;
+export const REFLECTION_DEDUP_REJECT_THRESHOLD = 0.9;
 
 /** Reflection deduplication: replace threshold (auto: reject - 0.10) */
-export const REFLECTION_DEDUP_REPLACE_THRESHOLD = 0.80;
+export const REFLECTION_DEDUP_REPLACE_THRESHOLD = 0.8;
 
 /** Reflection decay: messages before reflections lose priority */
 export const REFLECTION_DECAY_THRESHOLD = 750;
@@ -168,7 +168,7 @@ export const COMBINED_BOOST_WEIGHT = 15;
 export const IMPORTANCE_5_FLOOR = 5;
 
 /** Entity merge: semantic similarity threshold for clustering */
-export const ENTITY_MERGE_THRESHOLD = 0.80;
+export const ENTITY_MERGE_THRESHOLD = 0.8;
 
 // UI hint defaults - derived from defaultSettings and QUERY_CONTEXT_DEFAULTS
 // Used to populate "(default: X)" hints in settings_panel.html

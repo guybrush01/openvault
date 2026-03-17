@@ -68,7 +68,7 @@ import {
     resolveOutputLanguage,
 } from '../prompts/index.js';
 import { accumulateImportance, generateReflections, shouldReflect } from '../reflection/reflect.js';
-import { cosineSimilarity, tokenize, calculateIDF } from '../retrieval/math.js';
+import { calculateIDF, cosineSimilarity, tokenize } from '../retrieval/math.js';
 import { clearAllLocks } from '../state.js';
 import { refreshAllUI } from '../ui/render.js';
 import { setStatus } from '../ui/status.js';
@@ -269,7 +269,7 @@ export function cleanupCharacterStates(data, validCharNames = []) {
  * @param {Object} data - OpenVault data object
  * @param {Object} graphNodes - Graph nodes keyed by normalized name
  */
-export function updateIDFCache(data, graphNodes = {}) {
+export function updateIDFCache(data, _graphNodes = {}) {
     const memories = data[MEMORIES_KEY] || [];
     if (memories.length === 0) return;
 

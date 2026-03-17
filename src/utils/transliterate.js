@@ -76,7 +76,10 @@ export function resolveCharacterName(name, canonicalNames, maxDistance = 2) {
         }
     } else {
         for (const canonical of canonicalNames) {
-            if (CYRILLIC_RE.test(canonical) && levenshteinDistance(transliterateCyrToLat(canonical.toLowerCase()), lower) <= maxDistance) {
+            if (
+                CYRILLIC_RE.test(canonical) &&
+                levenshteinDistance(transliterateCyrToLat(canonical.toLowerCase()), lower) <= maxDistance
+            ) {
                 return canonical;
             }
         }

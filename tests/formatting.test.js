@@ -260,27 +260,65 @@ describe('formatting', () => {
             const KNOWN_TAG_CASES = [
                 {
                     desc: 'no tag for secret memories (default private)',
-                    memory: { id: '1', summary: 'Private event', message_ids: [450], sequence: 450000, importance: 3, is_secret: true },
+                    memory: {
+                        id: '1',
+                        summary: 'Private event',
+                        message_ids: [450],
+                        sequence: 450000,
+                        importance: 3,
+                        is_secret: true,
+                    },
                     shouldHaveKnown: false,
                 },
                 {
                     desc: 'no tag for non-secret with 2 or fewer witnesses (default private)',
-                    memory: { id: '1', summary: 'Semi-private event', message_ids: [450], sequence: 450000, importance: 3, is_secret: false, witnesses: ['Alice', 'Bob'] },
+                    memory: {
+                        id: '1',
+                        summary: 'Semi-private event',
+                        message_ids: [450],
+                        sequence: 450000,
+                        importance: 3,
+                        is_secret: false,
+                        witnesses: ['Alice', 'Bob'],
+                    },
                     shouldHaveKnown: false,
                 },
                 {
                     desc: 'adds [Known] tag for non-secret with more than 2 witnesses',
-                    memory: { id: '1', summary: 'Public event', message_ids: [450], sequence: 450000, importance: 3, is_secret: false, witnesses: ['Alice', 'Bob', 'Charlie'] },
+                    memory: {
+                        id: '1',
+                        summary: 'Public event',
+                        message_ids: [450],
+                        sequence: 450000,
+                        importance: 3,
+                        is_secret: false,
+                        witnesses: ['Alice', 'Bob', 'Charlie'],
+                    },
                     shouldHaveKnown: true,
                 },
                 {
                     desc: 'no tag when witnesses array is empty',
-                    memory: { id: '1', summary: 'Event', message_ids: [450], sequence: 450000, importance: 3, is_secret: false, witnesses: [] },
+                    memory: {
+                        id: '1',
+                        summary: 'Event',
+                        message_ids: [450],
+                        sequence: 450000,
+                        importance: 3,
+                        is_secret: false,
+                        witnesses: [],
+                    },
                     shouldHaveKnown: false,
                 },
                 {
                     desc: 'no tag when witnesses field is missing',
-                    memory: { id: '1', summary: 'Event', message_ids: [450], sequence: 450000, importance: 3, is_secret: false },
+                    memory: {
+                        id: '1',
+                        summary: 'Event',
+                        message_ids: [450],
+                        sequence: 450000,
+                        importance: 3,
+                        is_secret: false,
+                    },
                     shouldHaveKnown: false,
                 },
             ];
@@ -346,8 +384,21 @@ describe('formatting', () => {
                 },
             ];
 
-            it.each(EMOTION_CASES)('$desc', ({ memories, presentCharacters, emotionalInfo, expectedContains, checkCommaCount }) => {
-                const result = formatContextForInjection(memories, presentCharacters, emotionalInfo, 'Alice', 10000, 500);
+            it.each(EMOTION_CASES)('$desc', ({
+                memories,
+                presentCharacters,
+                emotionalInfo,
+                expectedContains,
+                checkCommaCount,
+            }) => {
+                const result = formatContextForInjection(
+                    memories,
+                    presentCharacters,
+                    emotionalInfo,
+                    'Alice',
+                    10000,
+                    500
+                );
                 if (expectedContains === null) {
                     expect(result).not.toContain('Emotions:');
                 } else if (checkCommaCount !== undefined) {

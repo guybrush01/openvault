@@ -18,12 +18,12 @@ import {
 } from '../prompts/index.js';
 import { cosineSimilarity } from '../retrieval/math.js';
 import { getEmbedding, hasEmbedding, setEmbedding } from '../utils/embedding-codec.js';
-import { jaccardSimilarity } from '../utils/text.js';
 import { logDebug, logError } from '../utils/logging.js';
 import { createLadderQueue } from '../utils/queue.js';
 import { yieldToMain } from '../utils/st-helpers.js';
 import { stemWord } from '../utils/stemmer.js';
 import { ALL_STOPWORDS } from '../utils/stopwords.js';
+import { jaccardSimilarity } from '../utils/text.js';
 import { countTokens } from '../utils/tokens.js';
 import { levenshteinDistance, transliterateCyrToLat } from '../utils/transliterate.js';
 

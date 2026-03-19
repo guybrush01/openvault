@@ -283,6 +283,13 @@ export function initGraphState(data) {
  * @returns {boolean}
  */
 export function hasSufficientTokenOverlap(tokensA, tokensB, minOverlapRatio = 0.5, keyA = '', keyB = '') {
+    // 1. NEW: Stem equality — immediate merge for morphological variants
+    if (keyA && keyB) {
+        const stemA = stemWord(keyA);
+        const stemB = stemWord(keyB);
+        if (stemA && stemB && stemA === stemB) return true;
+    }
+
     // Helper: find longest common substring
     function longestCommonSubstring(a, b) {
         const longest = [0, 0];
@@ -298,21 +305,19 @@ export function hasSufficientTokenOverlap(tokensA, tokensB, minOverlapRatio = 0.
         return longest[0];
     }
 
-    // Direct substring containment is always a positive signal
+    // 2. Direct substring containment
     if (keyA && keyB && (keyA.includes(keyB) || keyB.includes(keyA))) {
         return true;
     }
 
-    // Fuzzy substring: significant common prefix/suffix (e.g., "alice" vs "alicia")
-    // Short-key exception: both keys ≤ 4 chars get relaxed thresholds to preserve
-    // morphological variants like Кай/Каю. Normal keys require ≥ 4 absolute chars
-    // and 70% ratio to block false positives from short suffixes like "-ска".
+    // 3. LCS check — RAISED threshold to prevent suffix collisions
     if (keyA && keyB && keyA.length > 2 && keyB.length > 2) {
         const commonLen = longestCommonSubstring(keyA, keyB);
         const minLen = Math.min(keyA.length, keyB.length);
         const shortKeys = keyA.length <= 4 && keyB.length <= 4;
         const minAbsLen = shortKeys ? 2 : 4;
-        const minRatio = shortKeys ? 0.6 : 0.7;
+        const minRatio = shortKeys ? 0.6 : 0.85; // Changed from 0.7 to 0.85
+
         if (commonLen >= minAbsLen && commonLen / minLen >= minRatio) {
             return true;
         }

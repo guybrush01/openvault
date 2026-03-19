@@ -17,4 +17,12 @@ describe('graph/rules', () => {
     it('should reference <think> tags in thinking_process', () => {
         expect(GRAPH_RULES).toContain('<think>');
     });
+
+    it('should include fictional identities in PERSON definition', () => {
+        expect(GRAPH_RULES).toContain('PERSON:');
+        expect(GRAPH_RULES).toContain('fictional identities presented as characters');
+        expect(GRAPH_RULES).toContain('personas');
+        expect(GRAPH_RULES).toContain('alter-egos');
+        expect(GRAPH_RULES).toContain('avatars');
+    });
 });

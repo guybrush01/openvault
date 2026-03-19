@@ -3,7 +3,7 @@
  */
 
 export const GRAPH_RULES = `Extract named entities mentioned or clearly implied in the messages. Focus on NEW entities or CHANGES to existing ones:
-- PERSON: Named characters, NPCs, people mentioned by name
+- PERSON: Named characters, NPCs, people mentioned by name, and fictional identities presented as characters (includes personas, alter-egos, avatars)
 - PLACE: Named locations, buildings, rooms, cities, regions
 - ORGANIZATION: Named groups, factions, guilds, companies
 - OBJECT: Highly significant unique items, weapons, or plot devices. Do NOT extract mundane furniture, clothing, or food unless they are critical to the scene's dynamic

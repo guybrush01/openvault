@@ -32,7 +32,7 @@ Agentic memory extension for SillyTavern providing POV-aware memory, witness tra
 - **ST Event Timing**: `GENERATION_AFTER_COMMANDS` fires BEFORE `chat.push()` and BEFORE textarea is cleared. Pending user message must be read from `$('#send_textarea').val()`, NOT from `context.chat` (which only has the previous message). See `events.js:onBeforeGeneration()`.
 
 ## ARCHITECTURE MAP (Lazy Loaded Context)
-- `include/ARCHITECTURE.md` - Global pipeline, Data Schema, Retrieval Math.
+- `include/DATA_SCHEMA.md` - Data schema, retrieval math, semantic merge, GraphRAG, embedding protection.
 - `src/extraction/CLAUDE.md` - 2-phase async worker, JSON validation, Zod schemas.
 - `src/prompts/CLAUDE.md` - Domain prompt structure, `<think>` tag convention, few-shot examples.
 - `src/retrieval/CLAUDE.md` - Alpha-Blend scoring, Forgetfulness curve.

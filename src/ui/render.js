@@ -427,6 +427,7 @@ export function renderGraphStats() {
 
 export function initBrowser() {
     bindMemoryListEvents();
+    initPositionBadges();
     renderMemoryList();
     renderCharacterStates();
     renderWorldTab();
@@ -451,6 +452,56 @@ export function refreshAllUI() {
     renderWorldTab();
     updateBudgetIndicators();
     renderPerfTab();
+}
+
+// =============================================================================
+// Position Badges
+// =============================================================================
+
+/**
+ * Render position badges for display
+ * @param {Object} settings - Extension settings
+ * @returns {string} HTML for position badges
+ */
+export function renderPositionBadges(settings) {
+    const getPositionLabel = (position) => {
+        const labels = {
+            0: '↑Char',
+            1: '↓Char',
+            2: '↑AN',
+            3: '↓AN',
+            4: 'In-chat',
+            '-1': 'Custom',
+        };
+        return labels[position] || 'Unknown';
+    };
+
+    const memoryPos = settings?.injection?.memory?.position ?? 1;
+    const worldPos = settings?.injection?.world?.position ?? 1;
+
+    const memoryLabel = memoryPos === -1
+        ? `<span class="openvault-position-badge custom" title="Click to copy macro" data-macro="openvault_memory">📋 {{openvault_memory}}</span>`
+        : `<span class="openvault-position-badge" title="Memory injection position">${getPositionLabel(memoryPos)}</span>`;
+
+    const worldLabel = worldPos === -1
+        ? `<span class="openvault-position-badge custom" title="Click to copy macro" data-macro="openvault_world">📋 {{openvault_world}}</span>`
+        : `<span class="openvault-position-badge" title="World injection position">${getPositionLabel(worldPos)}</span>`;
+
+    return `${memoryLabel} | ${worldLabel}`;
+}
+
+/**
+ * Initialize click handlers for position badges
+ */
+function initPositionBadges() {
+    $(document).on('click', '.openvault-position-badge.custom', function () {
+        const macro = $(this).data('macro');
+        const macroText = `{{${macro}}}`;
+        navigator.clipboard.writeText(macroText).then(
+            () => showToast('success', `Copied {{${macro}}} to clipboard`),
+            () => showToast('error', 'Failed to copy')
+        );
+    });
 }
 
 export { prevPage as browserPrevPage, nextPage as browserNextPage, resetAndRender as browserResetAndRender };

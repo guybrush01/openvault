@@ -60,12 +60,12 @@ Add configurable macro positioning for OpenVault's memory and world content inje
 src/
 ├── injection/
 │   ├── settings.js       # New: Position config UI
-│   └── inject.js         # Modified: Use position settings
+│   ├── inject.js         # Modified: Use position settings
+│   └── macros.js         # New: Macro registration + cachedContent export
 ├── ui/
 │   ├── settings.js       # Modified: Add injection settings panel
 │   └── display.js        # Modified: Add position badges
-├── constants.js          # Modified: Add position enum/mapping
-└── macros.js             # New: Macro registration
+└── constants.js          # Modified: Add position enum/mapping
 ```
 
 ## Implementation Details
@@ -73,7 +73,7 @@ src/
 ### 1. Settings Initialization
 
 ```javascript
-// src/utils/settings.js
+// In your main extension entry point (follows ST lazy-init pattern)
 const { extensionSettings, saveSettingsDebounced } = SillyTavern.getContext();
 const { lodash } = SillyTavern.libs;
 
@@ -92,16 +92,31 @@ function loadSettings() {
 }
 ```
 
-### 2. Injection Logic
+### 2. Macro Registration
 
 ```javascript
-// src/injection/inject.js
-import { setExtensionPrompt } from '../../../../scripts/extensions.js';
+// src/macros.js
+const { registerMacro } = SillyTavern.getContext();
 
-const cachedContent = {
+export const cachedContent = {
   memory: '',
   world: ''
 };
+
+// Macros MUST be synchronous - no async/await
+registerMacro('openvault_memory', () => cachedContent.memory);
+registerMacro('openvault_world', () => cachedContent.world);
+
+// Note: Do NOT wrap name in {{ }} - ST does that automatically
+// Users write: {{openvault_memory}} - ST strips braces and calls registerMacro
+```
+
+### 3. Injection Logic
+
+```javascript
+// src/injection/inject.js
+import { setExtensionPrompt } from '../../../extensions.js';
+import { cachedContent } from './macros.js';
 
 function injectContent(type, content) {
   const settings = extensionSettings.openvault.injection[type];
@@ -124,47 +139,7 @@ function injectContent(type, content) {
 }
 ```
 
-### 3. Macro Registration
-
-```javascript
-// src/macros.js
-const { registerMacro } = SillyTavern.getContext();
-
-// Macros MUST be synchronous - no async/await
-registerMacro('openvault_memory', () => cachedContent.memory);
-registerMacro('openvault_world', () => cachedContent.world);
-
-// Note: Do NOT wrap name in {{ }} - ST does that automatically
-// Users write: {{openvault_memory}} - ST strips braces and calls registerMacro
-```
-
-### 4. Prompt Interceptor (Alternative to GENERATION_AFTER_COMMANDS)
-
-For the Custom position case, consider using ST's `generate_interceptor` API:
-
-```json
-// manifest.json
-{
-  "generate_interceptor": "openvaultInterceptor"
-}
-```
-
-```javascript
-// src/interceptor.js
-globalThis.openvaultInterceptor = function(chat, contextSize, abort, type) {
-  const settings = extensionSettings.openvault.injection;
-
-  // For custom positions, macros handle injection
-  // cachedContent is already populated by retrieveAndInjectContext()
-  if (settings.memory.position === -1 || settings.world.position === -1) {
-    // No-op - macros provide the content
-  }
-
-  // Positions 0-4 are handled by setExtensionPrompt before this runs
-};
-```
-
-**Note**: The interceptor approach is cleaner than `GENERATION_AFTER_COMMANDS` for ordering guarantees. Implement in Phase 2 if needed.
+**Note on Prompt Interceptor**: The `generate_interceptor` API exists for ephemeral in-chat insertion via direct `chat[]` modification. Not needed for this feature since `setExtensionPrompt` handles positions 0-4 and macros handle Custom.
 
 ## UI Design
 
@@ -238,23 +213,18 @@ Clicking the badge or copy button copies the macro to clipboard.
 ### Phase 1: Core Positioning
 
 1. **Settings Schema**: Add `injection` config with defaults
-2. **Injection Logic**: Modify `injectContent()` to use position settings
-3. **Settings UI**: Create position selector panel
-4. **Inline Display**: Add position badges to main UI
-5. **Testing**: Verify all positions work correctly
+2. **Macro Registration**: Register `openvault_memory` and `openvault_world` (must ship before Custom option)
+3. **Injection Logic**: Modify `injectContent()` to use position settings
+4. **Custom Position**: Add -1 (custom) option to selector
+5. **Settings UI**: Create position selector panel
+6. **Inline Display**: Add position badges with copy-to-clipboard for macro names
+7. **Testing**: Verify all positions work correctly
+8. **Documentation**: Update README with macro usage
 
-### Phase 2: Macro Support
+### Phase 2: Polish (Optional)
 
-1. **Macro Registration**: Register `openvault_memory` and `openvault_world`
-2. **Custom Position**: Add -1 (custom) option to selector
-3. **Copy Button**: Add copy-to-clipboard for macro names
-4. **Documentation**: Update README with macro usage
-
-### Phase 3: Polish (Optional)
-
-1. **Prompt Interceptor**: Migrate from `GENERATION_AFTER_COMMANDS` if needed
-2. **Per-Profile Settings**: Allow different positions per character profile
-3. **World Info Positions**: Add ↑EM, ↓EM, Outlet if requested by users
+1. **Per-Profile Settings**: Allow different positions per character profile
+2. **World Info Positions**: Add ↑EM, ↓EM, Outlet if requested by users
 
 ## Migration Path
 
@@ -271,9 +241,10 @@ Clicking the badge or copy button copies the macro to clipboard.
 
 ## Future Considerations
 
-- **World Info Positions** (↑EM, ↓EM, Outlet): Not supported by extension prompt API — would require creating WI entries
+- **World Info Positions** (↑EM, ↓EM, Outlet): Not supported by extension prompt API — would require creating WI entries or different approach
 - **Per-Character Profiles**: Store position overrides per character
 - **Multiple Injection Points**: Allow same content at multiple positions
+- **CHAT_CHANGED Handling**: Add `unregisterMacro`/re-register if implementing per-chat position overrides (not needed for global settings)
 
 ## References
 

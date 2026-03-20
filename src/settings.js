@@ -86,5 +86,18 @@ export function setSetting(path, value) {
     deps.saveSettingsDebounced();
 }
 
+/**
+ * Check if path exists in settings
+ * @param {string} path - Lodash path (dot notation)
+ * @returns {boolean}
+ */
+export function hasSettings(path) {
+    const deps = getDeps();
+    const lodash = deps.getContext()?.lodash;
+    const settings = deps.getExtensionSettings()[extensionName];
+
+    return lodash?.has(settings, path) ?? false;
+}
+
 // Auto-initialize on import
 loadSettings();

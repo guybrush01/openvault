@@ -219,4 +219,24 @@ describe('Centralized Settings Module', () => {
             expect(getSettings('any.path', 'default')).toBe('default');
         });
     });
+
+    describe('hasSettings', () => {
+        it('should return true for existing paths', async () => {
+            const { hasSettings } = await import('../src/settings.js');
+            expect(hasSettings('injection.memory')).toBe(true);
+            expect(hasSettings('enabled')).toBe(true);
+        });
+
+        it('should return false for missing paths', async () => {
+            const { hasSettings } = await import('../src/settings.js');
+            expect(hasSettings('nonexistent.path')).toBe(false);
+            expect(hasSettings('injection.nonexistent')).toBe(false);
+        });
+
+        it('should work with deeply nested paths', async () => {
+            const { hasSettings } = await import('../src/settings.js');
+            expect(hasSettings('injection.memory.position')).toBe(true);
+            expect(hasSettings('injection.memory.nonexistent')).toBe(false);
+        });
+    });
 });

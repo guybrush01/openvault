@@ -430,8 +430,7 @@ export async function loadSettings() {
     // Update UI to match current settings
     updateUI();
 
-    // Load injection settings
-    loadInjectionSettings();
+    // Injection settings are now embedded in Advanced tab, no separate load needed
 
     logInfo('Settings loaded');
 }
@@ -714,11 +713,16 @@ function bindInjectionSettings() {
     });
 
     // Copy macro buttons
-    $('.openvault-copy-macro').on('click', function () {
-        const macro = $(this).data('macro');
-        const macroText = `{{${macro}}}`;
-        navigator.clipboard.writeText(macroText).then(
-            () => showToast('success', `Copied {{${macro}}} to clipboard`),
+    $('#openvault_copy_memory_macro').on('click', function () {
+        navigator.clipboard.writeText('{{openvault_memory}}').then(
+            () => showToast('success', 'Copied {{openvault_memory}} to clipboard'),
+            () => showToast('error', 'Failed to copy')
+        );
+    });
+
+    $('#openvault_copy_world_macro').on('click', function () {
+        navigator.clipboard.writeText('{{openvault_world}}').then(
+            () => showToast('success', 'Copied {{openvault_world}} to clipboard'),
             () => showToast('error', 'Failed to copy')
         );
     });
@@ -739,28 +743,14 @@ export function updateInjectionUI(type = 'both') {
         $(`#openvault_${t}_position`).val(position);
 
         // Show/hide depth input (only for IN_CHAT)
-        $(`#openvault_${t}_depth`).parent().toggle(position === 4);
+        $(`#openvault_${t}_depth_container`).toggle(position === 4);
 
         // Show/hide macro info (only for CUSTOM)
-        $(`.openvault-injection-block:nth-child(${t === 'memory' ? 1 : 2}) .openvault-macro-info`)
-            .toggle(position === -1);
+        $(`#openvault_${t}_macro_container`).toggle(position === -1);
     };
 
     if (type === 'both' || type === 'memory') updateType('memory');
     if (type === 'both' || type === 'world') updateType('world');
-}
-
-/**
- * Load injection settings template and initialize UI.
- */
-async function loadInjectionSettings() {
-    try {
-        const settingsHtml = await $.get(`${extensionFolderPath}/templates/injection_settings.html`);
-        $('#extensions_settings2').append(settingsHtml);
-        updateInjectionUI();
-    } catch (err) {
-        logError('Failed to load injection settings template', err);
-    }
 }
 
 // =============================================================================

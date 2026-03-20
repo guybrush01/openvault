@@ -16,16 +16,33 @@ export function withTimeout(promise, ms, operation = 'Operation') {
     ]);
 }
 
+// Position code mapping to ST extension_prompt_types
+const POSITION_MAP = {
+    0: 0, // BEFORE_MAIN -> IN_PROMPT
+    1: 0, // AFTER_MAIN -> IN_PROMPT (same slot, different ordering)
+    2: 2, // BEFORE_AN -> AN
+    3: 3, // AFTER_AN -> AN_SCOPE
+    4: 4, // IN_CHAT -> CHAT
+};
+
 /**
- * Safe wrapper for setExtensionPrompt with error handling
+ * Safe wrapper for setExtensionPrompt with error handling and position support
  * @param {string} content - Content to inject
  * @param {string} [name] - Named slot (defaults to extensionName for backwards compatibility)
- * @returns {boolean} True if successful
+ * @param {number} [position] - Position code (0-4, -1 for custom)
+ * @param {number} [depth] - Message depth for IN_CHAT position
+ * @returns {boolean} True if successful, false if skipped (CUSTOM position)
  */
-export function safeSetExtensionPrompt(content, name = extensionName) {
+export function safeSetExtensionPrompt(content, name = extensionName, position = 0, depth = 0) {
+    // Custom position (-1) = macro-only, skip auto-injection
+    if (position === -1) {
+        return false;
+    }
+
     try {
         const deps = getDeps();
-        deps.setExtensionPrompt(name, content, deps.extension_prompt_types.IN_PROMPT, 0);
+        const promptType = POSITION_MAP[position] ?? 0;
+        deps.setExtensionPrompt(name, content, promptType, depth);
         return true;
     } catch (error) {
         logError('Failed to set extension prompt', error);

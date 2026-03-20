@@ -24,11 +24,11 @@ describe('st-helpers', () => {
             setDeps({
                 console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
                 setExtensionPrompt: mockSetPrompt,
-                extension_prompt_types: { IN_PROMPT: 3 },
+                extension_prompt_types: { IN_PROMPT: 0 },
             });
 
             expect(safeSetExtensionPrompt('test content')).toBe(true);
-            expect(mockSetPrompt).toHaveBeenCalledWith(extensionName, 'test content', 3, 0);
+            expect(mockSetPrompt).toHaveBeenCalledWith(extensionName, 'test content', 0, 0);
         });
 
         it('returns false on error', () => {

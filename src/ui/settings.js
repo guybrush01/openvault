@@ -430,6 +430,9 @@ export async function loadSettings() {
     // Update UI to match current settings
     updateUI();
 
+    // Load injection settings
+    loadInjectionSettings();
+
     logInfo('Settings loaded');
 }
 
@@ -671,6 +674,93 @@ function bindUIElements() {
             () => showToast('error', 'Failed to copy — try selecting manually')
         );
     });
+
+    // Injection settings bindings
+    bindInjectionSettings();
+}
+
+// =============================================================================
+// Injection Settings UI
+// =============================================================================
+
+/**
+ * Bind injection settings UI events for position and depth controls.
+ */
+function bindInjectionSettings() {
+    // Memory position selector
+    $('#openvault_memory_position').on('change', function () {
+        const position = parseInt($(this).val());
+        saveSetting('injection.memory.position', position);
+        updateInjectionUI('memory');
+    });
+
+    // Memory depth input
+    $('#openvault_memory_depth').on('input', function () {
+        const depth = parseInt($(this).val()) || 4;
+        saveSetting('injection.memory.depth', depth);
+    });
+
+    // World position selector
+    $('#openvault_world_position').on('change', function () {
+        const position = parseInt($(this).val());
+        saveSetting('injection.world.position', position);
+        updateInjectionUI('world');
+    });
+
+    // World depth input
+    $('#openvault_world_depth').on('input', function () {
+        const depth = parseInt($(this).val()) || 4;
+        saveSetting('injection.world.depth', depth);
+    });
+
+    // Copy macro buttons
+    $('.openvault-copy-macro').on('click', function () {
+        const macro = $(this).data('macro');
+        const macroText = `{{${macro}}}`;
+        navigator.clipboard.writeText(macroText).then(
+            () => showToast('success', `Copied {{${macro}}} to clipboard`),
+            () => showToast('error', 'Failed to copy')
+        );
+    });
+}
+
+/**
+ * Update injection settings UI visibility based on position selection.
+ * @param {'memory'|'world'|'both'} type - Which injection type to update
+ */
+export function updateInjectionUI(type = 'both') {
+    const settings = getSettings();
+
+    const updateType = (t) => {
+        const position = settings.injection?.[t]?.position ?? 1;
+        const depth = settings.injection?.[t]?.depth ?? 4;
+
+        // Update selector
+        $(`#openvault_${t}_position`).val(position);
+
+        // Show/hide depth input (only for IN_CHAT)
+        $(`#openvault_${t}_depth`).parent().toggle(position === 4);
+
+        // Show/hide macro info (only for CUSTOM)
+        $(`.openvault-injection-block:nth-child(${t === 'memory' ? 1 : 2}) .openvault-macro-info`)
+            .toggle(position === -1);
+    };
+
+    if (type === 'both' || type === 'memory') updateType('memory');
+    if (type === 'both' || type === 'world') updateType('world');
+}
+
+/**
+ * Load injection settings template and initialize UI.
+ */
+async function loadInjectionSettings() {
+    try {
+        const settingsHtml = await $.get(`${extensionFolderPath}/templates/injection_settings.html`);
+        $('#extensions_settings2').append(settingsHtml);
+        updateInjectionUI();
+    } catch (err) {
+        logError('Failed to load injection settings template', err);
+    }
 }
 
 // =============================================================================

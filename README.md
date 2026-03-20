@@ -44,6 +44,57 @@ OpenVault integrates directly into the SillyTavern extensions menu with a clean,
 *   **Advanced:** Expert tuning for the retrieval math. Adjust the Alpha-blend (vector vs. keyword bias), decay rates, and deduplication thresholds. 
 *   **Perf:** Real-time performance metrics to ensure background extractions aren't bottlenecking your browser.
 
+## Injection Positions
+
+OpenVault allows you to customize where retrieved memories and world info are injected into the prompt. This is useful for controlling how the AI prioritizes different context sources.
+
+### Configuring Positions
+
+1. Open SillyTavern Settings → Extensions → OpenVault
+2. Scroll to the "Injection Positions" section
+3. Choose a position for each content type:
+   - **Memory Position**: Where retrieved memories are injected
+   - **World Info Position**: Where world context is injected
+
+### Available Positions
+
+| Position | Label | Description |
+|----------|-------|-------------|
+| ↑Char | Before character definitions | Injected before the character card |
+| ↓Char | After character definitions | Injected after the character card (recommended) |
+| ↑AN | Before author's note | Injected at the top of the author's note |
+| ↓AN | After author's note | Injected at the bottom of the author's note |
+| In-chat | At message depth | Injected at a specific message depth |
+| **Custom** | Use macro manually | No auto-injection; use macros below |
+
+### Custom Position (Manual Macros)
+
+When "Custom" is selected, content is **not automatically injected**. Instead, you can manually place macros anywhere in your prompt:
+
+- `{{openvault_memory}}` — Retrieves the memory context
+- `{{openvault_world}}` — Retrieves the world context
+
+**Example usage in character card or prompt:**
+```
+{{openvault_memory}}
+
+[Your custom instructions here]
+
+{{openvault_world}}
+```
+
+### Inline Position Display
+
+The main OpenVault panel shows current injection positions as badges:
+- `[↓Char | ↑AN]` — Memory at ↓Char, World at ↑AN
+- `[📋 {{openvault_memory}} | ↓Char]` — Memory uses custom macro, World at ↓Char
+
+Click on a macro badge to copy it to your clipboard.
+
+### Default Behavior
+
+By default, both memory and world content are injected at **↓Char** (after character definitions), which is the recommended setting for most use cases.
+
 ## Requirements & Setup
 
 *   **SillyTavern 1.13.0+**

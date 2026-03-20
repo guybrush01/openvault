@@ -121,8 +121,11 @@ import { cachedContent } from './macros.js';
 function injectContent(type, content) {
   const settings = extensionSettings.openvault.injection[type];
 
-  // Always update cached content for macro access
-  cachedContent[type] = content;
+  // NOTE: cachedContent is a live object reference from macros.js.
+  // Mutating its properties (not reassigning the binding) is intentional
+  // and updates the macro return values in-place.
+  cachedContent[type] = content; // ✓ mutates property — works
+  // cachedContent = { ... }     // ✗ would break the macro closure
 
   // Custom (-1) = macro-only, skip auto-injection
   if (settings.position === -1) {
@@ -207,6 +210,10 @@ In the main OpenVault UI, show current positions:
 ```
 
 Clicking the badge or copy button copies the macro to clipboard.
+
+## Pre-Implementation Checklist
+
+- [ ] **Verify import depth**: Open `src/injection/inject.js` location in file explorer, count directory levels to `public/scripts/`, set import accordingly. Expected: `'../../../../../extensions.js'` from `src/injection/inject.js` based on ST extension structure at `public/scripts/extensions/third-party/openvault/`
 
 ## Implementation Plan
 

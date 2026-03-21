@@ -231,6 +231,117 @@ describe('STVectorsStrategy', () => {
             expect(strategy.getStatus()).toBe('Configure in Vector Storage');
         });
     });
+
+    describe('getEmbedding', () => {
+        it('calls /api/embeddings/generate with correct payload', async () => {
+            const fetchSpy = vi.fn(async () => ({
+                ok: true,
+                json: async () => ({ embeddings: [[0.1, 0.2, 0.3]] }),
+            }));
+
+            const depsModule = await import('../src/deps.js');
+            vi.spyOn(depsModule, 'getDeps').mockReturnValue({
+                getExtensionSettings: vi.fn(() => ({
+                    vectors: { source: 'openrouter', openai_model: 'text-embedding-3-small' },
+                })),
+                fetch: fetchSpy,
+            });
+
+            const { getStrategy } = await import('../src/embeddings.js');
+            const strategy = getStrategy('st-vectors');
+            const result = await strategy.getEmbedding('test text');
+
+            expect(fetchSpy).toHaveBeenCalledWith(
+                '/api/embeddings/generate',
+                expect.objectContaining({
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source: 'openrouter',
+                        items: ['test text'],
+                        model: 'text-embedding-3-small',
+                    }),
+                    signal: undefined,
+                })
+            );
+            expect(result).toBeInstanceOf(Float32Array);
+            expect(result[0]).toBeCloseTo(0.1, 5);
+        });
+
+        it('returns null when vector settings not configured', async () => {
+            const depsModule = await import('../src/deps.js');
+            vi.spyOn(depsModule, 'getDeps').mockReturnValue({
+                getExtensionSettings: vi.fn(() => ({})),
+                fetch: vi.fn(),
+            });
+
+            const { getStrategy } = await import('../src/embeddings.js');
+            const strategy = getStrategy('st-vectors');
+            const result = await strategy.getEmbedding('test text');
+
+            expect(result).toBeNull();
+        });
+
+        it('returns null when text is empty', async () => {
+            const depsModule = await import('../src/deps.js');
+            vi.spyOn(depsModule, 'getDeps').mockReturnValue({
+                getExtensionSettings: vi.fn(() => ({
+                    vectors: { source: 'openrouter', openai_model: 'text-embedding-3-small' },
+                })),
+                fetch: vi.fn(),
+            });
+
+            const { getStrategy } = await import('../src/embeddings.js');
+            const strategy = getStrategy('st-vectors');
+            const result = await strategy.getEmbedding('');
+
+            expect(result).toBeNull();
+        });
+
+        it('throws AbortError when signal is pre-aborted', async () => {
+            const depsModule = await import('../src/deps.js');
+            vi.spyOn(depsModule, 'getDeps').mockReturnValue({
+                getExtensionSettings: vi.fn(() => ({
+                    vectors: { source: 'openrouter', openai_model: 'text-embedding-3-small' },
+                })),
+                fetch: vi.fn(),
+            });
+
+            const { getStrategy } = await import('../src/embeddings.js');
+            const strategy = getStrategy('st-vectors');
+            const ctrl = new AbortController();
+            ctrl.abort();
+
+            await expect(strategy.getEmbedding('test', { signal: ctrl.signal })).rejects.toThrow(
+                expect.objectContaining({ name: 'AbortError' })
+            );
+        });
+
+        it('passes signal to fetch', async () => {
+            const fetchSpy = vi.fn(async () => ({
+                ok: true,
+                json: async () => ({ embeddings: [[0.1]] }),
+            }));
+
+            const depsModule = await import('../src/deps.js');
+            vi.spyOn(depsModule, 'getDeps').mockReturnValue({
+                getExtensionSettings: vi.fn(() => ({
+                    vectors: { source: 'openrouter', openai_model: 'text-embedding-3-small' },
+                })),
+                fetch: fetchSpy,
+            });
+
+            const { getStrategy } = await import('../src/embeddings.js');
+            const strategy = getStrategy('st-vectors');
+            const ctrl = new AbortController();
+            await strategy.getEmbedding('test', { signal: ctrl.signal });
+
+            expect(fetchSpy).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({ signal: ctrl.signal })
+            );
+        });
+    });
 });
 
 describe('enrichEventsWithEmbeddings abort signal', () => {

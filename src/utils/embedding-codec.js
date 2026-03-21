@@ -76,4 +76,31 @@ export function deleteEmbedding(obj) {
     if (!obj) return;
     delete obj.embedding;
     delete obj.embedding_b64;
+    delete obj._st_synced;
+}
+
+/**
+ * Mark an object as synced to ST Vector Storage.
+ * @param {Object} obj - Object to mark
+ */
+export function markStSynced(obj) {
+    if (obj) obj._st_synced = true;
+}
+
+/**
+ * Check if an object has been synced to ST Vector Storage.
+ * @param {Object} obj - Object to check
+ * @returns {boolean}
+ */
+export function isStSynced(obj) {
+    if (!obj) return false;
+    return !!obj._st_synced;
+}
+
+/**
+ * Clear ST sync flag from an object.
+ * @param {Object} obj - Object to clear
+ */
+export function clearStSynced(obj) {
+    if (obj) delete obj._st_synced;
 }

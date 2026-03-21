@@ -231,7 +231,7 @@ export async function onChatChanged() {
     const { invalidateStaleEmbeddings, saveOpenVaultData } = await import('./utils/data.js');
     const settings = getDeps().getExtensionSettings()[extensionName];
     if (data && settings?.embeddingSource) {
-        const wiped = invalidateStaleEmbeddings(data, settings.embeddingSource);
+        const wiped = await invalidateStaleEmbeddings(data, settings.embeddingSource);
         if (wiped > 0) {
             await saveOpenVaultData();
             // Auto-trigger comprehensive re-embedding in background (fire-and-forget)

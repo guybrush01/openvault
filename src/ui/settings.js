@@ -569,7 +569,7 @@ function bindUIElements() {
         const data = getOpenVaultData();
         if (data) {
             const { invalidateStaleEmbeddings, saveOpenVaultData } = await import('../utils/data.js');
-            const wiped = invalidateStaleEmbeddings(data, value);
+            const wiped = await invalidateStaleEmbeddings(data, value);
             if (wiped > 0) {
                 await saveOpenVaultData();
                 showToast('info', `Embedding model changed. Re-embedding ${wiped} vectors in background.`);

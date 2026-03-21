@@ -611,6 +611,10 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
             // Prevents invalidateStaleEmbeddings from treating this chat as "legacy" on next open
             if (!data.embedding_model_id && events.some((e) => hasEmbedding(e))) {
                 data.embedding_model_id = settings.embeddingSource;
+                if (settings.embeddingSource === 'st_vector') {
+                    const { stampStVectorFingerprint } = await import('../utils/data.js');
+                    stampStVectorFingerprint(data);
+                }
             }
 
             const dedupThreshold = settings.dedupSimilarityThreshold;

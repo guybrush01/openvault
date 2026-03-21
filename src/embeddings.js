@@ -889,6 +889,10 @@ export async function backfillAllEmbeddings({ signal, silent = false } = {}) {
         }
 
         if (synced > 0) {
+            // Stamp ST fingerprint so mismatch detection works on next load
+            const { stampStVectorFingerprint } = await import('./utils/data.js');
+            stampStVectorFingerprint(data);
+
             await saveOpenVaultData();
         }
 

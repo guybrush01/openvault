@@ -13,6 +13,69 @@ import { hasEmbedding, setEmbedding } from './utils/embedding-codec.js';
 import { logDebug, logError, logInfo } from './utils/logging.js';
 
 // =============================================================================
+// ST Vector Storage ID Prefix Utilities
+// =============================================================================
+
+/**
+ * Prefix marker for embedding OpenVault IDs in ST Vector text fields.
+ * Format: [OV_ID:entity_id] Actual summary text...
+ */
+const OV_ID_PREFIX_START = '[OV_ID:';
+const OV_ID_PREFIX_END = '] ';
+
+/**
+ * Create text with embedded OpenVault ID for ST Vector Storage.
+ * @param {string} id - OpenVault entity ID (e.g., "event_123", "Alice")
+ * @param {string} text - Summary text
+ * @returns {string} Text with ID prefix
+ */
+function createTextWithId(id, text) {
+    return `${OV_ID_PREFIX_START}${id}${OV_ID_PREFIX_END}${text}`;
+}
+
+/**
+ * Extract OpenVault ID from ST Vector text field.
+ * @param {string} text - Text that may contain ID prefix
+ * @returns {{id: string|null, text: string}} Extracted ID and clean text
+ */
+function extractIdFromText(text) {
+    if (!text || !text.startsWith(OV_ID_PREFIX_START)) {
+        return { id: null, text: text || '' };
+    }
+    const endIdx = text.indexOf(OV_ID_PREFIX_END);
+    if (endIdx === -1) {
+        return { id: null, text };
+    }
+    const id = text.slice(OV_ID_PREFIX_START.length, endIdx);
+    const cleanText = text.slice(endIdx + OV_ID_PREFIX_END.length);
+    return { id, text: cleanText };
+}
+
+/**
+ * Generate a 53-bit numeric hash from string for ST Vector hash field.
+ * Uses Cyrb53 algorithm to avoid collisions - with 53-bit output, collision
+ * probability is negligible even with millions of items (unlike djb2's 32-bit).
+ * ST requires numeric hashes for its Vectra backend.
+ * @param {string} str - String to hash
+ * @param {number} [seed=0] - Optional seed for different hash sequences
+ * @returns {number} 53-bit numeric hash (safe JavaScript integer)
+ */
+function hashStringToNumber(str, seed = 0) {
+    let h1 = 0xdeadbeef ^ seed,
+        h2 = 0x41c6ce57 ^ seed;
+    for (let i = 0, ch; i < str.length; i++) {
+        ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+    h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+    h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return Math.abs(4294967296 * (2097151 & h2) + (h1 >>> 0));
+}
+
+// =============================================================================
 // Strategy Classes (from src/embeddings/strategies.js)
 // =============================================================================
 
@@ -849,3 +912,4 @@ export async function backfillAllEmbeddings({ signal, silent = false } = {}) {
 export { getStrategy };
 export { TRANSFORMERS_MODELS };
 export { getOptimalChunkSize };
+export { extractIdFromText, hashStringToNumber };

@@ -238,3 +238,47 @@ describe('enrichEventsWithEmbeddings abort signal', () => {
         );
     });
 });
+
+describe('ST Vector ID Prefix Utilities', () => {
+    it('creates and extracts ID from text', async () => {
+        const { extractIdFromText } = await import('../src/embeddings.js');
+
+        // Simulate what createTextWithId produces
+        const textWithId = '[OV_ID:event_123456789_0] This is a memory summary';
+        const result = extractIdFromText(textWithId);
+
+        expect(result.id).toBe('event_123456789_0');
+        expect(result.text).toBe('This is a memory summary');
+    });
+
+    it('handles text without ID prefix', async () => {
+        const { extractIdFromText } = await import('../src/embeddings.js');
+
+        const result = extractIdFromText('Plain text without prefix');
+
+        expect(result.id).toBeNull();
+        expect(result.text).toBe('Plain text without prefix');
+    });
+
+    it('handles IDs with special characters', async () => {
+        const { extractIdFromText } = await import('../src/embeddings.js');
+
+        const textWithId = '[OV_ID:ref_abc-123_xyz] Reflection summary';
+        const result = extractIdFromText(textWithId);
+
+        expect(result.id).toBe('ref_abc-123_xyz');
+        expect(result.text).toBe('Reflection summary');
+    });
+
+    it('hashStringToNumber produces stable hashes', async () => {
+        const { hashStringToNumber } = await import('../src/embeddings.js');
+
+        const id1 = 'event_123456789_0';
+        const id2 = 'ref_abc123-def456';
+
+        expect(hashStringToNumber(id1)).toBe(hashStringToNumber(id1)); // Stable
+        expect(hashStringToNumber(id2)).toBe(hashStringToNumber(id2)); // Stable
+        expect(hashStringToNumber(id1)).not.toBe(hashStringToNumber(id2)); // Different
+        expect(hashStringToNumber(id1)).toBeGreaterThan(0); // Positive
+    });
+});

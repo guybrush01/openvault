@@ -659,6 +659,12 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
             canonicalizeEventCharNames(events, [characterName, userName], data.graph?.nodes);
             data[MEMORIES_KEY] = data[MEMORIES_KEY] || [];
             data[MEMORIES_KEY].push(...events);
+            // Sync to ST Vector Storage
+            const { syncItemsToStStorage } = await import('../utils/data.js');
+            await syncItemsToStStorage(
+                events.map((e) => ({ id: e.id, summary: e.summary })),
+                { targetObjects: events }
+            );
             updateCharacterStatesFromEvents(events, data, [characterName, userName]);
         }
 

@@ -813,6 +813,7 @@ export function updateUI() {
     // Embedding settings
     $('#openvault_embedding_source').val(settings.embeddingSource);
     $('#openvault_ollama_settings').toggle(settings.embeddingSource === 'ollama');
+    $('#openvault_st_vectors_hint').toggle(settings.embeddingSource === 'st-vectors');
     $('#openvault_ollama_url').val(settings.ollamaUrl);
     $('#openvault_embedding_model').val(settings.embeddingModel);
     $('#openvault_embedding_query_prefix').val(settings.embeddingQueryPrefix);

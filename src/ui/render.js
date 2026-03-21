@@ -26,7 +26,6 @@ import {
 import { renderPerfTab, updateBudgetIndicators } from './settings.js';
 import { refreshStats } from './status.js';
 import {
-    graphStatsCard,
     renderCharacterState,
     renderCommunityAccordion,
     renderEntityCard,
@@ -392,36 +391,6 @@ function renderWorldTab() {
 }
 
 // =============================================================================
-// Graph Stats Render
-// =============================================================================
-
-/**
- * Render Graph Stats Card in World tab
- */
-export function renderGraphStats() {
-    const container = document.getElementById('openvault_graph_stats');
-    if (!container) return;
-
-    const data = getOpenVaultData();
-    const context = getDeps().getContext?.();
-    const currentMessageId = context?.chat?.length || 0;
-
-    // Graph stores nodes/edges as objects (keyed by normalized name), not arrays
-    const graph = data?.graph || { nodes: {}, edges: {} };
-    const communities = data?.communities || {};
-    const lastDetection = data?.lastCommunityDetection || 0;
-
-    const stats = {
-        entities: Object.keys(graph.nodes || {}).length,
-        relationships: Object.keys(graph.edges || {}).length,
-        communities: Object.keys(communities || {}).length,
-        lastClustered: currentMessageId - lastDetection,
-    };
-
-    container.innerHTML = graphStatsCard(stats);
-}
-
-// =============================================================================
 // Browser Orchestration Layer
 // =============================================================================
 
@@ -448,7 +417,6 @@ export function refreshAllUI() {
     renderMemoryList();
     renderCharacterStates();
     renderReflectionProgressSection();
-    renderGraphStats();
     renderWorldTab();
     updateBudgetIndicators();
     renderPerfTab();

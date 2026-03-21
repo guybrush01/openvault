@@ -110,3 +110,20 @@ describe('calculateScore with _proxyVectorScore', () => {
         expect(result.total).toBeGreaterThan(result.baseAfterFloor);
     });
 });
+
+describe('world-context ST branch', () => {
+    it('retrieveWorldContext still works with local embeddings (no regression)', async () => {
+        const { retrieveWorldContext } = await import('../../src/retrieval/world-context.js');
+        const { setEmbedding } = await import('../../src/utils/embedding-codec.js');
+
+        const communities = {
+            C0: { title: 'Town', summary: 'A small town', findings: ['peaceful'] },
+        };
+        setEmbedding(communities.C0, new Float32Array([1, 0, 0]));
+        const queryEmb = new Float32Array([1, 0, 0]);
+
+        const result = retrieveWorldContext(communities, null, 'test', queryEmb, 2000);
+        expect(result.text).toContain('Town');
+        expect(result.isMacroIntent).toBe(false);
+    });
+});

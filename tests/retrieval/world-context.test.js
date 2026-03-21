@@ -19,35 +19,35 @@ describe('retrieveWorldContext', () => {
         },
     };
 
-    it('returns most relevant community summaries by cosine similarity', () => {
+    it('returns most relevant community summaries by cosine similarity', async () => {
         const queryEmbedding = [0.8, 0.2, 0.0]; // Close to C0
-        const result = retrieveWorldContext(communities, null, '', queryEmbedding, 2000);
+        const result = await retrieveWorldContext(communities, null, '', queryEmbedding, 2000);
         expect(result.text).toContain('The Royal Court');
         expect(result.communityIds).toContain('C0');
     });
 
-    it('respects token budget', () => {
+    it('respects token budget', async () => {
         const queryEmbedding = [0.5, 0.5, 0.5];
-        const result = retrieveWorldContext(communities, null, '', queryEmbedding, 10); // Very tight budget
+        const result = await retrieveWorldContext(communities, null, '', queryEmbedding, 10); // Very tight budget
         // Should include at most 1 community
         expect(result.communityIds.length).toBeLessThanOrEqual(1);
     });
 
-    it('returns empty when no communities exist', () => {
-        const result = retrieveWorldContext({}, null, '', [0.5, 0.5], 2000);
+    it('returns empty when no communities exist', async () => {
+        const result = await retrieveWorldContext({}, null, '', [0.5, 0.5], 2000);
         expect(result.text).toBe('');
         expect(result.communityIds).toEqual([]);
     });
 
-    it('returns empty when communities have no embeddings', () => {
+    it('returns empty when communities have no embeddings', async () => {
         const noEmbed = { C0: { ...communities.C0, embedding: [] } };
-        const result = retrieveWorldContext(noEmbed, null, '', [0.5, 0.5], 2000);
+        const result = await retrieveWorldContext(noEmbed, null, '', [0.5, 0.5], 2000);
         expect(result.communityIds).toEqual([]);
     });
 
-    it('formats output with XML tags', () => {
+    it('formats output with XML tags', async () => {
         const queryEmbedding = [0.9, 0.1, 0.0];
-        const result = retrieveWorldContext(communities, null, '', queryEmbedding, 2000);
+        const result = await retrieveWorldContext(communities, null, '', queryEmbedding, 2000);
         expect(result.text).toContain('<world_context>');
         expect(result.text).toContain('</world_context>');
     });
@@ -82,20 +82,20 @@ describe('detectMacroIntent', () => {
 });
 
 describe('retrieveWorldContext with intent routing', () => {
-    it('should return global state when macro intent detected and state exists', () => {
+    it('should return global state when macro intent detected and state exists', async () => {
         const globalState = { summary: 'Global narrative...' };
         const communities = {};
         const queryEmbedding = new Float32Array([0.1, 0.2]);
         const userMessages = 'Please summarize the story so far';
 
-        const result = retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
+        const result = await retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
 
         expect(result.text).toContain('<world_context>');
         expect(result.text).toContain('Global narrative...');
         expect(result.communityIds).toEqual([]);
     });
 
-    it('should fall back to vector search when no macro intent', () => {
+    it('should fall back to vector search when no macro intent', async () => {
         const globalState = { summary: 'Global...' };
         const communities = {
             C0: {
@@ -108,14 +108,14 @@ describe('retrieveWorldContext with intent routing', () => {
         const queryEmbedding = new Float32Array([0.9, 0.1, 0.0]);
         const userMessages = "Let's go to the kitchen";
 
-        const result = retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
+        const result = await retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
 
         // Should run vector search, not use global state
         expect(result.text).not.toContain('Global...');
         expect(result.text).toContain('Community A');
     });
 
-    it('should fall back to vector search when global state is null', () => {
+    it('should fall back to vector search when global state is null', async () => {
         const globalState = null;
         const communities = {
             C0: {
@@ -128,18 +128,18 @@ describe('retrieveWorldContext with intent routing', () => {
         const userMessages = 'Summarize everything'; // has macro intent
         const queryEmbedding = new Float32Array([0.9, 0.1, 0.0]);
 
-        const result = retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
+        const result = await retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
 
         // No global state available, fall back to vector search
         expect(result.text).toContain('Community A');
     });
 
-    it('should handle empty communities with global state', () => {
+    it('should handle empty communities with global state', async () => {
         const globalState = { summary: 'Global narrative...' };
         const userMessages = 'Summarize everything';
         const queryEmbedding = new Float32Array([0.1]);
 
-        const result = retrieveWorldContext({}, globalState, userMessages, queryEmbedding, 2000);
+        const result = await retrieveWorldContext({}, globalState, userMessages, queryEmbedding, 2000);
 
         expect(result.text).toContain('Global narrative...');
     });

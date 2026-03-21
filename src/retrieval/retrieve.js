@@ -209,7 +209,7 @@ async function selectFormatAndInject(memoriesToUse, data, ctx) {
             worldQueryEmbedding = await getQueryEmbedding(userMessages || ctx.recentContext?.slice(-500));
         }
         if (worldQueryEmbedding) {
-            const worldResult = retrieveWorldContext(
+            const worldResult = await retrieveWorldContext(
                 worldCommunities,
                 data.global_world_state || null,
                 userMessages || '',

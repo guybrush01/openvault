@@ -185,13 +185,13 @@ describe('Phase 2 End-to-End Integration', () => {
             expect(detectMacroIntent(undefined)).toBe(false);
         });
 
-        it('should route to global state for macro intent', () => {
+        it('should route to global state for macro intent', async () => {
             const globalState = { summary: 'The kingdom is on the brink of civil war.' };
             const communities = {};
             const queryEmbedding = new Float32Array([0.1, 0.2]);
             const userMessages = 'Please summarize the story so far';
 
-            const result = retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
+            const result = await retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
 
             expect(result.text).toContain('<world_context>');
             expect(result.text).toContain('The kingdom is on the brink of civil war');
@@ -199,7 +199,7 @@ describe('Phase 2 End-to-End Integration', () => {
             expect(result.communityIds).toEqual([]);
         });
 
-        it('should fall back to vector search for local intent', () => {
+        it('should fall back to vector search for local intent', async () => {
             const globalState = { summary: 'Global state content' };
             const communities = {
                 C0: {
@@ -211,27 +211,27 @@ describe('Phase 2 End-to-End Integration', () => {
             const queryEmbedding = new Float32Array([0.1, 0.2, 0.3, 0.4]);
             const userMessages = "Let's go to the kitchen";
 
-            const result = retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
+            const result = await retrieveWorldContext(communities, globalState, userMessages, queryEmbedding, 2000);
 
             // Should NOT use global state for local queries
             expect(result.text).not.toContain('Global state content');
         });
 
-        it('should fall back to vector search when global state is null', () => {
+        it('should fall back to vector search when global state is null', async () => {
             const userMessages = 'Summarize everything'; // has macro intent
             const globalState = null;
 
-            const result = retrieveWorldContext({}, globalState, userMessages, new Float32Array([0.1]), 2000);
+            const result = await retrieveWorldContext({}, globalState, userMessages, new Float32Array([0.1]), 2000);
 
             // No global state available, should return empty
             expect(result.text).toBe('');
         });
 
-        it('should fall back to vector search when global state has no summary', () => {
+        it('should fall back to vector search when global state has no summary', async () => {
             const userMessages = 'Summarize everything';
             const globalState = {}; // missing summary
 
-            const result = retrieveWorldContext({}, globalState, userMessages, new Float32Array([0.1]), 2000);
+            const result = await retrieveWorldContext({}, globalState, userMessages, new Float32Array([0.1]), 2000);
 
             // Should fall back to empty result (no communities)
             expect(result.text).toBe('');
@@ -278,7 +278,7 @@ describe('Phase 2 End-to-End Integration', () => {
 
             // 4. Verify macro-intent message retrieves global state
             const macroQuery = 'What is the story so far?';
-            const worldContext = retrieveWorldContext({}, globalState, macroQuery, new Float32Array([0.1]), 2000);
+            const worldContext = await retrieveWorldContext({}, globalState, macroQuery, new Float32Array([0.1]), 2000);
 
             expect(worldContext.text).toContain('<world_context>');
             expect(worldContext.text).toContain('love triangle');
@@ -286,12 +286,12 @@ describe('Phase 2 End-to-End Integration', () => {
     });
 
     describe('Backward Compatibility', () => {
-        it('should handle chats without global_world_state', () => {
+        it('should handle chats without global_world_state', async () => {
             const oldState = null;
             const communities = {};
             const userMessages = 'Summarize everything';
 
-            const result = retrieveWorldContext(communities, oldState, userMessages, new Float32Array([0.1]), 2000);
+            const result = await retrieveWorldContext(communities, oldState, userMessages, new Float32Array([0.1]), 2000);
 
             // Should not crash, return empty
             expect(result.text).toBe('');

@@ -72,7 +72,7 @@ import { calculateIDF, cosineSimilarity, tokenize } from '../retrieval/math.js';
 import { clearAllLocks } from '../state.js';
 import { refreshAllUI } from '../ui/render.js';
 import { setStatus } from '../ui/status.js';
-import { getCurrentChatId, getOpenVaultData, saveOpenVaultData } from '../utils/data.js';
+import { getCurrentChatId, getOpenVaultData, saveOpenVaultData, syncItemsToStStorage } from '../utils/data.js';
 import { showToast } from '../utils/dom.js';
 import { getEmbedding, hasEmbedding } from '../utils/embedding-codec.js';
 import { logDebug, logError, logInfo } from '../utils/logging.js';
@@ -721,6 +721,11 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
                                     );
                                     if (reflections.length > 0) {
                                         data[MEMORIES_KEY].push(...reflections);
+                                        // Sync reflections to ST Vector Storage
+                                        await syncItemsToStStorage(
+                                            reflections.map((r) => ({ id: r.id, summary: r.summary })),
+                                            { targetObjects: reflections }
+                                        );
                                     }
                                     // Reset accumulator after reflection
                                     data.reflection_state[characterName].importance_sum = 0;
@@ -851,6 +856,11 @@ export async function runPhase2Enrichment(data, settings, targetChatId) {
                             );
                             if (reflections.length > 0) {
                                 data[MEMORIES_KEY].push(...reflections);
+                                // Sync reflections to ST Vector Storage
+                                await syncItemsToStStorage(
+                                    reflections.map((r) => ({ id: r.id, summary: r.summary })),
+                                    { targetObjects: reflections }
+                                );
                             }
                             // Reset accumulator after reflection
                             data.reflection_state[characterName].importance_sum = 0;

@@ -72,9 +72,9 @@ import { calculateIDF, cosineSimilarity, tokenize } from '../retrieval/math.js';
 import { clearAllLocks } from '../state.js';
 import { refreshAllUI } from '../ui/render.js';
 import { setStatus } from '../ui/status.js';
-import { getCurrentChatId, getOpenVaultData, saveOpenVaultData } from '../utils/data.js';
+import { getCurrentChatId, getOpenVaultData, isStVectorSource, saveOpenVaultData, syncItemsToST } from '../utils/data.js';
 import { showToast } from '../utils/dom.js';
-import { getEmbedding, hasEmbedding } from '../utils/embedding-codec.js';
+import { cyrb53, getEmbedding, hasEmbedding, isStSynced, markStSynced } from '../utils/embedding-codec.js';
 import { logDebug, logError, logInfo } from '../utils/logging.js';
 import { createLadderQueue } from '../utils/queue.js';
 import { isExtensionEnabled, safeSetExtensionPrompt, yieldToMain } from '../utils/st-helpers.js';
@@ -675,6 +675,22 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
         const phase1Saved = await saveOpenVaultData(targetChatId);
         if (!phase1Saved && targetChatId) {
             throw new Error('Chat changed during extraction');
+        }
+
+        // Sync to ST Vector Storage if enabled
+        if (isStVectorSource()) {
+            const chatId = getCurrentChatId();
+            const unsyncedEvents = events.filter(e => !isStSynced(e));
+            if (unsyncedEvents.length > 0) {
+                const items = unsyncedEvents.map(e => ({
+                    hash: cyrb53(`[OV_ID:${e.id}] ${e.summary}`),
+                    text: `[OV_ID:${e.id}] ${e.summary}`,
+                }));
+                const success = await syncItemsToST(items, chatId);
+                if (success) {
+                    for (const e of unsyncedEvents) markStSynced(e);
+                }
+            }
         }
 
         // ===== PHASE 2: Enrichment (non-critical) =====

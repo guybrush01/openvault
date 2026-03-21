@@ -7,9 +7,8 @@
 
 import { extensionName } from '../constants.js';
 import { getDeps } from '../deps.js';
-import { getStrategy, getQueryEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
+import { getQueryEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
 import { logDebug } from '../utils/logging.js';
-import { markStSynced } from '../utils/embedding-codec.js';
 import { assignMemoriesToBuckets, getMemoryPosition } from '../utils/text.js';
 import { countTokens } from '../utils/tokens.js';
 import { cacheRetrievalDebug, cacheScoringDetails } from './debug-cache.js';
@@ -233,99 +232,6 @@ export function selectMemoriesWithSoftBalance(scoredMemories, tokenBudget, chatL
  */
 export async function selectRelevantMemories(memories, ctx) {
     if (!memories || memories.length === 0) return [];
-
-    // Check if using ST Vector Storage
-    const settings = getDeps().getExtensionSettings()[extensionName];
-    const source = settings.embeddingSource;
-    const strategy = getStrategy(source);
-
-    if (strategy?.usesExternalStorage?.()) {
-        // Use ST's vector search with user's threshold
-        const queryText = ctx.userMessages || ctx.recentContext?.slice(-500);
-        const threshold = settings.vectorSimilarityThreshold;
-        const results = await strategy.searchItems(queryText, 100, threshold);
-
-        if (!results || results.length === 0) {
-            cacheRetrievalDebug({
-                stVectorMode: true,
-                stResultsCount: 0,
-                selectedCount: 0,
-                threshold,
-            });
-            return [];
-        }
-
-        // CRITICAL: Use Map to preserve ST's similarity order
-        // (NOT filter() which would preserve chronological order)
-        const memoriesById = new Map(memories.map((m) => [m.id, m]));
-        const selectedMemories = results
-            .map((r) => memoriesById.get(r.id))
-            .filter(Boolean) // Drops undefined (non-memory entities like graph nodes)
-            .slice(0, Math.ceil(ctx.finalTokens / 50));
-
-        // Mark as synced to prevent re-sync
-        for (const memory of selectedMemories) {
-            markStSynced(memory);
-        }
-
-        // Mock scoredResults for debug cache compatibility
-        const scoredResults = selectedMemories.map((m, i) => ({
-            memory: m,
-            score: 1.0 - i * 0.01,
-            breakdown: {
-                base: 1.0,
-                baseAfterFloor: 1.0,
-                recencyPenalty: 0,
-                vectorSimilarity: 1.0 - i * 0.01,
-                vectorBonus: 0,
-                bm25Score: 0,
-                bm25Bonus: 0,
-                hitDamping: 0,
-                frequencyFactor: 0,
-                total: 1.0 - i * 0.01,
-                stVectorScore: true,
-            },
-        }));
-
-        const selectedIds = new Set(selectedMemories.map((m) => m.id));
-        cacheScoringDetails(scoredResults, selectedIds);
-
-        // Calculate bucket distribution for debug
-        const afterBuckets = assignMemoriesToBuckets(selectedMemories, ctx.chatLength);
-        const countTokens = (bucket) => bucket.reduce((sum, m) => sum + (m.summary?.length || 0), 0);
-
-        cacheRetrievalDebug({
-            stVectorMode: true,
-            stResultsCount: results.length,
-            selectedCount: selectedMemories.length,
-            threshold,
-            tokenBudget: {
-                budget: ctx.finalTokens,
-                scoredCount: results.length,
-                selectedCount: selectedMemories.length,
-                trimmedByBudget: results.length - selectedMemories.length,
-            },
-            bucketDistribution: {
-                after: {
-                    old: countTokens(afterBuckets.old),
-                    mid: countTokens(afterBuckets.mid),
-                    recent: countTokens(afterBuckets.recent),
-                },
-                selectedCount: selectedMemories.length,
-            },
-        });
-
-        // Increment retrieval_hits
-        for (const memory of selectedMemories) {
-            memory.retrieval_hits = (memory.retrieval_hits || 0) + 1;
-        }
-
-        logDebug(
-            `ST Vector Retrieval: ${results.length} results -> ${selectedMemories.length} memories selected (threshold: ${threshold})`
-        );
-        return selectedMemories;
-    }
-
     // Skip archived reflections in retrieval
     const activeMemories = memories.filter((m) => !m.archived);
     const { finalTokens } = ctx;

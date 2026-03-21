@@ -9,71 +9,8 @@ import { extensionName } from './constants.js';
 import { getDeps } from './deps.js';
 import { record } from './perf/store.js';
 import { getSessionSignal } from './state.js';
-import { hasEmbedding, setEmbedding, markStSynced } from './utils/embedding-codec.js';
+import { hasEmbedding, setEmbedding } from './utils/embedding-codec.js';
 import { logDebug, logError, logInfo } from './utils/logging.js';
-
-// =============================================================================
-// ST Vector Storage ID Prefix Utilities
-// =============================================================================
-
-/**
- * Prefix marker for embedding OpenVault IDs in ST Vector text fields.
- * Format: [OV_ID:entity_id] Actual summary text...
- */
-const OV_ID_PREFIX_START = '[OV_ID:';
-const OV_ID_PREFIX_END = '] ';
-
-/**
- * Create text with embedded OpenVault ID for ST Vector Storage.
- * @param {string} id - OpenVault entity ID (e.g., "event_123", "Alice")
- * @param {string} text - Summary text
- * @returns {string} Text with ID prefix
- */
-function createTextWithId(id, text) {
-    return `${OV_ID_PREFIX_START}${id}${OV_ID_PREFIX_END}${text}`;
-}
-
-/**
- * Extract OpenVault ID from ST Vector text field.
- * @param {string} text - Text that may contain ID prefix
- * @returns {{id: string|null, text: string}} Extracted ID and clean text
- */
-function extractIdFromText(text) {
-    if (!text || !text.startsWith(OV_ID_PREFIX_START)) {
-        return { id: null, text: text || '' };
-    }
-    const endIdx = text.indexOf(OV_ID_PREFIX_END);
-    if (endIdx === -1) {
-        return { id: null, text };
-    }
-    const id = text.slice(OV_ID_PREFIX_START.length, endIdx);
-    const cleanText = text.slice(endIdx + OV_ID_PREFIX_END.length);
-    return { id, text: cleanText };
-}
-
-/**
- * Generate a 53-bit numeric hash from string for ST Vector hash field.
- * Uses Cyrb53 algorithm to avoid collisions - with 53-bit output, collision
- * probability is negligible even with millions of items (unlike djb2's 32-bit).
- * ST requires numeric hashes for its Vectra backend.
- * @param {string} str - String to hash
- * @param {number} [seed=0] - Optional seed for different hash sequences
- * @returns {number} 53-bit numeric hash (safe JavaScript integer)
- */
-function hashStringToNumber(str, seed = 0) {
-    let h1 = 0xdeadbeef ^ seed,
-        h2 = 0x41c6ce57 ^ seed;
-    for (let i = 0, ch; i < str.length; i++) {
-        ch = str.charCodeAt(i);
-        h1 = Math.imul(h1 ^ ch, 2654435761);
-        h2 = Math.imul(h2 ^ ch, 1597334677);
-    }
-    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
-    h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
-    h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-    return Math.abs(4294967296 * (2097151 & h2) + (h1 >>> 0));
-}
 
 // =============================================================================
 // Strategy Classes (from src/embeddings/strategies.js)
@@ -151,59 +88,6 @@ class EmbeddingStrategy {
      */
     async reset() {
         // Default: no-op
-    }
-
-    /**
-     * Check if this strategy uses external storage (ST Vector Storage)
-     * @returns {boolean} True if strategy delegates storage to external system
-     */
-    usesExternalStorage() {
-        return false;
-    }
-
-    /**
-     * Insert items into external vector storage
-     * @param {Object[]} items - Items to insert [{ id, summary, type? }]
-     * @param {Object} options - Options
-     * @param {AbortSignal} options.signal - AbortSignal
-     * @returns {Promise<boolean>} True if successful
-     */
-    async insertItems(_items, _options = {}) {
-        return false;
-    }
-
-    /**
-     * Search for similar items in external vector storage
-     * @param {string} queryText - Query text
-     * @param {number} topK - Number of results
-     * @param {number} threshold - Similarity threshold
-     * @param {Object} options - Options
-     * @param {AbortSignal} options.signal - AbortSignal
-     * @returns {Promise<{id: string, text: string, score?: number}[]|null>} Search results or null
-     */
-    async searchItems(_queryText, _topK, _threshold, _options = {}) {
-        return null;
-    }
-
-    /**
-     * Delete items from external vector storage
-     * @param {string[]} ids - Item IDs to delete
-     * @param {Object} options - Options
-     * @param {AbortSignal} options.signal - AbortSignal
-     * @returns {Promise<boolean>} True if successful
-     */
-    async deleteItems(_ids, _options = {}) {
-        return false;
-    }
-
-    /**
-     * Purge entire collection from external vector storage
-     * @param {Object} options - Options
-     * @param {AbortSignal} options.signal - AbortSignal
-     * @returns {Promise<boolean>} True if successful
-     */
-    async purgeCollection(_options = {}) {
-        return false;
     }
 }
 
@@ -518,187 +402,6 @@ class OllamaStrategy extends EmbeddingStrategy {
 }
 
 // =============================================================================
-// ST Vector Storage Strategy
-// =============================================================================
-
-class StVectorStrategy extends EmbeddingStrategy {
-    getId() {
-        return 'st-vectors';
-    }
-
-    isEnabled() {
-        const settings = getDeps().getExtensionSettings()?.vectors;
-        return !!(settings?.source);
-    }
-
-    getStatus() {
-        const settings = getDeps().getExtensionSettings()?.vectors;
-        const source = settings?.source || 'not configured';
-        const model = settings?.[`${source}_model`] || '';
-        return `ST: ${source}${model ? ` / ${model}` : ''}`;
-    }
-
-    usesExternalStorage() {
-        return true;
-    }
-
-    async getQueryEmbedding() {
-        return null;
-    }
-
-    async getDocumentEmbedding() {
-        return null;
-    }
-
-    #getSource() {
-        const settings = getDeps().getExtensionSettings()?.vectors;
-        return settings?.source || 'transformers';
-    }
-
-    async #getCollectionId() {
-        const { getCurrentChatId } = await import('./utils/data.js');
-        const chatId = getCurrentChatId() || 'default';
-        const source = this.#getSource();
-        return `openvault-${chatId}-${source}`;
-    }
-
-    async insertItems(items, { signal } = {}) {
-        try {
-            const source = this.#getSource();
-            const settings = getDeps().getExtensionSettings()?.vectors;
-            const model = settings?.[`${source}_model`];
-
-            // Build items with ID prefix in text
-            const itemsForSt = items.map((item) => ({
-                hash: hashStringToNumber(item.id),
-                text: createTextWithId(item.id, item.summary),
-                index: 0,
-            }));
-
-            const body = {
-                collectionId: await this.#getCollectionId(),
-                source,
-                items: itemsForSt,
-            };
-
-            if (model) {
-                body.model = model;
-            }
-
-            const response = await getDeps().fetch('/api/vector/insert', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-                signal,
-            });
-            return response.ok;
-        } catch (error) {
-            if (error.name === 'AbortError') throw error;
-            logError('ST Vector insert failed', error);
-            return false;
-        }
-    }
-
-    async searchItems(queryText, topK, threshold, { signal } = {}) {
-        try {
-            const source = this.#getSource();
-            const settings = getDeps().getExtensionSettings()?.vectors;
-            const model = settings?.[`${source}_model`];
-
-            const body = {
-                collectionId: await this.#getCollectionId(),
-                source,
-                searchText: queryText,
-                topK,
-                threshold,
-            };
-
-            if (model) {
-                body.model = model;
-            }
-
-            const response = await getDeps().fetch('/api/vector/query', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-                signal,
-            });
-
-            if (!response.ok) {
-                return [];
-            }
-
-            const data = await response.json();
-
-            // Extract IDs from text prefix, fall back to hash
-            return data.hashes.map((hash, i) => {
-                const rawText = data.metadata[i]?.text || '';
-                const { id, text } = extractIdFromText(rawText);
-                return {
-                    id: id || String(hash),
-                    text,
-                    score: data.scores?.[i],
-                };
-            });
-        } catch (error) {
-            if (error.name === 'AbortError') throw error;
-            logError('ST Vector search failed', error);
-            return [];
-        }
-    }
-
-    async deleteItems(ids, { signal } = {}) {
-        try {
-            const numericHashes = ids.map((id) => hashStringToNumber(id));
-
-            const source = this.#getSource();
-            const settings = getDeps().getExtensionSettings()?.vectors;
-            const model = settings?.[`${source}_model`];
-
-            const body = {
-                collectionId: await this.#getCollectionId(),
-                source,
-                hashes: numericHashes,
-            };
-
-            if (model) {
-                body.model = model;
-            }
-
-            const response = await getDeps().fetch('/api/vector/delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-                signal,
-            });
-            return response.ok;
-        } catch (error) {
-            if (error.name === 'AbortError') throw error;
-            logError('ST Vector delete failed', error);
-            return false;
-        }
-    }
-
-    async purgeCollection({ signal } = {}) {
-        try {
-            const response = await getDeps().fetch('/api/vector/purge', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    collectionId: await this.#getCollectionId(),
-                }),
-                signal,
-            });
-            return response.ok;
-        } catch (error) {
-            if (error.name === 'AbortError') throw error;
-            logError('ST Vector purge failed', error);
-            return false;
-        }
-    }
-}
-
-// =============================================================================
 // Strategy Registry
 // =============================================================================
 
@@ -707,7 +410,6 @@ const strategies = {
     'bge-small-en-v1.5': new TransformersStrategy(),
     'embeddinggemma-300m': new TransformersStrategy(),
     ollama: new OllamaStrategy(),
-    'st-vectors': new StVectorStrategy(),
 };
 
 // Configure model-specific transformers strategies
@@ -760,11 +462,6 @@ function getOptimalChunkSize() {
     // For Ollama, use a safe default
     if (source === 'ollama') {
         return 800;
-    }
-
-    // For ST Vector Storage, use safe default (delegates to ST's model)
-    if (source === 'st-vectors') {
-        return 1000;
     }
 
     // Fallback default
@@ -1026,99 +723,6 @@ export async function backfillAllEmbeddings({ signal, silent = false } = {}) {
         return { memories: 0, nodes: 0, communities: 0, total: 0, skipped: false };
     }
 
-    const settings = getDeps().getExtensionSettings()[extensionName];
-    const source = settings.embeddingSource;
-    const strategy = getStrategy(source);
-
-    // Handle external storage strategies (ST Vector Storage)
-    if (strategy.usesExternalStorage()) {
-        // Filter to items that need syncing (not already marked with _st_synced)
-        const memories = (data[MEMORIES_KEY] || []).filter((m) => m.summary && !hasEmbedding(m));
-        const nodes = Object.values(data.graph?.nodes || {}).filter((n) => !hasEmbedding(n));
-        const communities = Object.values(data.communities || {}).filter((c) => c.summary && !hasEmbedding(c));
-        const totalNeeded = memories.length + nodes.length + communities.length;
-
-        if (totalNeeded === 0) {
-            return { memories: 0, nodes: 0, communities: 0, total: 0, skipped: true };
-        }
-
-        if (!silent) showToast('info', `Syncing ${totalNeeded} items to ST Vector Storage...`);
-        setStatus('extracting');
-
-        try {
-            const memoryItems = memories.map((m) => ({
-                id: m.id,
-                summary: m.summary,
-                targetObject: m,
-            }));
-
-            const nodeItems = nodes.map((n) => ({
-                id: n.name,
-                summary: `${n.type}: ${n.name} - ${n.description}`,
-                targetObject: n,
-            }));
-
-            const communityItems = Object.entries(data.communities || {})
-                .filter(([_, c]) => c.summary && !hasEmbedding(c))
-                .map(([key, c]) => ({
-                    id: key,
-                    summary: c.summary,
-                    targetObject: c,
-                }));
-
-            const allItems = [...memoryItems, ...nodeItems, ...communityItems];
-
-            // CRITICAL: Batch inserts to prevent network timeouts
-            // Use batch size of 100 (conservative for API limits)
-            const BATCH_SIZE = 100;
-            let successCount = 0;
-
-            for (let i = 0; i < allItems.length; i += BATCH_SIZE) {
-                const batch = allItems.slice(i, i + BATCH_SIZE);
-                const success = await strategy.insertItems(
-                    batch.map((item) => ({ id: item.id, summary: item.summary }))
-                );
-
-                if (success) {
-                    // Mark batch items as synced
-                    for (const item of batch) {
-                        markStSynced(item.targetObject);
-                    }
-                    successCount += batch.length;
-                }
-
-                // Yield to main thread between batches
-                if (i + BATCH_SIZE < allItems.length) {
-                    await new Promise((resolve) => setTimeout(resolve, 0));
-                }
-            }
-
-            if (successCount > 0) {
-                await saveOpenVaultData();
-                logInfo(
-                    `ST Vector sync complete: ${successCount} items synced in ${Math.ceil(allItems.length / BATCH_SIZE)} batches`
-                );
-            }
-
-            return {
-                memories: memoryItems.length,
-                nodes: nodeItems.length,
-                communities: communityItems.length,
-                total: successCount,
-                skipped: false,
-            };
-        } catch (error) {
-            if (error.name === 'AbortError') throw error;
-            logError('ST Vector sync error', error);
-            if (!silent) showToast('error', `ST Vector sync failed: ${error.message}`);
-            return { memories: 0, nodes: 0, communities: 0, total: 0, skipped: false };
-        } finally {
-            setStatus('ready');
-        }
-    }
-
-    // Local embedding strategies (Transformers, Ollama)
-
     // Count what needs embedding
     const memories = (data[MEMORIES_KEY] || []).filter((m) => m.summary && !hasEmbedding(m));
     const nodes = Object.values(data.graph?.nodes || {}).filter((n) => !hasEmbedding(n));
@@ -1139,6 +743,10 @@ export async function backfillAllEmbeddings({ signal, silent = false } = {}) {
         // 2. Graph node embeddings
         let nodeCount = 0;
         if (nodes.length > 0) {
+            const settings = getDeps().getExtensionSettings()[extensionName];
+            const source = settings.embeddingSource;
+            const strategy = getStrategy(source);
+
             const nodeEmbeddings = await processInBatches(nodes, 5, async (n) => {
                 return strategy.getDocumentEmbedding(`${n.type}: ${n.name} - ${n.description}`, { signal });
             });
@@ -1188,4 +796,3 @@ export async function backfillAllEmbeddings({ signal, silent = false } = {}) {
 export { getStrategy };
 export { TRANSFORMERS_MODELS };
 export { getOptimalChunkSize };
-export { extractIdFromText, hashStringToNumber };

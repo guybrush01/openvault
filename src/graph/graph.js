@@ -7,7 +7,7 @@
 
 import { CONSOLIDATION, extensionName } from '../constants.js';
 import { getDeps } from '../deps.js';
-import { getDocumentEmbedding, getStrategy, isEmbeddingsEnabled } from '../embeddings.js';
+import { getDocumentEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
 import { parseConsolidationResponse } from '../extraction/structured.js';
 import { callLLM, LLM_CONFIGS } from '../llm.js';
 import {
@@ -498,14 +498,6 @@ export async function mergeOrInsertEntity(graphData, name, type, description, ca
     // No match: create new node with embedding
     upsertEntity(graphData, name, type, description, cap);
     setEmbedding(graphData.nodes[key], newEmbedding);
-
-    // Sync new node to ST Vector Storage
-    const { syncItemsToStStorage } = await import('../utils/data.js');
-    await syncItemsToStStorage(
-        [{ id: key, summary: `${type}: ${name} - ${description}` }],
-        { targetObjects: [graphData.nodes[key]] }
-    );
-
     return key;
 }
 
@@ -518,7 +510,7 @@ export async function mergeOrInsertEntity(graphData, name, type, description, ca
  * @param {string} oldKey - Normalized key being removed
  * @param {string} newKey - Normalized key to redirect to
  */
-export async function redirectEdges(graphData, oldKey, newKey) {
+export function redirectEdges(graphData, oldKey, newKey) {
     const edgesToRemove = [];
     const edgesToAdd = [];
 
@@ -550,18 +542,6 @@ export async function redirectEdges(graphData, oldKey, newKey) {
     // Remove old edges
     for (const key of edgesToRemove) {
         delete graphData.edges[key];
-    }
-
-    // CRITICAL: Transform edge keys to ST Vector Storage ID format
-    // Edge dictionary key: "source__target" (e.g., "alice__bob")
-    // ST Vector ID: "edge_source_target" (e.g., "edge_alice_bob")
-    if (edgesToRemove.length > 0) {
-        const { deleteItemsFromStStorage } = await import('../utils/data.js');
-        const edgeIdsToDelete = edgesToRemove.map((key) => {
-            const [source, target] = key.split('__');
-            return `edge_${source}_${target}`;
-        });
-        await deleteItemsFromStStorage(edgeIdsToDelete);
     }
 
     // Add redirected edges (merge if duplicate)
@@ -664,12 +644,8 @@ export async function consolidateGraph(graphData, settings) {
         if (!graphData.nodes[keepKey].aliases) graphData.nodes[keepKey].aliases = [];
         graphData.nodes[keepKey].aliases.push(removedNode.name);
 
-        // Redirect edges (includes ST deletion for removed edges)
-        await redirectEdges(graphData, removeKey, keepKey);
-
-        // Delete merged node from ST Vector Storage
-        const { deleteItemsFromStStorage } = await import('../utils/data.js');
-        await deleteItemsFromStStorage([removeKey]);
+        // Redirect edges
+        redirectEdges(graphData, removeKey, keepKey);
 
         // Remove old node
         delete graphData.nodes[removeKey];
@@ -718,22 +694,10 @@ export async function consolidateEdges(graphData, _settings) {
 
                         // Re-embed for accurate RAG (only if embeddings enabled)
                         if (isEmbeddingsEnabled()) {
-                            const settings = deps.getExtensionSettings()[extensionName];
-                            const strategy = getStrategy(settings.embeddingSource);
-                            if (strategy.usesExternalStorage()) {
-                                // Sync updated edge to ST Vector Storage
-                                const { syncItemsToStStorage } = await import('../utils/data.js');
-                                const edgeId = `edge_${edge.source}_${edge.target}`;
-                                await syncItemsToStStorage(
-                                    [{ id: edgeId, summary: `relationship: ${edge.source} - ${edge.target}: ${edge.description}` }],
-                                    { targetObjects: [edge] }
-                                );
-                            } else {
-                                const newEmbedding = await getDocumentEmbedding(
-                                    `relationship: ${edge.source} - ${edge.target}: ${edge.description}`
-                                );
-                                setEmbedding(edge, newEmbedding);
-                            }
+                            const newEmbedding = await getDocumentEmbedding(
+                                `relationship: ${edge.source} - ${edge.target}: ${edge.description}`
+                            );
+                            setEmbedding(edge, newEmbedding);
                         }
 
                         return edgeKey;

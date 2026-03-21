@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { calculateScore } from '../../src/retrieval/math.js';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { calculateScore, rankToProxyScore } from '../../src/retrieval/math.js';
 
 const BASE_CONSTANTS = {
     BASE_LAMBDA: 0.05,
@@ -13,6 +13,34 @@ const BASE_SETTINGS = {
     alpha: 0.7,
     combinedBoostWeight: 3.0,
 };
+
+describe('rankToProxyScore', () => {
+    it('returns 1.0 for single result', () => {
+        expect(rankToProxyScore(0, 1)).toBe(1.0);
+    });
+
+    it('assigns correct proxy scores for multiple results', () => {
+        // Rank 0 of 2 -> proxy = 1.0
+        // Rank 1 of 2 -> proxy = 0.5
+        expect(rankToProxyScore(0, 2)).toBe(1.0);
+        expect(rankToProxyScore(1, 2)).toBe(0.5);
+    });
+
+    it('distributes proxy scores linearly in [0.5, 1.0] range', () => {
+        // With 3 results: rank 0 -> 1.0, rank 1 -> 0.75, rank 2 -> 0.5
+        expect(rankToProxyScore(0, 3)).toBe(1.0);
+        expect(rankToProxyScore(1, 3)).toBe(0.75);
+        expect(rankToProxyScore(2, 3)).toBe(0.5);
+    });
+
+    it('handles larger result sets', () => {
+        // With 10 results, top gets 1.0, bottom gets 0.5
+        expect(rankToProxyScore(0, 10)).toBe(1.0);
+        expect(rankToProxyScore(9, 10)).toBe(0.5);
+        // Middle rank gets middle score
+        expect(rankToProxyScore(5, 10)).toBeCloseTo(0.722, 2);
+    });
+});
 
 describe('calculateScore with _proxyVectorScore', () => {
     it('uses _proxyVectorScore when present instead of cosine similarity', () => {

@@ -1,14 +1,14 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PROCESSED_MESSAGES_KEY, MEMORIES_KEY } from '../src/constants.js';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { MEMORIES_KEY, PROCESSED_MESSAGES_KEY } from '../src/constants.js';
 import {
     getBackfillMessageIds,
     getBackfillStats,
-    getNextBatch,
-    isBatchReady,
     getFingerprint,
-    migrateProcessedMessages,
+    getNextBatch,
     getProcessedFingerprints,
-    getUnextractedMessageIds
+    getUnextractedMessageIds,
+    isBatchReady,
+    migrateProcessedMessages,
 } from '../src/extraction/scheduler.js';
 
 // Timestamp counter for test messages
@@ -20,7 +20,7 @@ function makeMessage(isUser, text, overrides = {}) {
         mes: text,
         is_user: isUser,
         send_date: String(testTimestamp++),
-        ...overrides
+        ...overrides,
     };
 }
 
@@ -67,7 +67,7 @@ describe('migrateProcessedMessages', () => {
     let data;
 
     beforeEach(() => {
-        testTimestamp = 1000000;  // Reset timestamp counter
+        testTimestamp = 1000000; // Reset timestamp counter
         chat = [
             makeMessage(true, 'Hello', { send_date: '1000000', name: 'User1' }),
             makeMessage(false, 'Hi there', { send_date: '1000001', name: 'Bot' }),
@@ -75,7 +75,7 @@ describe('migrateProcessedMessages', () => {
             makeMessage(false, 'Doing well!', { send_date: '1000003', name: 'Bot' }),
         ];
         data = {
-            [PROCESSED_MESSAGES_KEY]: [0, 2],  // Old format: indices
+            [PROCESSED_MESSAGES_KEY]: [0, 2], // Old format: indices
             [MEMORIES_KEY]: [
                 { created_at: 1000002, message_ids: [0] },
                 { created_at: 1000003, message_ids: [2] },
@@ -113,8 +113,8 @@ describe('migrateProcessedMessages', () => {
     });
 
     it('handles out-of-bounds indices gracefully', () => {
-        data[PROCESSED_MESSAGES_KEY] = [0, 5, 10];  // 5 and 10 out of bounds
-        data[MEMORIES_KEY] = [{ created_at: 1000002, message_ids: [0] }];  // Only index 0 valid
+        data[PROCESSED_MESSAGES_KEY] = [0, 5, 10]; // 5 and 10 out of bounds
+        data[MEMORIES_KEY] = [{ created_at: 1000002, message_ids: [0] }]; // Only index 0 valid
         const result = migrateProcessedMessages(chat, data);
         expect(result).toBe(true);
         expect(data[PROCESSED_MESSAGES_KEY]).toContain('1000000');
@@ -123,8 +123,8 @@ describe('migrateProcessedMessages', () => {
 
     it('applies temporal guard - skips messages sent after last memory', () => {
         // Message at index 3 was sent at 1000003, but last memory was at 1000002
-        data[PROCESSED_MESSAGES_KEY] = [0, 3];  // 3 should be skipped due to temporal guard
-        data[MEMORIES_KEY] = [{ created_at: 1000002, message_ids: [0] }];  // Last memory at 1000002
+        data[PROCESSED_MESSAGES_KEY] = [0, 3]; // 3 should be skipped due to temporal guard
+        data[MEMORIES_KEY] = [{ created_at: 1000002, message_ids: [0] }]; // Last memory at 1000002
         const result = migrateProcessedMessages(chat, data);
         expect(result).toBe(true);
         expect(data[PROCESSED_MESSAGES_KEY]).toContain('1000000');
@@ -132,9 +132,9 @@ describe('migrateProcessedMessages', () => {
     });
 
     it('deletes last_processed_message_id key', () => {
-        data['last_processed_message_id'] = 2;
+        data.last_processed_message_id = 2;
         migrateProcessedMessages(chat, data);
-        expect(data['last_processed_message_id']).toBeUndefined();
+        expect(data.last_processed_message_id).toBeUndefined();
     });
 
     it('handles messages without send_date using hash fallback', () => {
@@ -250,7 +250,7 @@ describe('scheduler with fingerprints', () => {
         });
 
         it('returns null when no unextracted messages', () => {
-            data[PROCESSED_MESSAGES_KEY] = chat.map(m => m.send_date);
+            data[PROCESSED_MESSAGES_KEY] = chat.map((m) => m.send_date);
             const batch = getNextBatch(chat, data, settings.extractionTokenBudget);
             expect(batch).toBeNull();
         });

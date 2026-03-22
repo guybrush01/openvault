@@ -5,12 +5,7 @@
  * Previously: ExtractionPipeline class + 5 separate stage files.
  */
 
-import {
-    CHARACTERS_KEY,
-    extensionName,
-    MEMORIES_KEY,
-    PROCESSED_MESSAGES_KEY,
-} from '../constants.js';
+import { CHARACTERS_KEY, extensionName, MEMORIES_KEY, PROCESSED_MESSAGES_KEY } from '../constants.js';
 
 /**
  * Backoff schedule in seconds for failed extraction batches.
@@ -84,9 +79,9 @@ import { logDebug, logError, logInfo } from '../utils/logging.js';
 import { createLadderQueue } from '../utils/queue.js';
 import { isExtensionEnabled, safeSetExtensionPrompt, yieldToMain } from '../utils/st-helpers.js';
 import { jaccardSimilarity, sliceToTokenBudget, sortMemoriesBySequence } from '../utils/text.js';
-import { countTokens, getMessageTokenCount } from '../utils/tokens.js';
+import { countTokens } from '../utils/tokens.js';
 import { resolveCharacterName, transliterateCyrToLat } from '../utils/transliterate.js';
-import { getBackfillMessageIds, getNextBatch, getFingerprint, getProcessedFingerprints } from './scheduler.js';
+import { getBackfillMessageIds, getFingerprint, getNextBatch, getProcessedFingerprints } from './scheduler.js';
 import { parseEventExtractionResponse, parseGraphExtractionResponse } from './structured.js';
 
 /**
@@ -469,9 +464,9 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
             console.log('[extract] No messages to extract (scheduler returned empty batch)');
             return { status: 'skipped', reason: 'no_new_messages' };
         }
-        messagesToExtract = batch.map(id => ({ id, ...chat[id] }));
+        messagesToExtract = batch.map((id) => ({ id, ...chat[id] }));
     } else {
-        messagesToExtract = messageIds.map(id => ({ id, ...chat[id] })).filter(m => m != null);
+        messagesToExtract = messageIds.map((id) => ({ id, ...chat[id] })).filter((m) => m != null);
     }
 
     if (messagesToExtract.length === 0) {
@@ -589,7 +584,7 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
         logDebug(`LLM returned ${events.length} events from ${messages.length} messages`);
 
         // Track processed message IDs (will be committed in Phase 1)
-        const processedIds = messages.map((m) => m.id);
+        const _processedIds = messages.map((m) => m.id);
 
         // Stage 4: Event Processing (embedding + deduplication)
         if (events.length > 0) {
@@ -659,7 +654,7 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
         }
 
         // Mark processed AFTER events are committed to memories
-        const processedFps = messages.map(m => getFingerprint(m));
+        const processedFps = messages.map((m) => getFingerprint(m));
         data[PROCESSED_MESSAGES_KEY] = data[PROCESSED_MESSAGES_KEY] || [];
         data[PROCESSED_MESSAGES_KEY].push(...processedFps);
         logDebug(`Phase 1 complete: ${events.length} events, ${processedFps.length} messages processed`);
@@ -961,10 +956,7 @@ export async function extractAllMessages(updateEventListenersFn) {
 
     if (initialMessageIds.length === 0) {
         if (processedFps.size > 0) {
-            showToast(
-                'info',
-                `All eligible messages already extracted (${processedFps.size} messages have memories)`
-            );
+            showToast('info', `All eligible messages already extracted (${processedFps.size} messages have memories)`);
         } else {
             showToast('warning', `Not enough messages for a complete batch (need token budget met)`);
         }

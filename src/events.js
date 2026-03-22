@@ -7,6 +7,7 @@
 import { extensionName, MEMORIES_KEY, RETRIEVAL_TIMEOUT_MS } from './constants.js';
 import { getDeps } from './deps.js';
 import './settings.js'; // Side-effect import to initialize settings with lodash.merge
+import { migrateProcessedMessages } from './extraction/scheduler.js';
 import { loadFromChat as loadPerfFromChat, record } from './perf/store.js';
 import {
     clearGenerationLock,
@@ -23,11 +24,6 @@ import { getOpenVaultData } from './utils/data.js';
 import { showToast } from './utils/dom.js';
 import { logDebug, logError } from './utils/logging.js';
 import { isExtensionEnabled, safeSetExtensionPrompt, withTimeout } from './utils/st-helpers.js';
-import {
-    getProcessedFingerprints,
-    getFingerprint,
-    migrateProcessedMessages,
-} from './extraction/scheduler.js';
 
 // =============================================================================
 // Auto-Hide Old Messages (inlined from auto-hide.js)

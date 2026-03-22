@@ -122,7 +122,6 @@ function getSTVectorRequestBody(source) {
         case 'nanogpt':
             body.model = extSettings?.vectors?.nanogpt_model;
             break;
-        case 'transformers':
         default:
             // No additional params needed
             break;
@@ -498,13 +497,22 @@ function _hasSyncedItems(data) {
 function _clearAllStSyncFlags(data) {
     let count = 0;
     for (const m of data[MEMORIES_KEY] || []) {
-        if (isStSynced(m)) { clearStSynced(m); count++; }
+        if (isStSynced(m)) {
+            clearStSynced(m);
+            count++;
+        }
     }
     for (const node of Object.values(data.graph?.nodes || {})) {
-        if (isStSynced(node)) { clearStSynced(node); count++; }
+        if (isStSynced(node)) {
+            clearStSynced(node);
+            count++;
+        }
     }
     for (const community of Object.values(data.communities || {})) {
-        if (isStSynced(community)) { clearStSynced(community); count++; }
+        if (isStSynced(community)) {
+            clearStSynced(community);
+            count++;
+        }
     }
     delete data.st_vector_source;
     delete data.st_vector_model;
@@ -558,7 +566,9 @@ export async function invalidateStaleEmbeddings(data, currentModelId) {
             // Stamp new fingerprint
             stampStVectorFingerprint(data);
 
-            logInfo(`ST vector source changed (${oldSource}/${oldModel} → ${fp.source}/${fp.model}). Cleared ${cleared} sync flags.`);
+            logInfo(
+                `ST vector source changed (${oldSource}/${oldModel} → ${fp.source}/${fp.model}). Cleared ${cleared} sync flags.`
+            );
             return cleared;
         }
         return 0;

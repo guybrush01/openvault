@@ -6,8 +6,8 @@
  */
 
 import { MEMORIES_KEY, PROCESSED_MESSAGES_KEY } from '../constants.js';
-import { getMessageTokenCount, getTokenSum, snapToTurnBoundary } from '../utils/tokens.js';
 import { cyrb53 } from '../utils/embedding-codec.js';
+import { getMessageTokenCount, getTokenSum, snapToTurnBoundary } from '../utils/tokens.js';
 
 /**
  * Get a stable fingerprint for a message.
@@ -48,7 +48,7 @@ export function migrateProcessedMessages(chat, data) {
     const fps = new Set();
 
     // Temporal boundary: messages sent after our last extraction are definitely new
-    const lastMemoryTime = Math.max(0, ...(data[MEMORIES_KEY] || []).map(m => m.created_at || 0));
+    const lastMemoryTime = Math.max(0, ...(data[MEMORIES_KEY] || []).map((m) => m.created_at || 0));
 
     // 1. Map PROCESSED_MESSAGES_KEY indices to fingerprints
     for (const idx of processed) {
@@ -77,7 +77,7 @@ export function migrateProcessedMessages(chat, data) {
     }
 
     data[PROCESSED_MESSAGES_KEY] = Array.from(fps);
-    delete data['last_processed_message_id'];
+    delete data.last_processed_message_id;
     return true;
 }
 
@@ -182,10 +182,10 @@ export function getNextBatch(chat, data, tokenBudget) {
  * @param {number} tokenBudget - Token budget for extraction (optional, for backward compatibility)
  * @returns {{totalMessages: number, extractedCount: number, unextractedCount: number}}
  */
-export function getBackfillStats(chat, data, tokenBudget) {
+export function getBackfillStats(chat, data, _tokenBudget) {
     const processedFps = getProcessedFingerprints(data);
     const unextractedIds = getUnextractedMessageIds(chat, processedFps);
-    const nonSystemCount = chat.filter(m => !m.is_system).length;
+    const nonSystemCount = chat.filter((m) => !m.is_system).length;
 
     // Count visible processed messages (fingerprints that exist in current chat)
     let visibleExtracted = 0;

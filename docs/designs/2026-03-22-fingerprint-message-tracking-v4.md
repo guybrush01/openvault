@@ -1,7 +1,7 @@
 # Fingerprint-Based Message Tracking
 
 **Date**: 2026-03-22
-**Status**: Draft → v2 → v3
+**Status**: Draft → v2 → v3 → v4
 **Scope**: `src/extraction/scheduler.js`, `src/extraction/extract.js`, `src/events.js`, `src/constants.js`
 
 ## Problem
@@ -91,6 +91,19 @@ export function getUnextractedMessageIds(chat, processedFps) {
 
 **Update callers**: `isBatchReady`, `getNextBatch`, `getBackfillStats`, `getBackfillMessageIds` — all call `getProcessedFingerprints` instead of `getExtractedMessageIds`.
 
+**Fix `getBackfillStats` extracted count**: Dead fingerprints (from messages deleted by extensions) inflate `processedFps.size`. Derive `extractedCount` from visible chat instead:
+
+```js
+// BEFORE:
+extractedCount: extractedIds.size,
+
+// AFTER:
+const nonSystemCount = chat.filter(m => !m.is_system).length;
+extractedCount: Math.max(0, nonSystemCount - unextractedIds.length),
+```
+
+Same fix needed in `src/ui/helpers.js:calculateExtractionStats` which also uses `extractedMessageIds.size` directly.
+
 #### `src/extraction/extract.js`
 
 **Remove**: Incremental mode (watermark path). The `if (messageIds) / else` branch currently has two paths. The watermark path is dead code (no caller invokes `extractMemories()` without IDs), but we replace both with a single path that falls through to the scheduler if no IDs are provided (defensive):
@@ -143,7 +156,11 @@ It is **decoupled from tracking**. `getProcessedFingerprints` does NOT read `mem
 
 **Remove**: `LAST_PROCESSED_KEY` export.
 
-#### `src/events.js` — Auto-Hide Fix
+#### `src/utils/data.js` — Initializer Cleanup
+
+Remove `[LAST_PROCESSED_KEY]: -1` from the `getOpenVaultData()` initializer (line 300).
+
+#### `src/events.js` — Auto-Hide Fix + Migration Hook
 
 `autoHideOldMessages()` imports `getExtractedMessageIds(data)` and checks `extractedMessageIds.has(idx)` where `idx` is a number. After the rename to `getProcessedFingerprints` (returns `Set<string>`), this would always return `false` — auto-hide silently stops hiding anything.
 
@@ -161,6 +178,8 @@ const processedFps = getProcessedFingerprints(data);
 if (!processedFps.has(getFingerprint(chat[idx]))) continue;  // fingerprint is a string
 ```
 
+**Migration hook**: Call `migrateProcessedMessages(chat, data)` inside `onChatChanged()` (after existing data initialization, before the worker wakes). This runs once per chat open — if migration detects old format, it converts and saves immediately.
+
 #### Other Consumers (Safe — No Changes Needed)
 
 These import `getExtractedMessageIds` + `getUnextractedMessageIds` together and pass the result of one into the other. After renaming both functions, they continue to work because the types stay consistent:
@@ -176,6 +195,8 @@ These just need import name updates (`getExtractedMessageIds` → `getProcessedF
 
 Map existing indices to fingerprints using the current chat array. This avoids re-extracting the entire chat through the LLM (which would burn API credits before dedup catches duplicates in Phase 4).
 
+Includes a temporal safety check: if an index now points at a message that was sent *after* the newest memory was created, that index has shifted onto a new message — skip it to prevent data loss.
+
 ```js
 export function migrateProcessedMessages(chat, data) {
     const processed = data[PROCESSED_MESSAGES_KEY];
@@ -183,15 +204,32 @@ export function migrateProcessedMessages(chat, data) {
 
     const fps = new Set();
 
+    // Temporal boundary: messages sent after our last extraction are definitely new
+    const lastMemoryTime = Math.max(0, ...(data[MEMORIES_KEY] || []).map(m => m.created_at || 0));
+
     // 1. Map PROCESSED_MESSAGES_KEY indices to fingerprints
     for (const idx of processed) {
-        if (chat[idx]) fps.add(getFingerprint(chat[idx]));
+        const msg = chat[idx];
+        if (!msg) continue;
+        // Safety: if this message was sent after our last memory, the index
+        // has shifted onto a NEW message. Skip it to force extraction.
+        if (lastMemoryTime > 0 && msg.send_date) {
+            const sendTime = Date.parse(msg.send_date);  // ISO 8601 → ms
+            if (sendTime && sendTime > lastMemoryTime) continue;
+        }
+        fps.add(getFingerprint(msg));
     }
 
-    // 2. Map memory.message_ids indices as safety net
+    // 2. Map memory.message_ids indices as safety net (same temporal guard)
     for (const memory of data[MEMORIES_KEY] || []) {
         for (const idx of memory.message_ids || []) {
-            if (chat[idx]) fps.add(getFingerprint(chat[idx]));
+            const msg = chat[idx];
+            if (!msg) continue;
+            if (lastMemoryTime > 0 && msg.send_date) {
+                const sendTime = Date.parse(msg.send_date);
+                if (sendTime && sendTime > lastMemoryTime) continue;
+            }
+            fps.add(getFingerprint(msg));
         }
     }
 
@@ -201,7 +239,7 @@ export function migrateProcessedMessages(chat, data) {
 }
 ```
 
-**Trade-off**: If InlineSummary already shifted indices, some mapped fingerprints will point at the "wrong" (shifted) messages. Those become harmless dead entries in the Set — the unmapped messages will be picked up as unextracted. This is infinitely cheaper than re-extracting the entire chat.
+**Why `Date.parse` not `parseInt`**: ST's `send_date` is ISO 8601 format (from `getMessageTimeStamp()` which calls `new Date().toISOString()`). `parseInt` would return the year, not a timestamp.
 
 **User notification**: Show a toast so the user understands any one-time re-processing:
 
@@ -273,11 +311,13 @@ One path. One source of truth. No watermark.
 
 | File | Nature of Change |
 |------|-----------------|
-| `src/extraction/scheduler.js` | Add `getFingerprint`, rename `getExtractedMessageIds` → `getProcessedFingerprints`, update `getUnextractedMessageIds` to use fingerprints + `is_system` filter, add `migrateProcessedMessages` |
+| `src/extraction/scheduler.js` | Add `getFingerprint`, `migrateProcessedMessages` (with temporal guard), rename `getExtractedMessageIds` → `getProcessedFingerprints`, update `getUnextractedMessageIds` to use fingerprints + `is_system` filter, fix `getBackfillStats` extracted count |
 | `src/extraction/extract.js` | Remove watermark/incremental path (replace with scheduler fallback), store fingerprints instead of indices, update backfill guard import |
-| `src/events.js` | Update `autoHideOldMessages` to use `getFingerprint` + `getProcessedFingerprints` instead of index-based `has(idx)` |
+| `src/events.js` | Update `autoHideOldMessages` to use fingerprints; hook `migrateProcessedMessages` into `onChatChanged` |
+| `src/ui/helpers.js` | Fix `calculateExtractionStats` to derive `extractedCount` from visible chat, not `Set.size` |
 | `src/ui/settings.js` | Import rename: `getExtractedMessageIds` → `getProcessedFingerprints` |
 | `src/ui/status.js` | Import rename: `getExtractedMessageIds` → `getProcessedFingerprints` |
+| `src/utils/data.js` | Remove `[LAST_PROCESSED_KEY]: -1` from `getOpenVaultData()` initializer |
 | `src/constants.js` | Remove `LAST_PROCESSED_KEY` export |
-| `tests/scheduler.test.js` | Update for new function signatures and fingerprint-based tracking |
+| `tests/scheduler.test.js` | Update for new function signatures, fingerprint tracking, migration with temporal guard |
 | `tests/extract.test.js` | Update for removed incremental mode, fingerprint storage |

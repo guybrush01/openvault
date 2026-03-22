@@ -23,6 +23,11 @@ import { getOpenVaultData } from './utils/data.js';
 import { showToast } from './utils/dom.js';
 import { logDebug, logError } from './utils/logging.js';
 import { isExtensionEnabled, safeSetExtensionPrompt, withTimeout } from './utils/st-helpers.js';
+import {
+    getProcessedFingerprints,
+    getFingerprint,
+    migrateProcessedMessages,
+} from './extraction/scheduler.js';
 
 // =============================================================================
 // Auto-Hide Old Messages (inlined from auto-hide.js)
@@ -37,7 +42,7 @@ import { isExtensionEnabled, safeSetExtensionPrompt, withTimeout } from './utils
 export async function autoHideOldMessages() {
     const t0 = performance.now();
     try {
-        const { getExtractedMessageIds } = await import('./extraction/scheduler.js');
+        const { getProcessedFingerprints, getFingerprint } = await import('./extraction/scheduler.js');
         const { getMessageTokenCount, getTokenSum, snapToTurnBoundary } = await import('./utils/tokens.js');
 
         const deps = getDeps();
@@ -49,7 +54,7 @@ export async function autoHideOldMessages() {
         const visibleChatBudget = settings.visibleChatBudget;
 
         const data = getOpenVaultData();
-        const extractedMessageIds = getExtractedMessageIds(data);
+        const processedFps = getProcessedFingerprints(data);
 
         // Get visible (non-system) message indices
         const visibleIndices = [];
@@ -72,7 +77,7 @@ export async function autoHideOldMessages() {
             if (accumulated >= excess) break;
 
             // Only hide already-extracted messages; skip unextracted
-            if (!extractedMessageIds.has(idx)) continue;
+            if (!processedFps.has(getFingerprint(chat[idx]))) continue;
 
             toHide.push(idx);
             accumulated += getMessageTokenCount(chat, idx);
@@ -225,6 +230,14 @@ export async function onChatChanged() {
     if (data && context) {
         const validCharNames = [context.name1, context.name2].filter(Boolean);
         cleanupCharacterStates(data, validCharNames);
+    }
+
+    // Run migration if needed
+    const chat = context.chat || [];
+    if (migrateProcessedMessages(chat, data)) {
+        showToast('info', 'OpenVault upgraded tracking format.', 'Data Migration');
+        const { saveOpenVaultData } = await import('./utils/data.js');
+        await saveOpenVaultData();
     }
 
     // Check for embedding model mismatch and wipe stale vectors

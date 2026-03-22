@@ -22,19 +22,19 @@ describe('autoHideOldMessages (token-based)', () => {
         // 8 messages: U B U B U B U B
         // Each message is 2 chars → actual token count from gpt-tokenizer
         mockChat = [
-            { mes: 'u0', is_user: true, is_system: false },
-            { mes: 'b1', is_user: false, is_system: false },
-            { mes: 'u2', is_user: true, is_system: false },
-            { mes: 'b3', is_user: false, is_system: false },
-            { mes: 'u4', is_user: true, is_system: false },
-            { mes: 'b5', is_user: false, is_system: false },
-            { mes: 'u6', is_user: true, is_system: false },
-            { mes: 'b7', is_user: false, is_system: false },
+            { mes: 'u0', is_user: true, is_system: false, send_date: '1000000' },
+            { mes: 'b1', is_user: false, is_system: false, send_date: '1000001' },
+            { mes: 'u2', is_user: true, is_system: false, send_date: '1000002' },
+            { mes: 'b3', is_user: false, is_system: false, send_date: '1000003' },
+            { mes: 'u4', is_user: true, is_system: false, send_date: '1000004' },
+            { mes: 'b5', is_user: false, is_system: false, send_date: '1000005' },
+            { mes: 'u6', is_user: true, is_system: false, send_date: '1000006' },
+            { mes: 'b7', is_user: false, is_system: false, send_date: '1000007' },
         ];
 
         mockData = {
             memories: [],
-            processed_message_ids: [0, 1, 2, 3, 4, 5, 6, 7], // All extracted
+            processed_message_ids: ['1000000', '1000001', '1000002', '1000003', '1000004', '1000005', '1000006', '1000007'], // All extracted
         };
 
         setupTestContext({
@@ -114,7 +114,7 @@ describe('autoHideOldMessages (token-based)', () => {
 
     it('skips unextracted messages and continues past them', async () => {
         // Mark messages 2,3 as NOT extracted
-        mockData.processed_message_ids = [0, 1, 4, 5, 6, 7];
+        mockData.processed_message_ids = ['1000000', '1000001', '1000004', '1000005', '1000006', '1000007'];
         mockData.memories = [];
 
         const { autoHideOldMessages } = await import('../src/events.js');

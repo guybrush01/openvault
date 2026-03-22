@@ -1,10 +1,18 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PROCESSED_MESSAGES_KEY } from '../src/constants.js';
-import { getBackfillMessageIds, getBackfillStats, getNextBatch, isBatchReady } from '../src/extraction/scheduler.js';
+import { getBackfillMessageIds, getBackfillStats, getNextBatch, isBatchReady, getFingerprint } from '../src/extraction/scheduler.js';
+
+// Timestamp counter for test messages
+let testTimestamp = 1000000;
 
 // Helper: build chat with messages
-function makeMessage(isUser, text) {
-    return { mes: text, is_user: isUser };
+function makeMessage(isUser, text, overrides = {}) {
+    return {
+        mes: text,
+        is_user: isUser,
+        send_date: String(testTimestamp++),
+        ...overrides
+    };
 }
 
 // Helper: create chat with messages
@@ -15,6 +23,34 @@ function makeChat(messages) {
 beforeEach(async () => {
     const { clearTokenCache } = await import('../src/utils/tokens.js');
     clearTokenCache();
+    testTimestamp = 1000000; // Reset timestamp for each test
+});
+
+describe('getFingerprint', () => {
+    it('returns send_date as string when present', () => {
+        const msg = makeMessage(true, 'Hello', { send_date: '1710928374823' });
+        const result = getFingerprint(msg);
+        expect(result).toBe('1710928374823');
+    });
+
+    it('returns content hash when send_date is missing', () => {
+        const msg = makeMessage(true, 'Test message', { send_date: undefined, name: 'TestUser' });
+        const result = getFingerprint(msg);
+        expect(result).toMatch(/^hash_\d+$/);
+    });
+
+    it('returns consistent hash for same content', () => {
+        const msg1 = makeMessage(true, 'Hello', { send_date: undefined, name: 'User' });
+        testTimestamp = 1000000; // Reset for second message
+        const msg2 = makeMessage(true, 'Hello', { send_date: undefined, name: 'User' });
+        expect(getFingerprint(msg1)).toBe(getFingerprint(msg2));
+    });
+
+    it('returns different hashes for different content', () => {
+        const msg1 = makeMessage(true, 'Hello', { send_date: undefined, name: 'User1' });
+        const msg2 = makeMessage(true, 'Hello', { send_date: undefined, name: 'User2' });
+        expect(getFingerprint(msg1)).not.toBe(getFingerprint(msg2));
+    });
 });
 
 // Helper: create a chat with enough content for token-based tests

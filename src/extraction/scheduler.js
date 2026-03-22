@@ -7,6 +7,19 @@
 
 import { MEMORIES_KEY, PROCESSED_MESSAGES_KEY } from '../constants.js';
 import { getMessageTokenCount, getTokenSum, snapToTurnBoundary } from '../utils/tokens.js';
+import { cyrb53 } from '../utils/embedding-codec.js';
+
+/**
+ * Get a stable fingerprint for a message.
+ * Uses send_date (timestamp) when available, falls back to content hash.
+ * @param {object} msg - Message object
+ * @returns {string} Fingerprint string
+ */
+export function getFingerprint(msg) {
+    if (msg.send_date) return String(msg.send_date);
+    // Fallback: content hash for imported chats without send_date
+    return `hash_${cyrb53((msg.name || '') + (msg.mes || ''))}`;
+}
 
 /**
  * Get set of message IDs that have been processed (extracted or attempted)

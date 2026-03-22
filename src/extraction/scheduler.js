@@ -82,37 +82,33 @@ export function migrateProcessedMessages(chat, data) {
 }
 
 /**
- * Get set of message IDs that have been processed (extracted or attempted)
+ * Get set of message fingerprints that have been processed.
+ * Replaces getExtractedMessageIds (index-based tracking).
  * @param {Object} data - OpenVault data object
- * @returns {Set<number>} Set of processed message IDs
+ * @returns {Set<string>} Set of processed fingerprint strings
  */
-export function getExtractedMessageIds(data) {
-    const extractedIds = new Set();
-    if (!data) return extractedIds;
-
-    // From memories (tracks which messages produced events)
-    for (const memory of data[MEMORIES_KEY] || []) {
-        for (const msgId of memory.message_ids || []) {
-            extractedIds.add(msgId);
-        }
-    }
-    // From processed message tracking (includes messages with no events)
-    for (const msgId of data[PROCESSED_MESSAGES_KEY] || []) {
-        extractedIds.add(msgId);
-    }
-    return extractedIds;
+export function getProcessedFingerprints(data) {
+    return new Set(data[PROCESSED_MESSAGES_KEY] || []);
 }
 
 /**
- * Get array of message indices that have not been extracted yet
+ * @deprecated Use getProcessedFingerprints instead. Kept for backward compatibility during transition.
+ */
+export const getExtractedMessageIds = getProcessedFingerprints;
+
+/**
+ * Get array of message indices that have not been extracted yet.
+ * Now uses fingerprint matching and filters out system messages.
  * @param {Object[]} chat - Chat messages array
- * @param {Set<number>} extractedIds - Set of already extracted message IDs
+ * @param {Set<string>} processedFps - Set of already processed fingerprint strings
  * @returns {number[]} Array of unextracted message indices
  */
-export function getUnextractedMessageIds(chat, extractedIds) {
+export function getUnextractedMessageIds(chat, processedFps) {
     const unextractedIds = [];
     for (let i = 0; i < chat.length; i++) {
-        if (!extractedIds.has(i)) {
+        const msg = chat[i];
+        if (msg.is_system) continue;
+        if (!processedFps.has(getFingerprint(msg))) {
             unextractedIds.push(i);
         }
     }
@@ -127,8 +123,8 @@ export function getUnextractedMessageIds(chat, extractedIds) {
  * @returns {boolean} True if at least one complete batch is ready
  */
 export function isBatchReady(chat, data, tokenBudget) {
-    const extractedIds = getExtractedMessageIds(data);
-    const unextractedIds = getUnextractedMessageIds(chat, extractedIds);
+    const processedFps = getProcessedFingerprints(data);
+    const unextractedIds = getUnextractedMessageIds(chat, processedFps);
     return getTokenSum(chat, unextractedIds) >= tokenBudget;
 }
 
@@ -140,8 +136,8 @@ export function isBatchReady(chat, data, tokenBudget) {
  * @returns {number[]|null} Array of message IDs for next batch, or null if no complete batch ready
  */
 export function getNextBatch(chat, data, tokenBudget) {
-    const extractedIds = getExtractedMessageIds(data);
-    const unextractedIds = getUnextractedMessageIds(chat, extractedIds);
+    const processedFps = getProcessedFingerprints(data);
+    const unextractedIds = getUnextractedMessageIds(chat, processedFps);
 
     const totalTokens = getTokenSum(chat, unextractedIds);
     if (totalTokens < tokenBudget) {
@@ -184,21 +180,30 @@ export function getNextBatch(chat, data, tokenBudget) {
 }
 
 /**
- * Get count of complete batches available for backfill
+ * Get count of complete batches available for backfill.
+ * Now returns fingerprint-based stats with proper dead fingerprint handling.
  * @param {Object[]} chat - Chat messages array
  * @param {Object} data - OpenVault data object
- * @param {number} tokenBudget - Token budget for extraction
- * @returns {{completeBatches: number, totalUnextracted: number, extractedCount: number}}
+ * @param {number} tokenBudget - Token budget for extraction (optional, for backward compatibility)
+ * @returns {{totalMessages: number, extractedCount: number, unextractedCount: number}}
  */
 export function getBackfillStats(chat, data, tokenBudget) {
-    const extractedIds = getExtractedMessageIds(data);
-    const unextractedIds = getUnextractedMessageIds(chat, extractedIds);
-    const totalTokens = getTokenSum(chat, unextractedIds);
+    const processedFps = getProcessedFingerprints(data);
+    const unextractedIds = getUnextractedMessageIds(chat, processedFps);
+    const nonSystemCount = chat.filter(m => !m.is_system).length;
+
+    // Count visible processed messages (fingerprints that exist in current chat)
+    let visibleExtracted = 0;
+    for (const msg of chat) {
+        if (!msg.is_system && processedFps.has(getFingerprint(msg))) {
+            visibleExtracted++;
+        }
+    }
 
     return {
-        completeBatches: totalTokens >= tokenBudget ? Math.floor(totalTokens / tokenBudget) : 0,
-        totalUnextracted: unextractedIds.length,
-        extractedCount: extractedIds.size,
+        totalMessages: nonSystemCount,
+        extractedCount: visibleExtracted,
+        unextractedCount: unextractedIds.length,
     };
 }
 
@@ -210,8 +215,8 @@ export function getBackfillStats(chat, data, tokenBudget) {
  * @returns {{messageIds: number[], batchCount: number}}
  */
 export function getBackfillMessageIds(chat, data, tokenBudget) {
-    const extractedIds = getExtractedMessageIds(data);
-    const allUnextracted = getUnextractedMessageIds(chat, extractedIds);
+    const processedFps = getProcessedFingerprints(data);
+    const allUnextracted = getUnextractedMessageIds(chat, processedFps);
     const totalTokens = getTokenSum(chat, allUnextracted);
 
     if (totalTokens < tokenBudget) {

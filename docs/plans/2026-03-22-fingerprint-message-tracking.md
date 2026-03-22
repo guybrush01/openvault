@@ -912,12 +912,15 @@ Update the usage similarly to settings.js.
 
 - [ ] Step 3: Update helpers.js calculateExtractionStats
 
-In `src/ui/helpers.js`, update the function signature:
+In `src/ui/helpers.js`, keep the signature but fix the internal math to derive extractedCount from unextracted pool instead of dead-fingerprint-inflated Set.size:
 
 ```javascript
+// Add import at top of file:
+import { getUnextractedMessageIds } from '../extraction/scheduler.js';
+
 // BEFORE:
-// export function calculateExtractionStats(chat, extractedMessageIds) {
-//     const extractedCount = extractedMessageIds.size;
+// export function calculateExtractionStats(chat, extractedMessageIds, messageCount, bufferSize = 0) {
+//     const extractedCount = extractedMessageIds.size;  // Inflated by dead fingerprints!
 //     ...
 // }
 
@@ -925,12 +928,22 @@ In `src/ui/helpers.js`, update the function signature:
 /**
  * Calculate extraction statistics for UI display.
  * @param {Array} chat - Chat array
- * @param {number} extractedCount - Number of extracted messages (computed by caller)
+ * @param {Set} processedFps - Set of processed fingerprints
+ * @param {number} messageCount - Total message count
+ * @param {number} bufferSize - Buffer size (default 0)
  * @returns {Object} Statistics object
  */
-export function calculateExtractionStats(chat, extractedCount) {
+export function calculateExtractionStats(chat, processedFps, messageCount, bufferSize = 0) {
     const totalMessages = chat.length;
-    const unextractedCount = totalMessages - extractedCount;
+    const hiddenMessages = chat.filter((m) => m.is_system).length;
+
+    // Fix: Derive extracted count from unextracted pool instead of dead-fingerprint-inflated Set size
+    const unextractedIds = getUnextractedMessageIds(chat, processedFps);
+    const nonSystemCount = totalMessages - hiddenMessages;
+    const extractedCount = Math.max(0, nonSystemCount - unextractedIds.length);
+
+    const extractableMessages = Math.max(0, totalMessages - bufferSize);
+    const unextractedCount = Math.max(0, extractableMessages - extractedCount);
 
     return {
         totalMessages,
@@ -945,16 +958,29 @@ export function calculateExtractionStats(chat, extractedCount) {
 
 - [ ] Step 4: Update ui-helpers.test.js
 
-In `tests/ui/ui-helpers.test.js`, update tests to pass numbers:
+In `tests/ui/ui-helpers.test.js`, update tests to pass fingerprints instead of indices:
 
 ```javascript
 // BEFORE:
 // const extractedIds = new Set([0, 1, 2]);
-// const stats = calculateExtractionStats(chat, extractedIds);
+// const stats = calculateExtractionStats(chat, extractedIds, chat.length);
 
 // AFTER:
-const extractedCount = 3;
-const stats = calculateExtractionStats(chat, extractedCount);
+const processedFps = new Set(['1000000', '1000001', '1000002']);  // fingerprint strings
+const stats = calculateExtractionStats(chat, processedFps, chat.length);
+
+// Add test for dead fingerprint handling:
+it('excludes dead fingerprints from extracted count', () => {
+    const chat = [
+        { name: 'User', mes: 'Hello', send_date: '1000000' },
+        { name: 'Bot', mes: 'Hi', send_date: '1000001' },
+    ];
+    // '9999999' is a dead fingerprint (message no longer exists)
+    const processedFps = new Set(['1000000', '9999999']);
+    const stats = calculateExtractionStats(chat, processedFps, chat.length);
+    // extractedCount should be 1 (only chat[0]), not 2
+    expect(stats.extractedCount).toBe(1);
+});
 ```
 
 - [ ] Step 5: Run UI helper tests
@@ -969,8 +995,8 @@ Expected: All tests passing
 git add -A && git commit -m "refactor(ui): update imports and fix calculateExtractionStats
 
 - Rename getExtractedMessageIds to getProcessedFingerprints in settings.js, status.js
-- Change calculateExtractionStats to accept extractedCount number instead of Set
-- Fixes inflated count issue from dead fingerprints"
+- Fix calculateExtractionStats to derive extractedCount from unextracted pool
+- Fixes inflated count issue from dead fingerprints without changing API"
 ```
 
 ---

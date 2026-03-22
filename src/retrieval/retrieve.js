@@ -208,22 +208,22 @@ async function selectFormatAndInject(memoriesToUse, data, ctx) {
         if (isEmbeddingsEnabled()) {
             worldQueryEmbedding = await getQueryEmbedding(userMessages || ctx.recentContext?.slice(-500));
         }
-        if (worldQueryEmbedding) {
-            const worldResult = retrieveWorldContext(
-                worldCommunities,
-                data.global_world_state || null,
-                userMessages || '',
-                worldQueryEmbedding,
-                ctx.worldContextBudget
-            );
-            worldText = worldResult.text || '';
-            // Cache world context result for debug export
-            if (worldResult?.text) {
-                cacheRetrievalDebug({
-                    injectedWorldContext: worldResult.text,
-                    isMacroIntent: worldResult.isMacroIntent,
-                });
-            }
+        // Always call retrieveWorldContext - it handles macro intent detection
+        // even when embeddings are null (e.g., for st_vector source)
+        const worldResult = retrieveWorldContext(
+            worldCommunities,
+            data.global_world_state || null,
+            userMessages || '',
+            worldQueryEmbedding, // May be null for st_vector
+            ctx.worldContextBudget
+        );
+        worldText = worldResult.text || '';
+        // Cache world context result for debug export
+        if (worldResult?.text) {
+            cacheRetrievalDebug({
+                injectedWorldContext: worldResult.text,
+                isMacroIntent: worldResult.isMacroIntent,
+            });
         }
     }
 

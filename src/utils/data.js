@@ -426,6 +426,21 @@ export async function deleteCurrentChatData() {
         return false;
     }
 
+    // Unhide all messages that were hidden by auto-hide
+    // is_system flags persist even when memories are cleared, which would
+    // leave those messages permanently unextractable
+    const chat = context.chat || [];
+    let unhiddenCount = 0;
+    for (const msg of chat) {
+        if (msg.is_system) {
+            msg.is_system = false;
+            unhiddenCount++;
+        }
+    }
+    if (unhiddenCount > 0) {
+        logDebug(`Unhid ${unhiddenCount} messages after memory clear`);
+    }
+
     delete context.chatMetadata[METADATA_KEY];
     await getDeps().saveChatConditional();
     logDebug('Deleted all chat data');

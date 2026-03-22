@@ -1,8 +1,8 @@
 # Fingerprint-Based Message Tracking
 
 **Date**: 2026-03-22
-**Status**: Draft
-**Scope**: `src/extraction/scheduler.js`, `src/extraction/extract.js`, `src/constants.js`
+**Status**: Draft → v2
+**Scope**: `src/extraction/scheduler.js`, `src/extraction/extract.js`, `src/events.js`, `src/constants.js`
 
 ## Problem
 
@@ -89,10 +89,10 @@ export function getUnextractedMessageIds(chat, processedFps) {
 
 #### `src/extraction/extract.js`
 
-**Remove**: Incremental mode (watermark path). The `if (messageIds) / else` branch in `extractMemories` — always require message IDs from caller:
+**Remove**: Incremental mode (watermark path). The `if (messageIds) / else` branch currently has two paths. The watermark path is dead code (no caller invokes `extractMemories()` without IDs), but we replace both with a single path that falls through to the scheduler if no IDs are provided (defensive):
 
 ```js
-// BEFORE (two paths):
+// BEFORE (two paths, watermark is dead code):
 if (messageIds && messageIds.length > 0) {
     messagesToExtract = messageIds.map(id => ({ id, ...chat[id] })).filter(m => m != null);
 } else {
@@ -100,9 +100,17 @@ if (messageIds && messageIds.length > 0) {
     // ... watermark logic ...
 }
 
-// AFTER (one path):
-messagesToExtract = messageIds.map(id => ({ id, ...chat[id] })).filter(m => m != null);
+// AFTER (one path, scheduler fallback):
+if (!messageIds || messageIds.length === 0) {
+    const batch = getNextBatch(chat, data, settings.extractionTokenBudget);
+    if (!batch) return { status: 'skipped', reason: 'no_new_messages' };
+    messagesToExtract = batch.map(id => ({ id, ...chat[id] }));
+} else {
+    messagesToExtract = messageIds.map(id => ({ id, ...chat[id] })).filter(m => m != null);
+}
 ```
+
+This ensures any future caller (or test) that calls `extractMemories()` without IDs goes through the scheduler instead of crashing.
 
 **Remove**: `LAST_PROCESSED_KEY` usage entirely.
 
@@ -131,6 +139,35 @@ It is **decoupled from tracking**. `getProcessedFingerprints` does NOT read `mem
 
 **Remove**: `LAST_PROCESSED_KEY` export.
 
+#### `src/events.js` — Auto-Hide Fix
+
+`autoHideOldMessages()` imports `getExtractedMessageIds(data)` and checks `extractedMessageIds.has(idx)` where `idx` is a number. After the rename to `getProcessedFingerprints` (returns `Set<string>`), this would always return `false` — auto-hide silently stops hiding anything.
+
+**Fix**: Update to use fingerprint-based checking:
+
+```js
+// BEFORE:
+const extractedMessageIds = getExtractedMessageIds(data);
+// ...
+if (!extractedMessageIds.has(idx)) continue;  // idx is a number
+
+// AFTER:
+const processedFps = getProcessedFingerprints(data);
+// ...
+if (!processedFps.has(getFingerprint(chat[idx]))) continue;  // fingerprint is a string
+```
+
+#### Other Consumers (Safe — No Changes Needed)
+
+These import `getExtractedMessageIds` + `getUnextractedMessageIds` together and pass the result of one into the other. After renaming both functions, they continue to work because the types stay consistent:
+
+- `src/ui/settings.js:887-892` — extraction progress indicator
+- `src/ui/status.js:108-143` — status bar counts
+
+These just need import name updates (`getExtractedMessageIds` → `getProcessedFingerprints`).
+
+`src/extraction/extract.js:970` — backfill guard (`alreadyExtractedIds`). Same rename.
+
 ### Migration
 
 Auto-detect old index-based format and clear:
@@ -148,7 +185,16 @@ export function migrateProcessedMessages(data) {
 }
 ```
 
-**Cost**: Some messages re-extracted on first run after upgrade. `filterSimilarEvents` (cosine + Jaccard dedup) prevents duplicate memories. One-time, automatic, no user action needed.
+**Cost**: Some messages re-extracted on first run after upgrade. `filterSimilarEvents` (cosine + Jaccard dedup) prevents duplicate memories. One-time, automatic.
+
+**User notification**: Show a toast during migration so the user understands why the worker is suddenly reprocessing their chat:
+
+```js
+if (migrateProcessedMessages(data)) {
+    getDeps().showToast('info', 'OpenVault upgraded tracking format. Some messages may be re-processed (duplicates are filtered automatically).', 'Data Migration');
+    await saveOpenVaultData();
+}
+```
 
 ### Data Flow (After)
 
@@ -176,6 +222,16 @@ One path. One source of truth. No watermark.
 - **Dedup, embeddings, graph, reflections, communities** — untouched
 - **UI, settings, prompts** — untouched
 
+## Known Limitations
+
+### Narrative Distance Anomaly with Chat-Modifying Extensions
+
+`getMemoryPosition(memory)` in `text.js:270` uses `memory.message_ids` (original indices) to compute average position for bucket assignment (old/mid/recent). If an extension shrinks the chat, `chatLength` drops but stored `message_ids` don't adjust — memories artificially appear "more recent" and decay slower than expected.
+
+**Impact**: Marginal. Bucket thresholds are wide (100/500 messages). A memory shifting from "old" to "mid" due to chat shrinkage has minimal effect on retrieval quality.
+
+**Why not fix now**: Would require O(N) lookups to map `send_date` back to current chat indices during the scoring loop. Performance cost outweighs the edge-case benefit. Accept as known anomaly.
+
 ## Edge Cases
 
 | Case | Behavior |
@@ -202,7 +258,10 @@ One path. One source of truth. No watermark.
 | File | Nature of Change |
 |------|-----------------|
 | `src/extraction/scheduler.js` | Add `getFingerprint`, rename `getExtractedMessageIds` → `getProcessedFingerprints`, update `getUnextractedMessageIds` to use fingerprints + `is_system` filter, add `migrateProcessedMessages` |
-| `src/extraction/extract.js` | Remove watermark/incremental path, store fingerprints instead of indices, remove `LAST_PROCESSED_KEY` imports/usage |
+| `src/extraction/extract.js` | Remove watermark/incremental path (replace with scheduler fallback), store fingerprints instead of indices, update backfill guard import |
+| `src/events.js` | Update `autoHideOldMessages` to use `getFingerprint` + `getProcessedFingerprints` instead of index-based `has(idx)` |
+| `src/ui/settings.js` | Import rename: `getExtractedMessageIds` → `getProcessedFingerprints` |
+| `src/ui/status.js` | Import rename: `getExtractedMessageIds` → `getProcessedFingerprints` |
 | `src/constants.js` | Remove `LAST_PROCESSED_KEY` export |
 | `tests/scheduler.test.js` | Update for new function signatures and fingerprint-based tracking |
 | `tests/extract.test.js` | Update for removed incremental mode, fingerprint storage |

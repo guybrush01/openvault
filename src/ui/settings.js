@@ -357,12 +357,8 @@ function syncPrefillSelector() {
 
 async function handleExtractAll() {
     const { extractAllMessages } = await import('../extraction/extract.js');
-    const { isWorkerRunning } = await import('../extraction/worker.js');
-    if (isWorkerRunning()) {
-        showToast('warning', 'Background extraction in progress. Please wait.', 'OpenVault');
-        return;
-    }
     // v6: Use options object signature
+    // Guard: extractAllMessages handles isWorkerRunning() check internally
     await extractAllMessages({ onComplete: updateEventListeners });
 }
 
@@ -1010,14 +1006,14 @@ export async function updateBudgetIndicators() {
     }
 
     const { getTokenSum } = await import('../utils/tokens.js');
-    const { getProcessedFingerprints, getUnextractedMessageIds } = await import('../extraction/scheduler.js');
+    const { getExtractionBudgetProgress } = await import('../extraction/scheduler.js');
 
-    // Extraction indicator
-    const extractionBudget = settings.extractionTokenBudget;
-    const processedFps = getProcessedFingerprints(data);
-    const unextractedIds = getUnextractedMessageIds(chat, processedFps);
-    const unextractedTokens = getTokenSum(chat, unextractedIds);
-    const extractionPct = Math.min((unextractedTokens / extractionBudget) * 100, 100);
+    // Extraction indicator - use domain function
+    const { unextractedTokens, extractionPct, extractionBudget } = getExtractionBudgetProgress(
+        chat,
+        data,
+        settings.extractionTokenBudget
+    );
 
     $('#openvault_extraction_budget_fill').css('width', `${extractionPct}%`);
     $('#openvault_extraction_budget_text').text(

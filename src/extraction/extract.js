@@ -1137,6 +1137,12 @@ export async function extractAllMessages(optionsOrCallback) {
         return { messagesProcessed: 0, eventsCreated: 0 };
     }
 
+    // Guard: Prevent concurrent extraction if background worker is running
+    if (isWorkerRunning()) {
+        showToast('warning', 'Background extraction in progress. Please wait.', 'OpenVault');
+        return { messagesProcessed: 0, eventsCreated: 0 };
+    }
+
     const settings = getDeps().getExtensionSettings()[extensionName];
     const tokenBudget = settings.extractionTokenBudget;
     const data = getOpenVaultData();

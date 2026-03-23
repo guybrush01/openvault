@@ -111,6 +111,21 @@ export function getUnextractedMessageIds(chat, processedFps) {
 }
 
 /**
+ * Get extraction budget progress data for UI display
+ * @param {Object[]} chat - Chat messages array
+ * @param {Object} data - OpenVault data object
+ * @param {number} tokenBudget - Token budget for extraction
+ * @returns {Object} Progress data: { unextractedTokens, extractionPct, extractionBudget }
+ */
+export function getExtractionBudgetProgress(chat, data, tokenBudget) {
+    const processedFps = getProcessedFingerprints(data);
+    const unextractedIds = getUnextractedMessageIds(chat, processedFps);
+    const unextractedTokens = getTokenSum(chat, unextractedIds);
+    const extractionPct = Math.min((unextractedTokens / tokenBudget) * 100, 100);
+    return { unextractedTokens, extractionPct, extractionBudget: tokenBudget };
+}
+
+/**
  * Check if a complete batch of messages is ready for extraction
  * @param {Object[]} chat - Chat messages array
  * @param {Object} data - OpenVault data object

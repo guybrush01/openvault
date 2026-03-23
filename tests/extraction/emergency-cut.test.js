@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetDeps } from '../../src/deps.js';
 
+// Mock state module BEFORE any imports
+vi.mock('../../src/state.js', async () => {
+    const actual = await vi.importActual('../../src/state.js');
+    return {
+        ...actual,
+        isWorkerRunning: vi.fn(() => false),
+    };
+});
+
 describe('executeEmergencyCut', () => {
     beforeEach(async () => {
         vi.resetModules();
@@ -13,8 +22,8 @@ describe('executeEmergencyCut', () => {
     });
 
     it('calls onWarning and returns if worker is running', async () => {
-        const workerModule = await import('../../src/extraction/worker.js');
-        vi.spyOn(workerModule, 'isWorkerRunning').mockReturnValue(true);
+        const { isWorkerRunning } = await import('../../src/state.js');
+        vi.mocked(isWorkerRunning).mockReturnValue(true);
 
         const { executeEmergencyCut } = await import('../../src/extraction/extract.js');
         const onWarning = vi.fn();
@@ -25,8 +34,8 @@ describe('executeEmergencyCut', () => {
     });
 
     it('calls onWarning when no messages to extract or hide', async () => {
-        const workerModule = await import('../../src/extraction/worker.js');
-        vi.spyOn(workerModule, 'isWorkerRunning').mockReturnValue(false);
+        const { isWorkerRunning } = await import('../../src/state.js');
+        vi.mocked(isWorkerRunning).mockReturnValue(false);
 
         const schedulerModule = await import('../../src/extraction/scheduler.js');
         vi.spyOn(schedulerModule, 'getBackfillStats').mockReturnValue({
@@ -41,6 +50,7 @@ describe('executeEmergencyCut', () => {
         const depsModule = await import('../../src/deps.js');
         vi.spyOn(depsModule, 'getDeps').mockReturnValue({
             getContext: () => ({ chat: [{ fp: 'fp1', is_system: true }] }),
+            getExtensionSettings: () => ({ openvault: { enabled: true } }),
             console: globalThis.console,
         });
 
@@ -53,8 +63,8 @@ describe('executeEmergencyCut', () => {
     });
 
     it('returns early if user declines confirmation', async () => {
-        const workerModule = await import('../../src/extraction/worker.js');
-        vi.spyOn(workerModule, 'isWorkerRunning').mockReturnValue(false);
+        const { isWorkerRunning } = await import('../../src/state.js');
+        vi.mocked(isWorkerRunning).mockReturnValue(false);
 
         const schedulerModule = await import('../../src/extraction/scheduler.js');
         vi.spyOn(schedulerModule, 'getBackfillStats').mockReturnValue({
@@ -67,6 +77,7 @@ describe('executeEmergencyCut', () => {
         const depsModule = await import('../../src/deps.js');
         vi.spyOn(depsModule, 'getDeps').mockReturnValue({
             getContext: () => ({ chat: [] }),
+            getExtensionSettings: () => ({ openvault: { enabled: true } }),
             console: globalThis.console,
         });
 
@@ -81,8 +92,8 @@ describe('executeEmergencyCut', () => {
     });
 
     it('hide-only path: skips extraction when all messages already extracted', async () => {
-        const workerModule = await import('../../src/extraction/worker.js');
-        vi.spyOn(workerModule, 'isWorkerRunning').mockReturnValue(false);
+        const { isWorkerRunning } = await import('../../src/state.js');
+        vi.mocked(isWorkerRunning).mockReturnValue(false);
 
         const schedulerModule = await import('../../src/extraction/scheduler.js');
         vi.spyOn(schedulerModule, 'getBackfillStats').mockReturnValue({
@@ -102,6 +113,7 @@ describe('executeEmergencyCut', () => {
         const depsModule = await import('../../src/deps.js');
         vi.spyOn(depsModule, 'getDeps').mockReturnValue({
             getContext: () => ({ chat: mockChat }),
+            getExtensionSettings: () => ({ openvault: { enabled: true } }),
             saveChatConditional: mockSave,
             console: globalThis.console,
         });

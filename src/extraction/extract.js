@@ -29,7 +29,7 @@ import {
 } from '../prompts/index.js';
 import { accumulateImportance, generateReflections, shouldReflect } from '../reflection/reflect.js';
 import { calculateIDF, cosineSimilarity, tokenize } from '../retrieval/math.js';
-import { clearAllLocks, operationState } from '../state.js';
+import { clearAllLocks, isWorkerRunning, operationState } from '../state.js';
 import { refreshAllUI } from '../ui/render.js';
 import { setStatus } from '../ui/status.js';
 import { deleteItemsFromST, isStVectorSource, syncItemsToST } from '../services/st-vector.js';
@@ -50,7 +50,6 @@ import {
     getProcessedFingerprints,
 } from './scheduler.js';
 import { parseEventExtractionResponse, parseGraphExtractionResponse } from './structured.js';
-import { isWorkerRunning } from './worker.js';
 
 /**
  * Backoff schedule in seconds for failed extraction batches.

@@ -6,6 +6,15 @@ const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
 global.document = dom.window.document;
 global.window = dom.window;
 
+// Mock console for logging
+global.console = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+};
+
 describe('Emergency Cut Modal Helpers', () => {
     let boundEvents = new Map();
 
@@ -272,5 +281,86 @@ describe('Emergency Cut Modal Helpers', () => {
             expect($('#openvault_emergency_cancel').text()).toBe('Synthesizing...');
             expect($('#openvault_emergency_phase').text()).toBe('Running final synthesis...');
         });
+    });
+});
+
+// =============================================================================
+// hideExtractedMessages Tests
+// =============================================================================
+
+// Mock logging module before importing hideExtractedMessages
+vi.mock('../../src/utils/logging.js', () => ({
+    logInfo: vi.fn(),
+    logWarn: vi.fn(),
+    logError: vi.fn(),
+}));
+
+describe('hideExtractedMessages', () => {
+    it('only marks messages that are in processed fingerprints set', async () => {
+        const { hideExtractedMessages } = await import('../../src/ui/settings.js');
+
+        // Mock scheduler module - processed fingerprints are fp1 and fp2
+        const { getProcessedFingerprints, getFingerprint } = await import('../../src/extraction/scheduler.js');
+        vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getProcessedFingerprints').mockReturnValue(
+            new Set(['fp1', 'fp2'])
+        );
+        vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getFingerprint').mockImplementation((msg) => msg.fp);
+
+        // Mock data module
+        vi.spyOn(await import('../../src/utils/data.js'), 'getOpenVaultData').mockReturnValue({ memories: [] });
+
+        // Mock deps
+        const mockContext = {
+            chat: [
+                { fp: 'fp1', is_system: false }, // processed, should hide
+                { fp: 'fp2', is_system: false }, // processed, should hide
+                { fp: 'fp3', is_system: false }, // not processed, keep visible
+                { fp: 'fp1', is_system: true }, // already hidden, skip
+            ],
+        };
+        const mockSaveChatConditional = vi.fn(async () => true);
+        vi.spyOn(await import('../../src/deps.js'), 'getDeps').mockReturnValue({
+            getContext: () => mockContext,
+            saveChatConditional: mockSaveChatConditional,
+        });
+
+        const count = await hideExtractedMessages();
+
+        expect(count).toBe(2); // Only fp1 and fp2 (not already hidden)
+        expect(mockContext.chat[0].is_system).toBe(true); // fp1 now hidden
+        expect(mockContext.chat[1].is_system).toBe(true); // fp2 now hidden
+        expect(mockContext.chat[2].is_system).toBe(false); // fp3 still visible
+        expect(mockSaveChatConditional).toHaveBeenCalled();
+    });
+
+    it('returns 0 if no messages to hide', async () => {
+        const { hideExtractedMessages } = await import('../../src/ui/settings.js');
+
+        // Mock scheduler module - no processed fingerprints
+        vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getProcessedFingerprints').mockReturnValue(
+            new Set([])
+        );
+        vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getFingerprint').mockImplementation((msg) => msg.fp);
+
+        // Mock data module
+        vi.spyOn(await import('../../src/utils/data.js'), 'getOpenVaultData').mockReturnValue({ memories: [] });
+
+        // Mock deps
+        const mockContext = {
+            chat: [
+                { fp: 'fp1', is_system: false },
+                { fp: 'fp2', is_system: false },
+            ],
+        };
+        const mockSaveChatConditional = vi.fn(async () => true);
+        vi.spyOn(await import('../../src/deps.js'), 'getDeps').mockReturnValue({
+            getContext: () => mockContext,
+            saveChatConditional: mockSaveChatConditional,
+        });
+
+        const count = await hideExtractedMessages();
+
+        expect(count).toBe(0);
+        expect(mockSaveChatConditional).not.toHaveBeenCalled();
     });
 });

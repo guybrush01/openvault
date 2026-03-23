@@ -110,6 +110,39 @@ export function disableEmergencyCutCancel() {
 }
 
 /**
+ * Hide all extracted messages from LLM context by setting is_system=true.
+ * Only hides messages that have been successfully processed (fingerprint in processed set).
+ * @returns {Promise<number>} Number of messages hidden
+ */
+export async function hideExtractedMessages() {
+    const { getDeps } = await import('../deps.js');
+    const { getProcessedFingerprints, getFingerprint } = await import('../extraction/scheduler.js');
+    const { getOpenVaultData } = await import('../utils/data.js');
+
+    const context = getDeps().getContext();
+    const chat = context.chat || [];
+    const data = getOpenVaultData();
+
+    const processedFps = getProcessedFingerprints(data);
+
+    let hiddenCount = 0;
+    for (const msg of chat) {
+        const fp = getFingerprint(msg);
+        if (processedFps.has(fp) && !msg.is_system) {
+            msg.is_system = true;
+            hiddenCount++;
+        }
+    }
+
+    if (hiddenCount > 0) {
+        await getDeps().saveChatConditional();
+        logInfo(`Emergency Cut: hid ${hiddenCount} messages (all extracted)`);
+    }
+
+    return hiddenCount;
+}
+
+/**
  * Test Ollama connection
  */
 async function testOllamaConnection() {

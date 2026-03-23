@@ -3,7 +3,6 @@ import { defaultSettings, extensionName } from '../../src/constants.js';
 import { getDocumentEmbedding } from '../../src/embeddings.js';
 import {
     consolidateEdges,
-    consolidateGraph,
     createEmptyGraph,
     expandMainCharacterKeys,
     findCrossScriptCharacterKeys,
@@ -11,11 +10,22 @@ import {
     markEdgeForConsolidation,
     mergeOrInsertEntity,
     normalizeKey,
-    redirectEdges,
     shouldMergeEntities,
     upsertEntity,
     upsertRelationship,
 } from '../../src/graph/graph.js';
+
+describe('dead code removal', () => {
+    it('consolidateGraph is no longer exported', async () => {
+        const exports = await import('../../src/graph/graph.js');
+        expect(exports.consolidateGraph).toBeUndefined();
+    });
+
+    it('redirectEdges is no longer exported', async () => {
+        const exports = await import('../../src/graph/graph.js');
+        expect(exports.redirectEdges).toBeUndefined();
+    });
+});
 
 // Mock embeddings module
 vi.mock('../../src/embeddings.js', () => ({
@@ -594,57 +604,6 @@ describe('mergeOrInsertEntity', () => {
     });
 });
 
-describe('redirectEdges', () => {
-    let graphData;
-
-    beforeEach(() => {
-        graphData = { nodes: {}, edges: {} };
-        upsertEntity(graphData, 'Alice', 'PERSON', 'A');
-        upsertEntity(graphData, 'Bob', 'PERSON', 'B');
-        upsertEntity(graphData, 'Castle', 'PLACE', 'C');
-    });
-
-    it('redirects edges from old key to new key', () => {
-        upsertRelationship(graphData, 'Bob', 'Castle', 'Lives in');
-        redirectEdges(graphData, 'bob', 'alice');
-        expect(graphData.edges.alice__castle).toBeDefined();
-        expect(graphData.edges.alice__castle.description).toBe('Lives in');
-        expect(graphData.edges.bob__castle).toBeUndefined();
-    });
-
-    it('merges edge descriptions when redirect creates a duplicate', () => {
-        upsertRelationship(graphData, 'Alice', 'Castle', 'Rules from');
-        upsertRelationship(graphData, 'Bob', 'Castle', 'Visits often');
-        redirectEdges(graphData, 'bob', 'alice');
-        expect(graphData.edges.alice__castle.description).toContain('Rules from');
-        expect(graphData.edges.alice__castle.description).toContain('Visits often');
-        expect(graphData.edges.bob__castle).toBeUndefined();
-    });
-
-    it('handles edges where old key is the target', () => {
-        upsertRelationship(graphData, 'Castle', 'Bob', 'Contains');
-        redirectEdges(graphData, 'bob', 'alice');
-        expect(graphData.edges.castle__alice).toBeDefined();
-        expect(graphData.edges.castle__bob).toBeUndefined();
-    });
-
-    it('does nothing when no edges reference old key', () => {
-        upsertRelationship(graphData, 'Alice', 'Castle', 'Rules from');
-        const edgesBefore = { ...graphData.edges };
-        redirectEdges(graphData, 'bob', 'alice');
-        expect(graphData.edges).toEqual(edgesBefore);
-    });
-
-    it('removes self-loops after redirection', () => {
-        upsertEntity(graphData, 'Charlie', 'PERSON', 'C');
-        upsertRelationship(graphData, 'Charlie', 'Bob', 'Knows');
-        redirectEdges(graphData, 'bob', 'charlie');
-        // Edge would become charlie__charlie (self-loop), should be removed
-        expect(graphData.edges.charlie__charlie).toBeUndefined();
-        expect(graphData.edges.charlie__bob).toBeUndefined();
-    });
-});
-
 describe('edge creation with semantic merge', () => {
     it('creates edges using resolved keys after mergeOrInsertEntity', async () => {
         const { getDocumentEmbedding } = await import('../../src/embeddings.js');
@@ -712,89 +671,6 @@ describe('_mergeRedirects serialization', () => {
         // For now, just verify it doesn't break anything
         expect(serialized.nodes).toBeDefined();
         expect(serialized.edges).toBeDefined();
-    });
-});
-
-describe('consolidateGraph', () => {
-    it('merges nodes with identical embeddings of the same type', async () => {
-        const { getDocumentEmbedding } = await import('../../src/embeddings.js');
-        getDocumentEmbedding.mockResolvedValue([1, 0, 0]);
-
-        const graphData = { nodes: {}, edges: {} };
-        upsertEntity(graphData, "Vova's House", 'PLACE', 'Home');
-        upsertEntity(graphData, "Vova's Apartment", 'PLACE', 'Flat');
-
-        // Simulate identical embeddings
-        graphData.nodes['vova house'].embedding = [1, 0, 0];
-        graphData.nodes['vova apartment'].embedding = [1, 0, 0];
-
-        const settings = { entityMergeSimilarityThreshold: 0.8, entityDescriptionCap: 3 };
-        const result = await consolidateGraph(graphData, settings);
-
-        // One should be merged into the other
-        expect(Object.keys(graphData.nodes).length).toBeLessThan(2);
-        expect(result.mergedCount).toBeGreaterThan(0);
-    });
-
-    it('does not merge nodes of different types', async () => {
-        const { getDocumentEmbedding } = await import('../../src/embeddings.js');
-        getDocumentEmbedding.mockResolvedValue([1, 0, 0]);
-
-        const graphData = { nodes: {}, edges: {} };
-        upsertEntity(graphData, 'Castle', 'PLACE', 'A fortress');
-        upsertEntity(graphData, 'Castle Guard', 'PERSON', 'A knight');
-
-        graphData.nodes.castle.embedding = [1, 0, 0];
-        graphData.nodes['castle guard'].embedding = [1, 0, 0];
-
-        const settings = { entityMergeSimilarityThreshold: 0.8, entityDescriptionCap: 3 };
-        await consolidateGraph(graphData, settings);
-
-        expect(Object.keys(graphData.nodes)).toHaveLength(2);
-    });
-
-    it('redirects edges after merging nodes', async () => {
-        const { getDocumentEmbedding } = await import('../../src/embeddings.js');
-        getDocumentEmbedding.mockResolvedValue([1, 0, 0]);
-
-        const graphData = { nodes: {}, edges: {} };
-        upsertEntity(graphData, 'Alice', 'PERSON', 'A person');
-        upsertEntity(graphData, 'House A', 'PLACE', 'A house');
-        upsertEntity(graphData, 'House B', 'PLACE', 'Another house');
-
-        graphData.nodes.alice.embedding = [0, 1, 0];
-        graphData.nodes['house a'].embedding = [1, 0, 0];
-        graphData.nodes['house b'].embedding = [1, 0, 0];
-
-        upsertRelationship(graphData, 'Alice', 'House B', 'Visits');
-
-        const settings = { entityMergeSimilarityThreshold: 0.8, entityDescriptionCap: 3 };
-        await consolidateGraph(graphData, settings);
-
-        // House B merged into House A, edge redirected
-        const edgeKeys = Object.keys(graphData.edges);
-        expect(edgeKeys.some((k) => k.includes('house a'))).toBe(true);
-        expect(edgeKeys.some((k) => k.includes('house b'))).toBe(false);
-    });
-
-    it('persists alias during consolidation merge', async () => {
-        const { getDocumentEmbedding } = await import('../../src/embeddings.js');
-        getDocumentEmbedding.mockResolvedValue([1, 0, 0]);
-
-        const graphData = { nodes: {}, edges: {} };
-        upsertEntity(graphData, "Vova's House", 'PLACE', 'Home');
-        upsertEntity(graphData, "Vova's Apartment", 'PLACE', 'Flat');
-        graphData.nodes['vova house'].embedding = [1, 0, 0];
-        graphData.nodes['vova apartment'].embedding = [1, 0, 0];
-        // Give "vova house" more mentions so it survives
-        graphData.nodes['vova house'].mentions = 5;
-
-        await consolidateGraph(graphData, { entityMergeSimilarityThreshold: 0.8, entityDescriptionCap: 3 });
-
-        // The surviving node should have the removed node's name as alias
-        const survivor = graphData.nodes['vova house'];
-        expect(survivor).toBeDefined();
-        expect(survivor.aliases).toContain("Vova's Apartment");
     });
 });
 

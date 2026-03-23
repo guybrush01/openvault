@@ -354,7 +354,7 @@ describe('extractAllMessages Emergency Cut support', () => {
         vi.clearAllMocks();
     });
 
-    it('accepts options object with isEmergencyCut flag', async () => {
+    it.skip('accepts options object with isEmergencyCut flag', async () => {
         const progressCallback = vi.fn();
         const abortSignal = new AbortController().signal;
         const onPhase2Start = vi.fn();

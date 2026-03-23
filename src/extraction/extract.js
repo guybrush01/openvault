@@ -1083,32 +1083,11 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
     }
 }
 
-/**
- * Run Phase 2 enrichment (Reflections & Communities) independently.
- * Used after backfill completes to run comprehensive synthesis once.
- *
- * @param {Object} data - OpenVault data object (modified in-place)
- * @param {Object} settings - Extension settings
- * @param {string} targetChatId - Chat ID for change detection
- * @returns {Promise<void>}
- */
-/**
- * Run Phase 2 enrichment (Reflections & Communities) independently.
- * Used after backfill completes to run comprehensive synthesis once.
- *
- * @param {Object} data - OpenVault data object (modified in-place)
- * @param {Object} settings - Extension settings
- * @param {string} targetChatId - Chat ID for change detection
- * @param {Object} [options={}] - Optional configuration
- * @param {AbortSignal} [options.abortSignal=null] - Abort signal for cancellation
- * @returns {Promise<void>}
- */
 export async function runPhase2Enrichment(data, settings, targetChatId, options = {}) {
     const { abortSignal = null } = options;
-    const memories = data[MEMORIES_KEY] || [];
 
     // Guard: No memories to enrich
-    if (memories.length === 0) {
+    if (!data[MEMORIES_KEY]?.length) {
         logDebug('runPhase2Enrichment: No memories to enrich');
         return;
     }
@@ -1116,90 +1095,13 @@ export async function runPhase2Enrichment(data, settings, targetChatId, options 
     logDebug('runPhase2Enrichment: Starting comprehensive Phase 2 synthesis');
 
     try {
-        // ===== REFLECTIONS: Process all characters with accumulated importance =====
-        initGraphState(data); // Ensures reflection_state exists
+        initGraphState(data);
         const characterNames = Object.keys(data.reflection_state || {});
-        const reflectionThreshold = settings.reflectionThreshold;
+        await synthesizeReflections(data, characterNames, settings, { abortSignal });
 
-        const ladderQueue = await createLadderQueue(settings.maxConcurrency);
-        const reflectionPromises = [];
-
-        for (const characterName of characterNames) {
-            // v6: Check abort signal in loop
-            if (abortSignal?.aborted) {
-                throw new DOMException('Emergency Cut Cancelled', 'AbortError');
-            }
-
-            if (shouldReflect(data.reflection_state, characterName, reflectionThreshold)) {
-                reflectionPromises.push(
-                    ladderQueue
-                        .add(async () => {
-                            const { reflections, stChanges } = await generateReflections(
-                                characterName,
-                                memories,
-                                data[CHARACTERS_KEY] || {}
-                            );
-                            if (reflections.length > 0) {
-                                data[MEMORIES_KEY].push(...reflections);
-                            }
-                            // Reset accumulator after reflection
-                            data.reflection_state[characterName].importance_sum = 0;
-                            await applySyncChanges(stChanges);
-                        })
-                        .catch((error) => {
-                            if (error.name === 'AbortError') throw error;
-                            logError(`Reflection error for ${characterName}`, error);
-                        })
-                );
-            }
-        }
-
-        await Promise.all(reflectionPromises);
-
-        // ===== COMMUNITIES: Force-run unconditionally (skip interval check) =====
         const context = getDeps().getContext();
-        const characterName = context.name2;
-        const userName = context.name1;
+        await synthesizeCommunities(data, settings, context.name2, context.name1);
 
-        try {
-            const baseKeys = [normalizeKey(characterName), normalizeKey(userName)];
-            const mainCharacterKeys = expandMainCharacterKeys(baseKeys, data.graph.nodes || {});
-            const crossScriptKeys = findCrossScriptCharacterKeys(baseKeys, data.graph.nodes || {});
-            mainCharacterKeys.push(...crossScriptKeys.filter((k) => !mainCharacterKeys.includes(k)));
-            const communityResult = detectCommunities(data.graph, mainCharacterKeys);
-            if (communityResult) {
-                // Consolidate bloated edges before summarization
-                if (data.graph._edgesNeedingConsolidation?.length > 0) {
-                    const { count: consolidated, stChanges: edgeChanges } = await consolidateEdges(data.graph, settings);
-                    if (consolidated > 0) {
-                        logDebug(`Consolidated ${consolidated} graph edges before community summarization`);
-                    }
-                    await applySyncChanges(edgeChanges);
-                }
-
-                const groups = buildCommunityGroups(data.graph, communityResult.communities);
-                const stalenessThreshold = settings.communityStalenessThreshold;
-                const isSingleCommunity = communityResult.count === 1;
-                const communityUpdateResult = await updateCommunitySummaries(
-                    data.graph,
-                    groups,
-                    data.communities || {},
-                    data.graph_message_count || 0,
-                    stalenessThreshold,
-                    isSingleCommunity
-                );
-                data.communities = communityUpdateResult.communities;
-                if (communityUpdateResult.global_world_state) {
-                    data.global_world_state = communityUpdateResult.global_world_state;
-                }
-                await applySyncChanges(communityUpdateResult.stChanges);
-                logDebug(`runPhase2Enrichment: ${communityResult.count} communities processed`);
-            }
-        } catch (error) {
-            logError('Community detection error', error);
-        }
-
-        // Final save
         // Update IDF cache before save — reflections may have been added
         updateIDFCache(data, data.graph?.nodes);
         await saveOpenVaultData(targetChatId);

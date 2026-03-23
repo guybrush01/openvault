@@ -740,6 +740,53 @@ async function fetchGraphFromLLM(contextParams, formattedEvents, abortSignal) {
 }
 
 /**
+ * Stage 3: Stamp metadata on raw events, enrich with embeddings, and deduplicate.
+ *
+ * @param {Array} rawEvents - Events from LLM (no metadata yet)
+ * @param {number[]} messageIdsArray - Source message IDs for this batch
+ * @param {string} batchId - Unique batch identifier
+ * @param {Array} existingMemories - All existing memories (for dedup comparison)
+ * @param {Object} settings - Extension settings
+ * @returns {Promise<{events: Array}>}
+ */
+async function enrichAndDedupEvents(rawEvents, messageIdsArray, batchId, existingMemories, settings) {
+    const minMessageId = Math.min(...messageIdsArray);
+
+    let events = rawEvents.map((event, index) => ({
+        id: `event_${Date.now()}_${index}`,
+        type: 'event',
+        ...event,
+        tokens: tokenize(event.summary || ''),
+        message_ids: messageIdsArray,
+        sequence: minMessageId * 1000 + index,
+        created_at: Date.now(),
+        batch_id: batchId,
+        characters_involved: event.characters_involved || [],
+        witnesses: event.witnesses || event.characters_involved || [],
+        location: event.location || null,
+        is_secret: event.is_secret || false,
+        importance: event.importance || 3,
+        emotional_impact: event.emotional_impact || {},
+        relationship_impact: event.relationship_impact || {},
+    }));
+
+    if (events.length > 0) {
+        await enrichEventsWithEmbeddings(events);
+
+        const dedupThreshold = settings.dedupSimilarityThreshold;
+        const jaccardThreshold = settings.dedupJaccardThreshold;
+        const preDedupCount = events.length;
+        events = await filterSimilarEvents(events, existingMemories, dedupThreshold, jaccardThreshold);
+
+        if (events.length < preDedupCount) {
+            logDebug(`Dedup: Filtered ${preDedupCount - events.length} similar events`);
+        }
+    }
+
+    return { events };
+}
+
+/**
  * Extract events from chat messages
  *
  * @param {number[]} [messageIds=null] - Optional specific message IDs for targeted extraction

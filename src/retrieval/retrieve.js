@@ -105,6 +105,25 @@ export function buildRetrievalContext(opts = {}) {
 
     const data = getOpenVaultData();
 
+    // Build config objects for domain functions (dependency injection)
+    const queryConfig = {
+        entityWindowSize: settings.entityWindowSize,
+        embeddingWindowSize: settings.embeddingWindowSize,
+        recencyDecayFactor: settings.recencyDecayFactor,
+        topEntitiesCount: settings.topEntitiesCount,
+        entityBoostWeight: settings.entityBoostWeight,
+    };
+
+    const scoringConfig = {
+        forgetfulnessBaseLambda: settings.forgetfulnessBaseLambda,
+        forgetfulnessImportance5Floor: settings.forgetfulnessImportance5Floor,
+        reflectionDecayThreshold: settings.reflectionDecayThreshold,
+        vectorSimilarityThreshold: settings.vectorSimilarityThreshold,
+        alpha: settings.alpha,
+        combinedBoostWeight: settings.combinedBoostWeight,
+        embeddingSource: settings.embeddingSource,
+    };
+
     return {
         recentContext,
         userMessages,
@@ -118,6 +137,8 @@ export function buildRetrievalContext(opts = {}) {
         graphEdges: data?.graph?.edges || {},
         allAvailableMemories: data?.[MEMORIES_KEY] || [], // Full memory list for IDF
         idfCache: data?.idf_cache || null, // Pre-computed IDF cache
+        queryConfig,
+        scoringConfig,
     };
 }
 

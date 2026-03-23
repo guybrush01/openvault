@@ -1,138 +1,105 @@
-You have executed a textbook, systematic rescue of a tightly-coupled vanilla JS codebase. By pushing dependencies (`getDeps()`) and side-effects (`fetch`, ST Vector syncing) to the orchestrator edges, you are successfully implementing the **Hexagonal Architecture (Ports and Adapters)** pattern. 
+You have executed a masterful, systematic cleanup so far. The extraction of the pipeline stages in PR 4 and the purging of domain I/O in PR 2 have successfully pushed side-effects to the edges of your architecture. 
 
-As you noted, the remaining complexity is concentrated in a few "God functions" and "Junk drawer" files that violate the Single Responsibility Principle (SRP). 
+Reviewing your codebase, the next major bottleneck is exactly what you identified in your roadmap: **The `data.js` Junk Drawer** and the **Split-Brain State Management**.
 
-Here is the high-level roadmap for the next three phases, followed by the detailed design document for **PR 4**.
-
----
-
-### Refactoring Roadmap
-
-*   **Phase 4 (Next): Deconstruct the Extraction God-Function.** `extract.js:extractMemories` is a ~200-line procedural script that interleaves LLM network calls, JSON parsing, data enrichment, deduplication math, graph mutations, and storage syncing. It needs to be shattered into cohesive, testable pipeline stages.
-*   **Phase 5: Nuke the `data.js` Junk Drawer.** `data.js` currently mixes local JSON storage manipulation (`getOpenVaultData`, `updateMemory`) with external REST API wrappers (`querySTVector`, `syncItemsToST`). The REST wrappers belong in a dedicated `services/st-vector-api.js` adapter.
-*   **Phase 6: Unify State Management.** Concurrency locks are split. `worker.js` tracks `isRunning`, while `state.js` tracks `operationState.extractionInProgress`. Consolidating this into a single State Machine will prevent race conditions between background extraction and UI-triggered Emergency Cuts.
+Here is the high-level roadmap for the next three phases, followed by the detailed, actionable design document for **PR 5**.
 
 ---
 
-Here is the actionable design document for PR 4.
+### Refactoring Roadmap (Phases 5 - 7)
 
-# PR 4: Deconstruct the Extraction God-Function
+*   **Phase 5 (Next): Nuke the `data.js` Junk Drawer.** `src/utils/data.js` is a severe Single Responsibility Principle (SRP) violation. It mixes local JSON state initialization, memory CRUD operations, vector embedding invalidation logic, and REST API wrappers for SillyTavern's Vector DB. We will split this into a `store/` (local state) and a `services/` (network adapters) architecture.
+*   **Phase 6: Unify State Management.** Concurrency locks are currently split. `worker.js` tracks `isRunning` and `wakeGeneration`, while `state.js` tracks `operationState.extractionInProgress` and `generationLockTimeout`. Consolidating this into a single, unified `ConcurrencyManager` will prevent race conditions between the background worker, manual extractions, and the UI.
+*   **Phase 7: Isolate Domain Mutations (CQRS).** Currently, `graph.js` and `reflect.js` mutate `data.graph` and `data.memories` deeply in place. Moving toward pure functions that return "Change Sets" (like you did for ST Sync in PR 2) for local memory/graph mutations will make the system fully predictable and trivially testable without mocking global state.
+
+---
+
+Here is the actionable design document for **PR 5**.
+
+# PR 5: Nuke the `data.js` Junk Drawer
 
 ## Goal
-Break down the monolithic `extract.js:extractMemories` function into discrete pipeline stages. Transform `extract.js` from a dense procedural script into a clean, high-level orchestrator. 
+Dismantle `src/utils/data.js` (500+ lines) into three highly cohesive, purpose-built modules. Separate local state management (Repository Pattern) from external REST API interactions (Adapter Pattern) and embedding migration logic.
 
-**Non-goals:** No changes to extraction prompts, LLM parameters, deduplication math, or graph logic. The actual business rules remain identical; we are purely reorganizing the code blocks into pure(r) functions. No new files required (keep it within `extract.js`).
+**Non-goals:** No changes to how data is actually stored in ST's `chatMetadata`. No changes to ST Vector API endpoints or payloads. No changes to the actual logic of embedding invalidation. We are strictly moving and categorizing code.
 
 ## Design Decisions
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Pipeline Pattern | Extract 4 internal functions | Separates LLM I/O from local data enrichment and deduplication. Makes each stage independently unit-testable. |
-| Scope | `extract.js` only | Avoids creating a sprawling `pipeline/` directory structure. Internal functions are perfectly fine for this phase. |
-| Error Handling | Bubble up to Orchestrator | The orchestrator (`extractMemories`) retains the `try/catch` blocks to manage the `status: 'failed'` vs `status: 'success'` lifecycle. |
-| Test Impact | Unlocks pure unit testing | You will be able to test event enrichment, ID stamping, and Graph processing without mocking `callLLM` or `fetch`. |
+| Architecture | Ports & Adapters (Hexagonal) | Clear boundaries between local disk I/O (`saveChatConditional`), Network I/O (`fetch`), and Domain Logic. |
+| Directory Structure | `src/store/`, `src/services/`, `src/embeddings/` | Moves away from the generic `utils/` folder into semantic architectural layers. |
+| Chat ID Resolution | Stays in `store/chat-data.js` | Resolving the active `chatId` is a local ST context concern, closely tied to `saveOpenVaultData`. |
+| Caching | Move `validatedChats` to `services/st-vector.js` | The cache preventing duplicate `/api/characters/chats` calls is purely a network optimization. |
 
 ## File-by-File Changes
 
-### 1. `src/extraction/extract.js`
+### 1. `src/services/st-vector.js` (New File)
+**Responsibility:** Pure REST API wrappers for SillyTavern's Vector Storage endpoints. Knows *nothing* about OpenVault data structures (except extracting the OV_ID).
 
-We will create four new `async function` blocks above or below `extractMemories`. 
+**Move the following from `data.js`:**
+*   `const validatedChats = new Set();` and `_clearValidatedChatsCache()`
+*   `chatExists(chatId)`
+*   `getSTCollectionId(chatId)`
+*   `extractOvId(text)`
+*   `getSTVectorSource()`
+*   `getSourceApiUrl(sourceType)`
+*   `getSTVectorRequestBody(source)`
+*   `isStVectorSource()`
+*   `syncItemsToST(items, chatId)`
+*   `deleteItemsFromST(hashes, chatId)`
+*   `purgeSTCollection(chatId)`
+*   `querySTVector(searchText, topK, threshold, chatId)`
 
-#### Stage 1: `fetchEventsFromLLM`
-**Responsibility:** Pure LLM I/O and Parsing.
-**Signature:**
-```javascript
-async function fetchEventsFromLLM(messagesText, contextParams, settings, abortSignal)
-// Returns: { events }
-```
-*   Moves `buildEventExtractionPrompt`, `callLLM`, and `parseEventExtractionResponse`.
+**Imports needed:** `getDeps` from `deps.js`, `showToast` from `utils/dom.js`, `logError/logWarn` from `utils/logging.js`.
 
-#### Stage 2: `fetchGraphFromLLM`
-**Responsibility:** Pure LLM I/O and Parsing.
-**Signature:**
-```javascript
-async function fetchGraphFromLLM(messagesText, formattedEvents, contextParams, settings, abortSignal)
-// Returns: { entities, relationships }
-// Internal: Wraps its own try/catch to swallow graph errors (graceful degradation), returning empty arrays on fail.
-```
+### 2. `src/store/chat-data.js` (New File)
+**Responsibility:** The "Repository" for local chat metadata. Handles initialization, saving, and basic CRUD operations for memories.
 
-#### Stage 3: `processAndDedupEvents`
-**Responsibility:** Data enrichment, ID stamping, Embedding generation, and Deduplication.
-**Signature:**
-```javascript
-async function processAndDedupEvents(rawEvents, messageIdsArray, batchId, existingMemories, settings, abortSignal)
-// Returns: { processedEvents }
-```
-*   Moves the `event.map(...)` block (adding `id`, `sequence`, `created_at`, `tokens`).
-*   Moves the `enrichEventsWithEmbeddings` call.
-*   Moves the `filterSimilarEvents` (dedup) call.
+**Move the following from `data.js`:**
+*   `getOpenVaultData()`
+*   `getCurrentChatId()`
+*   `saveOpenVaultData(expectedChatId)`
+*   `generateId()`
+*   `updateMemory(id, updates)`
+*   `deleteMemory(id)`
+*   `deleteCurrentChatData()`
 
-#### Stage 4: `processGraphUpdates`
-**Responsibility:** Iterating over entities/relationships, applying them to the graph, and collecting sync payloads.
-**Signature:**
-```javascript
-async function processGraphUpdates(graphData, entities, relationships, settings)
-// Returns: { graphSyncChanges: { toSync: [], toDelete: [] } }
-```
-*   Moves the `mergeOrInsertEntity` and `upsertRelationship` loops.
+**Imports needed:** `METADATA_KEY, MEMORIES_KEY, CHARACTERS_KEY` from `constants.js`, `getDeps`, `record` from `perf/store.js`, embedding codec imports (for `deleteMemory`), and `purgeSTCollection` from `services/st-vector.js` (used in `deleteCurrentChatData`).
 
-#### The Orchestrator: `extractMemories`
-With the heavy lifting extracted, `extractMemories` becomes a beautiful, readable orchestrator:
+### 3. `src/embeddings/migration.js` (New File)
+**Responsibility:** Domain logic for detecting model mismatches, wiping stale embeddings, and managing ST Vector fingerprints. 
 
-```javascript
-export async function extractMemories(messageIds = null, targetChatId = null, options = {}) {
-    // ... initial guards and batch setup ...
-    
-    try {
-        // 1. Fetch Events
-        const { events: rawEvents } = await fetchEventsFromLLM(messagesText, contextParams, settings, abortSignal);
-        
-        // 2. Fetch Graph (only if events found)
-        let rawGraph = { entities: [], relationships: [] };
-        if (rawEvents.length > 0) {
-            await rpmDelay(settings, 'Inter-call rate limit');
-            const formattedEvents = rawEvents.map((e, i) => `${i + 1}. [${e.importance}★] ${e.summary}`);
-            rawGraph = await fetchGraphFromLLM(messagesText, formattedEvents, contextParams, settings, abortSignal);
-        }
+**Move the following from `data.js`:**
+*   `getStVectorFingerprint()`
+*   `stampStVectorFingerprint(data)`
+*   `_hasStVectorMismatch(data)`
+*   `_hasSyncedItems(data)`
+*   `_clearAllStSyncFlags(data)`
+*   `invalidateStaleEmbeddings(data, currentModelId)`
+*   `_countEmbeddings(data)`
+*   `deleteCurrentChatEmbeddings()`
 
-        // 3. Process & Dedup Events
-        const finalEvents = await processAndDedupEvents(rawEvents, messageIdsArray, batchId, data.memories, settings, abortSignal);
-        
-        // 4. Process Graph Updates
-        let graphSyncChanges = { toSync: [], toDelete: [] };
-        if (finalEvents.length > 0) {
-            // Only update graph if we actually kept events after dedup
-            graphSyncChanges = await processGraphUpdates(data.graph, rawGraph.entities, rawGraph.relationships, settings);
-            data.graph_message_count = (data.graph_message_count || 0) + messages.length;
-            delete data.graph._mergeRedirects;
-        }
+**Imports needed:** `getSTVectorSource`, `getSTVectorRequestBody`, `purgeSTCollection` from `services/st-vector.js`. `getOpenVaultData`, `getCurrentChatId` from `store/chat-data.js`. Various `embedding-codec.js` helpers.
 
-        // 5. Phase 1 Commit (Memory push, processed IDs push, ST Sync)
-        // ... (Commit logic stays here, it's short and orchestrator-focused) ...
-
-        // 6. Phase 2 (Reflections & Communities)
-        // ... (Already cleanly separated into runPhase2Enrichment) ...
-        
-        return { status: 'success', events_created: finalEvents.length, messages_processed: messages.length };
-        
-    } catch (error) {
-        // ... error handling ...
-    }
-}
-```
+### 4. `src/utils/data.js` (The Deletion)
+*   **Delete this file completely.**
+*   Update all imports across the codebase (`extract.js`, `retrieve.js`, `embeddings.js`, `events.js`, `ui/settings.js`, etc.) to point to the three new files.
 
 ## Execution Order
 
 | Step | Action | Risk | Test Impact |
 |------|--------|------|-------------|
-| 1 | Extract `processGraphUpdates` | Low | Move graph loops out. Update `extract.test.js` to ensure graph nodes still populate. |
-| 2 | Extract `processAndDedupEvents` | Medium | Move ID stamping, `enrichEventsWithEmbeddings`, and `filterSimilarEvents`. Verify properties like `batch_id` and `sequence` are still assigned correctly. |
-| 3 | Extract `fetchEventsFromLLM` & `fetchGraphFromLLM` | Low | Pure code movement of prompt building and `callLLM`. |
-| 4 | Refactor `extractMemories` | Medium | Rewire the function to call the 4 new steps. Tests should pass immediately if steps 1-3 were done correctly. |
+| 1 | Create `src/services/st-vector.js` and move API wrappers. | Low | Move `querySTVector`, `syncItemsToST`, etc. tests from `data.test.js` to `tests/services/st-vector.test.js`. Update `st-vector.test.js` imports. |
+| 2 | Create `src/store/chat-data.js` and move CRUD logic. | Low | Move `getOpenVaultData`, `saveOpenVaultData`, `updateMemory` tests to `tests/store/chat-data.test.js`. |
+| 3 | Create `src/embeddings/migration.js` and move mismatch logic. | Low | Move `invalidateStaleEmbeddings` and fingerprint tests to `tests/embeddings/migration.test.js`. |
+| 4 | Update Imports globally. | Medium | Do a global search for `utils/data.js` and replace with specific imports from the new files. |
+| 5 | Delete `src/utils/data.js` and `tests/utils/data.test.js`. | Low | Cleanup. |
 
 ## Verification
 
-- `npm run test:extract` stays green throughout.
-- The `extractMemories` function shrinks from ~200 lines to ~50 lines of highly readable orchestration logic.
-- Graceful degradation remains intact (if `fetchGraphFromLLM` throws, it catches internally and returns empty arrays, allowing `extractMemories` to proceed with just the events).
-- `AbortError` propagation remains intact (mid-request cancellations from Emergency Cut still bubble up correctly).
+- `npm run test` passes (specifically ensuring Vitest `vi.mock()` paths in `setup.js` or individual test files point to the new file paths).
+- Check `extract.js` and `retrieve.js`: they should now import `syncItemsToST` directly from `../services/st-vector.js` and `getOpenVaultData` from `../store/chat-data.js`.
+- Check `embeddings.js`: `StVectorStrategy` should import from `services/st-vector.js`.
+- Start SillyTavern, perform a manual extraction, and change an embedding model in the UI to ensure `invalidateStaleEmbeddings` (now in `migration.js`) triggers correctly.
+- Biome lint/format passes (pre-commit hook).

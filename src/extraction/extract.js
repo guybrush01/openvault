@@ -1088,9 +1088,21 @@ export async function extractAllMessages(optionsOrCallback) {
     // v6: Normalize options to handle legacy function argument
     const opts = typeof optionsOrCallback === 'function' ? { onComplete: optionsOrCallback } : optionsOrCallback || {};
 
-    const { isEmergencyCut = false, progressCallback = null, abortSignal = null, onComplete = null } = opts;
-
-    const updateEventListenersFn = onComplete;
+    const {
+        isEmergencyCut = false,
+        abortSignal = null,
+        onComplete = null,
+        // Backfill UI callbacks (non-Emergency-Cut path)
+        onStart,
+        onProgress,
+        onPhase2Start,
+        onBatchRetryWait,
+        onFinish,
+        onAbort,
+        onError,
+        // Emergency Cut path (unchanged)
+        progressCallback = null,
+    } = opts;
     const context = getDeps().getContext();
     const chat = context.chat;
 
@@ -1140,15 +1152,9 @@ export async function extractAllMessages(optionsOrCallback) {
         return { messagesProcessed: 0, eventsCreated: 0 };
     }
 
-    // Show persistent progress toast (skip for Emergency Cut - uses modal instead)
+    // Notify caller that backfill is starting (skip for Emergency Cut - uses modal instead)
     if (!isEmergencyCut) {
-        setStatus('extracting');
-        const _toast = toastr?.info(`Backfill: 0/${initialBatchCount} batches (0%)`, 'OpenVault - Extracting', {
-            timeOut: 0,
-            extendedTimeOut: 0,
-            tapToDismiss: false,
-            toastClass: 'toast openvault-backfill-toast',
-        });
+        onStart?.(initialBatchCount);
     }
 
     // Capture chat ID to detect if user switches during backfill
@@ -1212,9 +1218,7 @@ export async function extractAllMessages(optionsOrCallback) {
                 : '';
 
         if (!isEmergencyCut) {
-            $('.openvault-backfill-toast .toast-message').text(
-                `Backfill: ${batchesProcessed}/${initialBatchCount} batches (${Math.min(progress, 100)}%) - Processing...${retryText}`
-            );
+            onProgress?.(batchesProcessed, initialBatchCount, totalEvents, retryText);
         } else if (progressCallback) {
             progressCallback(batchesProcessed + 1, initialBatchCount, totalEvents);
         }
@@ -1242,10 +1246,8 @@ export async function extractAllMessages(optionsOrCallback) {
                     throw error; // Propagate to Emergency Cut handler
                 }
                 logDebug('Chat changed during backfill, aborting');
-                $('.openvault-backfill-toast').remove();
-                showToast('warning', 'Backfill aborted: chat changed', 'OpenVault');
                 clearAllLocks();
-                setStatus('ready');
+                onAbort?.();
                 return { messagesProcessed: 0, eventsCreated: 0 };
             }
 
@@ -1272,11 +1274,9 @@ export async function extractAllMessages(optionsOrCallback) {
                     `Batch ${batchesProcessed + 1} failed: cumulative backoff reached ${Math.round(cumulativeBackoffMs / 1000)}s (limit: ${Math.round(MAX_BACKOFF_TOTAL_MS / 1000)}s). Stopping extraction.`
                 );
                 logError('Extraction stopped after exceeding backoff limit', error);
-                showToast(
-                    'error',
-                    `Extraction stopped: API errors persisted for ${Math.round(cumulativeBackoffMs / 1000)}s. Check your API connection and try again.`,
-                    'OpenVault'
-                );
+                onError?.(new Error(
+                    `Extraction stopped: API errors persisted for ${Math.round(cumulativeBackoffMs / 1000)}s. Check your API connection and try again.`
+                ));
                 break;
             }
 
@@ -1284,11 +1284,9 @@ export async function extractAllMessages(optionsOrCallback) {
                 `Batch ${batchesProcessed + 1} failed with ${errorType}, retrying in ${backoffSeconds}s (attempt ${retryCount}, cumulative backoff: ${Math.round(cumulativeBackoffMs / 1000)}s/${Math.round(MAX_BACKOFF_TOTAL_MS / 1000)}s)...`
             );
 
-            // Update toast to show waiting state (skip for Emergency Cut - modal shows progress)
+            // Notify caller of retry wait (skip for Emergency Cut - modal shows progress)
             if (!isEmergencyCut) {
-                $('.openvault-backfill-toast .toast-message').text(
-                    `Backfill: ${batchesProcessed}/${initialBatchCount} batches - Waiting ${backoffSeconds}s before retry ${retryCount}...`
-                );
+                onBatchRetryWait?.(batchesProcessed, initialBatchCount, backoffSeconds, retryCount);
             }
 
             await new Promise((resolve) => setTimeout(resolve, backoffMs));
@@ -1300,27 +1298,19 @@ export async function extractAllMessages(optionsOrCallback) {
     if (!isEmergencyCut) {
         // Update existing progress toast for the final heavy lifting
         logInfo('Backfill Phase 1 complete. Running final Phase 2 synthesis...');
-        $('.openvault-backfill-toast .toast-message').text(
-            `Backfill: 100% - Synthesizing world state and reflections. This may take a minute...`
-        );
+        onPhase2Start?.();
 
         try {
             await runPhase2Enrichment(data, settings, targetChatId, { abortSignal });
         } catch (error) {
             logError('Final Phase 2 enrichment failed', error);
-            showToast('warning', 'Events saved, but final summarization failed. You can re-run later.', 'OpenVault');
+            onError?.(new Error('Events saved, but final summarization failed. You can re-run later.'));
             // Don't throw - Phase 1 data is safe
         }
     } else {
         logInfo('[Emergency Cut Debug] Skipping Phase 2 enrichment for speed');
     }
     // ===== END FINAL PHASE 2 =====
-
-    // Now clear it when everything is truly done
-    // Clear progress toast
-    if (!isEmergencyCut) {
-        $('.openvault-backfill-toast').remove();
-    }
 
     // Reset operation state
     clearAllLocks();
@@ -1330,14 +1320,13 @@ export async function extractAllMessages(optionsOrCallback) {
     await getDeps().saveChatConditional();
 
     // Re-register event listeners
-    if (updateEventListenersFn) {
-        updateEventListenersFn(true);
+    if (onComplete) {
+        onComplete(true);
     }
 
+    // Notify caller of completion (skip for Emergency Cut - caller handles its own UI)
     if (!isEmergencyCut) {
-        showToast('success', `Extracted ${totalEvents} events from ${messagesProcessed} messages`);
-        refreshAllUI();
-        setStatus('ready');
+        onFinish?.({ messagesProcessed, eventsCreated: totalEvents });
     }
 
     logDebug('Backfill complete');

@@ -131,7 +131,7 @@ describe('OllamaStrategy abort signal', () => {
         const { getStrategy } = await import('../src/embeddings.js');
         const strategy = getStrategy('ollama');
         const ctrl = new AbortController();
-        await strategy.getEmbedding('test text', { signal: ctrl.signal });
+        await strategy.getEmbedding('test text', { signal: ctrl.signal, url: 'http://test:11434', model: 'test-model' });
 
         expect(fetchSpy).toHaveBeenCalledTimes(1);
         const fetchOptions = fetchSpy.mock.calls[0][1];

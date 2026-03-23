@@ -349,15 +349,11 @@ class TransformersStrategy extends EmbeddingStrategy {
         }
     }
 
-    async getQueryEmbedding(text, { signal } = {}) {
-        const settings = getDeps().getExtensionSettings()[extensionName];
-        const prefix = settings.embeddingQueryPrefix;
+    async getQueryEmbedding(text, { signal, prefix = '' } = {}) {
         return this.#embed(text, prefix, { signal });
     }
 
-    async getDocumentEmbedding(text, { signal } = {}) {
-        const settings = getDeps().getExtensionSettings()[extensionName];
-        const prefix = settings.embeddingDocPrefix;
+    async getDocumentEmbedding(text, { signal, prefix = '' } = {}) {
         return this.#embed(text, prefix, { signal });
     }
 
@@ -399,8 +395,8 @@ class OllamaStrategy extends EmbeddingStrategy {
         return 'Ollama: Not configured';
     }
 
-    async getEmbedding(text, { signal } = {}) {
-        const { url, model } = this.#getSettings();
+    async getEmbedding(text, { signal, url, model } = {}) {
+        // #getSettings() no longer called here — url/model injected by wrapper
 
         if (!url || !model) {
             return null;
@@ -434,19 +430,19 @@ class OllamaStrategy extends EmbeddingStrategy {
         } catch (error) {
             if (error.name === 'AbortError') throw error;
             logError('Ollama embedding failed', error, {
-                modelName: this.#getSettings().model,
+                modelName: model,
                 textSnippet: text?.slice(0, 100),
             });
             return null;
         }
     }
 
-    async getQueryEmbedding(text, { signal } = {}) {
-        return this.getEmbedding(text, { signal });
+    async getQueryEmbedding(text, options = {}) {
+        return this.getEmbedding(text, options);
     }
 
-    async getDocumentEmbedding(text, { signal } = {}) {
-        return this.getEmbedding(text, { signal });
+    async getDocumentEmbedding(text, options = {}) {
+        return this.getEmbedding(text, options);
     }
 }
 
@@ -648,7 +644,12 @@ export async function getQueryEmbedding(text, { signal } = {}) {
     const settings = getDeps().getExtensionSettings()[extensionName];
     const source = settings.embeddingSource;
     const strategy = getStrategy(source);
-    const result = await strategy.getQueryEmbedding(text, { signal });
+    const result = await strategy.getQueryEmbedding(text, {
+        signal,
+        prefix: settings.embeddingQueryPrefix,
+        url: settings.ollamaUrl,
+        model: settings.embeddingModel,
+    });
 
     if (embeddingCache.size >= MAX_CACHE_SIZE) {
         const firstKey = embeddingCache.keys().next().value;
@@ -681,7 +682,12 @@ export async function getDocumentEmbedding(summary, { signal } = {}) {
     const settings = getDeps().getExtensionSettings()[extensionName];
     const source = settings.embeddingSource;
     const strategy = getStrategy(source);
-    const result = await strategy.getDocumentEmbedding(summary, { signal });
+    const result = await strategy.getDocumentEmbedding(summary, {
+        signal,
+        prefix: settings.embeddingDocPrefix,
+        url: settings.ollamaUrl,
+        model: settings.embeddingModel,
+    });
 
     if (embeddingCache.size >= MAX_CACHE_SIZE) {
         const firstKey = embeddingCache.keys().next().value;
@@ -741,7 +747,12 @@ export async function generateEmbeddingsForMemories(memories, { signal } = {}) {
     const strategy = getStrategy(source);
 
     const embeddings = await processInBatches(validMemories, 5, async (m) => {
-        return strategy.getDocumentEmbedding(m.summary, { signal });
+        return strategy.getDocumentEmbedding(m.summary, {
+            signal,
+            prefix: settings.embeddingDocPrefix,
+            url: settings.ollamaUrl,
+            model: settings.embeddingModel,
+        });
     });
 
     let count = 0;
@@ -786,7 +797,12 @@ export async function enrichEventsWithEmbeddings(events, { signal } = {}) {
         if (settings?.debugMode) {
             logDebug(`Embedding doc: "${e.summary}"`);
         }
-        return strategy.getDocumentEmbedding(e.summary, { signal });
+        return strategy.getDocumentEmbedding(e.summary, {
+            signal,
+            prefix: settings.embeddingDocPrefix,
+            url: settings.ollamaUrl,
+            model: settings.embeddingModel,
+        });
     });
 
     let count = 0;
@@ -924,7 +940,12 @@ export async function backfillAllEmbeddings({ signal, silent = false } = {}) {
             const strategy = getStrategy(source);
 
             const nodeEmbeddings = await processInBatches(nodes, 5, async (n) => {
-                return strategy.getDocumentEmbedding(`${n.type}: ${n.name} - ${n.description}`, { signal });
+                return strategy.getDocumentEmbedding(`${n.type}: ${n.name} - ${n.description}`, {
+                    signal,
+                    prefix: settings.embeddingDocPrefix,
+                    url: settings.ollamaUrl,
+                    model: settings.embeddingModel,
+                });
             });
             for (let i = 0; i < nodes.length; i++) {
                 if (nodeEmbeddings[i]) {

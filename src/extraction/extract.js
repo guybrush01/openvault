@@ -567,6 +567,108 @@ export async function filterSimilarEvents(newEvents, existingMemories, cosineThr
     return kept;
 }
 
+// =============================================================================
+// Pipeline Stage Functions (internal — called by orchestrators below)
+// =============================================================================
+
+/**
+ * Run reflection synthesis for a list of characters.
+ * Checks each character against the reflection threshold, generates reflections via LLM,
+ * pushes results to data.memories, and resets the importance accumulator.
+ *
+ * @param {Object} data - OpenVault data object (mutated in-place)
+ * @param {string[]} characterNames - Characters to check for reflection trigger
+ * @param {Object} settings - Extension settings
+ * @param {Object} [options={}]
+ * @param {AbortSignal} [options.abortSignal=null] - Abort signal for cancellation
+ */
+async function synthesizeReflections(data, characterNames, settings, options = {}) {
+    const { abortSignal = null } = options;
+    const reflectionThreshold = settings.reflectionThreshold;
+    const ladderQueue = await createLadderQueue(settings.maxConcurrency);
+    const reflectionPromises = [];
+
+    for (const characterName of characterNames) {
+        if (abortSignal?.aborted) {
+            throw new DOMException('Aborted', 'AbortError');
+        }
+
+        if (shouldReflect(data.reflection_state, characterName, reflectionThreshold)) {
+            reflectionPromises.push(
+                ladderQueue
+                    .add(async () => {
+                        const { reflections, stChanges } = await generateReflections(
+                            characterName,
+                            data[MEMORIES_KEY] || [],
+                            data[CHARACTERS_KEY] || {}
+                        );
+                        if (reflections.length > 0) {
+                            data[MEMORIES_KEY].push(...reflections);
+                        }
+                        // Reset accumulator after reflection
+                        data.reflection_state[characterName].importance_sum = 0;
+                        await applySyncChanges(stChanges);
+                    })
+                    .catch((error) => {
+                        if (error.name === 'AbortError') throw error;
+                        logError(`Reflection error for ${characterName}`, error);
+                    })
+            );
+        }
+    }
+
+    await Promise.all(reflectionPromises);
+}
+
+/**
+ * Run community detection, edge consolidation, and community summarization.
+ * Wrapped in try-catch — community errors are non-fatal and logged.
+ *
+ * @param {Object} data - OpenVault data object (mutated in-place)
+ * @param {Object} settings - Extension settings
+ * @param {string} characterName - Main character name (for main character key derivation)
+ * @param {string} userName - User name (for main character key derivation)
+ */
+async function synthesizeCommunities(data, settings, characterName, userName) {
+    try {
+        const baseKeys = [normalizeKey(characterName), normalizeKey(userName)];
+        const mainCharacterKeys = expandMainCharacterKeys(baseKeys, data.graph.nodes || {});
+        const crossScriptKeys = findCrossScriptCharacterKeys(baseKeys, data.graph.nodes || {});
+        mainCharacterKeys.push(...crossScriptKeys.filter((k) => !mainCharacterKeys.includes(k)));
+        const communityResult = detectCommunities(data.graph, mainCharacterKeys);
+        if (communityResult) {
+            // Consolidate bloated edges before summarization
+            if (data.graph._edgesNeedingConsolidation?.length > 0) {
+                const { count: consolidated, stChanges: edgeChanges } = await consolidateEdges(data.graph, settings);
+                if (consolidated > 0) {
+                    logDebug(`Consolidated ${consolidated} graph edges before community summarization`);
+                }
+                await applySyncChanges(edgeChanges);
+            }
+
+            const groups = buildCommunityGroups(data.graph, communityResult.communities);
+            const stalenessThreshold = settings.communityStalenessThreshold;
+            const isSingleCommunity = communityResult.count === 1;
+            const communityUpdateResult = await updateCommunitySummaries(
+                data.graph,
+                groups,
+                data.communities || {},
+                data.graph_message_count || 0,
+                stalenessThreshold,
+                isSingleCommunity
+            );
+            data.communities = communityUpdateResult.communities;
+            if (communityUpdateResult.global_world_state) {
+                data.global_world_state = communityUpdateResult.global_world_state;
+            }
+            await applySyncChanges(communityUpdateResult.stChanges);
+            logDebug(`Community detection: ${communityResult.count} communities found`);
+        }
+    } catch (error) {
+        logError('Community detection error', error);
+    }
+}
+
 /**
  * Extract events from chat messages
  *

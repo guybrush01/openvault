@@ -434,6 +434,17 @@ export async function filterSimilarEvents(newEvents, existingMemories, cosineThr
  * @param {boolean} [options.isBackfill=false] - Skip Phase 2 LLM synthesis (for backfill mode)
  * @returns {Promise<{status: string, events_created?: number, messages_processed?: number, reason?: string}>}
  */
+/**
+ * Extract events from chat messages
+ *
+ * @param {number[]} [messageIds=null] - Optional specific message IDs for targeted extraction
+ * @param {string} [targetChatId=null] - Optional chat ID to verify before saving
+ * @param {Object} [options={}] - Optional configuration
+ * @param {boolean} [options.silent=false] - Suppress toast notifications
+ * @param {boolean} [options.isBackfill=false] - Skip Phase 2 LLM synthesis (for backfill mode)
+ * @param {AbortSignal} [options.abortSignal=null] - Abort signal for cancellation
+ * @returns {Promise<{status: string, events_created?: number, messages_processed?: number, reason?: string}>}
+ */
 export async function extractMemories(messageIds = null, targetChatId = null, options = {}) {
     if (!isExtensionEnabled()) {
         return { status: 'skipped', reason: 'disabled' };
@@ -475,7 +486,7 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
 
     const messages = messagesToExtract;
     const batchId = `batch_${deps.Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const _silent = options.silent || false;
+    const { isBackfill = false, silent = false, abortSignal = null } = options;
 
     logDebug(`Extracting ${messages.length} messages`);
 
@@ -513,7 +524,10 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
 
         // Stage 3A: Event Extraction (LLM Call 1)
         const t0Events = performance.now();
-        const eventJson = await callLLM(prompt, LLM_CONFIGS.extraction_events, { structured: true });
+        const eventJson = await callLLM(prompt, LLM_CONFIGS.extraction_events, {
+            structured: true,
+            signal: abortSignal, // v6: Enables mid-request cancellation
+        });
         record('llm_events', performance.now() - t0Events);
         const eventResult = parseEventExtractionResponse(eventJson);
         let events = eventResult.events;
@@ -542,7 +556,10 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
                 });
 
                 const t0Graph = performance.now();
-                const graphJson = await callLLM(graphPrompt, LLM_CONFIGS.extraction_graph, { structured: true });
+                const graphJson = await callLLM(graphPrompt, LLM_CONFIGS.extraction_graph, {
+                    structured: true,
+                    signal: abortSignal, // v6: Enables mid-request cancellation
+                });
                 record('llm_graph', performance.now() - t0Graph);
                 graphResult = parseGraphExtractionResponse(graphJson);
             } catch (graphError) {
@@ -807,6 +824,7 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
             messages_processed: messages.length,
         };
     } catch (error) {
+        if (error.name === 'AbortError') throw error; // Don't log cancellation
         logError('Extraction error', error, { messageCount: messages.length });
         throw error;
     }
@@ -821,7 +839,19 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
  * @param {string} targetChatId - Chat ID for change detection
  * @returns {Promise<void>}
  */
-export async function runPhase2Enrichment(data, settings, targetChatId) {
+/**
+ * Run Phase 2 enrichment (Reflections & Communities) independently.
+ * Used after backfill completes to run comprehensive synthesis once.
+ *
+ * @param {Object} data - OpenVault data object (modified in-place)
+ * @param {Object} settings - Extension settings
+ * @param {string} targetChatId - Chat ID for change detection
+ * @param {Object} [options={}] - Optional configuration
+ * @param {AbortSignal} [options.abortSignal=null] - Abort signal for cancellation
+ * @returns {Promise<void>}
+ */
+export async function runPhase2Enrichment(data, settings, targetChatId, options = {}) {
+    const { abortSignal = null } = options;
     const memories = data[MEMORIES_KEY] || [];
 
     // Guard: No memories to enrich
@@ -842,6 +872,11 @@ export async function runPhase2Enrichment(data, settings, targetChatId) {
         const reflectionPromises = [];
 
         for (const characterName of characterNames) {
+            // v6: Check abort signal in loop
+            if (abortSignal?.aborted) {
+                throw new DOMException('Emergency Cut Cancelled', 'AbortError');
+            }
+
             if (shouldReflect(data.reflection_state, characterName, reflectionThreshold)) {
                 reflectionPromises.push(
                     ladderQueue

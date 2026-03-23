@@ -130,7 +130,13 @@ describe('buildBM25Tokens with corpusVocab', () => {
 
         const corpusVocab = new Set(['sword']);
         // "sword sword sword" — same stem repeated, should deduplicate to 1 unique stem × boost
-        const tokens = buildBM25Tokens('sword sword sword', { entities: [], weights: {} }, corpusVocab, null, queryConfig);
+        const tokens = buildBM25Tokens(
+            'sword sword sword',
+            { entities: [], weights: {} },
+            corpusVocab,
+            null,
+            queryConfig
+        );
 
         // ceil(5 * 0.6) = 3 — one unique stem boosted 3 times
         const swordCount = tokens.filter((t) => t === 'sword').length;

@@ -404,7 +404,14 @@ describe('mergeOrInsertEntity', () => {
         upsertEntity(graphData, "Vova's House", 'PLACE', 'Home');
         graphData.nodes['vova house'].embedding = [0.9, 0.1, 0];
 
-        const { key, stChanges } = await mergeOrInsertEntity(graphData, "Vova's Apartment", 'PLACE', 'Flat', 3, mockSettings);
+        const { key, stChanges } = await mergeOrInsertEntity(
+            graphData,
+            "Vova's Apartment",
+            'PLACE',
+            'Flat',
+            3,
+            mockSettings
+        );
         expect(key).toBe('vova house');
         expect(stChanges.toSync).toHaveLength(0);
         expect(stChanges.toDelete).toHaveLength(0);
@@ -419,7 +426,14 @@ describe('mergeOrInsertEntity', () => {
         upsertEntity(graphData, 'Castle', 'PLACE', 'A fortress');
         graphData.nodes.castle.embedding = [1, 0, 0];
 
-        const { key, stChanges } = await mergeOrInsertEntity(graphData, 'Castle', 'PERSON', 'A person named Castle', 3, mockSettings);
+        const { key, stChanges } = await mergeOrInsertEntity(
+            graphData,
+            'Castle',
+            'PERSON',
+            'A person named Castle',
+            3,
+            mockSettings
+        );
         // Fast-path key match fires first regardless of type
         expect(key).toBe('castle');
         expect(stChanges.toSync).toHaveLength(0);
@@ -432,7 +446,14 @@ describe('mergeOrInsertEntity', () => {
         getDocumentEmbedding.mockResolvedValue(null);
 
         upsertEntity(graphData, 'Castle', 'PLACE', 'A fortress');
-        const { key, stChanges } = await mergeOrInsertEntity(graphData, 'Fortress', 'PLACE', 'A stronghold', 3, mockSettings);
+        const { key, stChanges } = await mergeOrInsertEntity(
+            graphData,
+            'Fortress',
+            'PLACE',
+            'A stronghold',
+            3,
+            mockSettings
+        );
         expect(key).toBe('fortress');
         expect(stChanges.toSync).toHaveLength(0);
         expect(stChanges.toDelete).toHaveLength(0);
@@ -632,10 +653,16 @@ describe('mergeOrInsertEntity', () => {
 
     it('returns stChanges.toSync with new node when creating a new entity', async () => {
         const { getDocumentEmbedding } = await import('../../src/embeddings.js');
-        const { cyrb53 } = await import('../../src/utils/embedding-codec.js');
         getDocumentEmbedding.mockResolvedValue([0.5, 0.5, 0.5]);
 
-        const { key, stChanges } = await mergeOrInsertEntity(graphData, 'Dragon', 'PERSON', 'A fire beast', 3, mockSettings);
+        const { key, stChanges } = await mergeOrInsertEntity(
+            graphData,
+            'Dragon',
+            'PERSON',
+            'A fire beast',
+            3,
+            mockSettings
+        );
         expect(key).toBe('dragon');
         expect(stChanges.toSync).toHaveLength(1);
         expect(stChanges.toSync[0].text).toBe('[OV_ID:dragon] A fire beast');
@@ -662,7 +689,14 @@ describe('mergeOrInsertEntity', () => {
         upsertEntity(graphData, "Vova's House", 'PLACE', 'Home');
         graphData.nodes['vova house'].embedding = [0.9, 0.1, 0];
 
-        const { key, stChanges } = await mergeOrInsertEntity(graphData, "Vova's Apartment", 'PLACE', 'Flat', 3, mockSettings);
+        const { key, stChanges } = await mergeOrInsertEntity(
+            graphData,
+            "Vova's Apartment",
+            'PLACE',
+            'Flat',
+            3,
+            mockSettings
+        );
         expect(key).toBe('vova house');
         expect(stChanges.toSync).toHaveLength(0);
         expect(stChanges.toDelete).toHaveLength(0);
@@ -695,7 +729,14 @@ describe('edge creation with semantic merge', () => {
         const settings = { entityMergeSimilarityThreshold: 0.8 };
 
         // mergeOrInsertEntity should merge "Vova's Room" into "vova apartment"
-        const { key: resolvedKey } = await mergeOrInsertEntity(graphData, "Vova's Room", 'PLACE', 'A room', 3, settings);
+        const { key: resolvedKey } = await mergeOrInsertEntity(
+            graphData,
+            "Vova's Room",
+            'PLACE',
+            'A room',
+            3,
+            settings
+        );
         expect(resolvedKey).toBe('vova apartment');
 
         // Now create a relationship using the ORIGINAL name "Vova's Room"

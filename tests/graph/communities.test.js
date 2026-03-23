@@ -196,7 +196,7 @@ vi.mock('../../src/utils/embedding-codec.js', () => ({
             delete obj.__mock_embedding;
         }
     }),
-    cyrb53: vi.fn((str) => str.length),  // Simple hash stub for testing
+    cyrb53: vi.fn((str) => str.length), // Simple hash stub for testing
 }));
 
 // Mock prompts

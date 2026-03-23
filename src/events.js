@@ -18,9 +18,9 @@ import {
     setChatLoadingCooldown,
     setGenerationLock,
 } from './state.js';
+import { getOpenVaultData } from './store/chat-data.js';
 import { refreshAllUI, resetMemoryBrowserPage } from './ui/render.js';
 import { setStatus } from './ui/status.js';
-import { getOpenVaultData } from './store/chat-data.js';
 import { showToast } from './utils/dom.js';
 import { logDebug, logError } from './utils/logging.js';
 import { isExtensionEnabled, safeSetExtensionPrompt, withTimeout } from './utils/st-helpers.js';

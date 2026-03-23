@@ -233,7 +233,9 @@ export function getBackfillMessageIds(chat, data, tokenBudget, isEmergencyCut = 
     const totalTokens = getTokenSum(chat, allUnextracted);
 
     // DEBUG
-    console.log(`[Emergency Cut Debug] getBackfillMessageIds: unextracted=${allUnextracted.length}, totalTokens=${totalTokens}, tokenBudget=${tokenBudget}, isEmergencyCut=${isEmergencyCut}`);
+    console.log(
+        `[Emergency Cut Debug] getBackfillMessageIds: unextracted=${allUnextracted.length}, totalTokens=${totalTokens}, tokenBudget=${tokenBudget}, isEmergencyCut=${isEmergencyCut}`
+    );
 
     // Emergency Cut bypasses token budget - extract all unextracted messages
     if (!isEmergencyCut && totalTokens < tokenBudget) {
@@ -265,7 +267,9 @@ export function getBackfillMessageIds(chat, data, tokenBudget, isEmergencyCut = 
     }
 
     // DEBUG
-    console.log(`[Emergency Cut Debug] getBackfillMessageIds: returning messageIds.length=${messageIds.length}, batchCount=${batchCount}`);
+    console.log(
+        `[Emergency Cut Debug] getBackfillMessageIds: returning messageIds.length=${messageIds.length}, batchCount=${batchCount}`
+    );
 
     // For Emergency Cut, if we have messages but no complete batches, report as 1 batch
     if (isEmergencyCut && messageIds.length > 0 && batchCount === 0) {

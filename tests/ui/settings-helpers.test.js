@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { JSDOM } from 'jsdom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Set up JSDOM
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>');
@@ -16,7 +16,7 @@ global.console = {
 };
 
 describe('Emergency Cut Modal Helpers', () => {
-    let boundEvents = new Map();
+    const boundEvents = new Map();
 
     // Mock jQuery
     const mockJQuery = (selector) => {

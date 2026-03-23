@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { extensionName } from '../../src/constants.js';
 import { resetDeps, setDeps } from '../../src/deps.js';
-import { querySTVector, _clearValidatedChatsCache } from '../../src/services/st-vector.js';
+import { _clearValidatedChatsCache } from '../../src/services/st-vector.js';
 
 describe('querySTVector — orphan detection', () => {
     let mockConsole;
@@ -16,7 +16,8 @@ describe('querySTVector — orphan detection', () => {
     afterEach(() => resetDeps());
 
     it('detects orphaned collection and purges it', async () => {
-        const mockFetch = vi.fn()
+        const mockFetch = vi
+            .fn()
             .mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve([{ file_name: 'other-chat.jsonl' }]),
@@ -52,19 +53,15 @@ describe('querySTVector — orphan detection', () => {
                 body: JSON.stringify({ character_id: 123 }),
             })
         );
-        expect(mockFetch).toHaveBeenCalledWith(
-            '/api/vector/purge',
-            expect.objectContaining({ method: 'POST' })
-        );
+        expect(mockFetch).toHaveBeenCalledWith('/api/vector/purge', expect.objectContaining({ method: 'POST' }));
     });
 
     it('returns empty and shows toast when collection is orphaned', async () => {
         const mockShowToast = vi.fn();
-        const mockFetch = vi.fn()
-            .mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve([{ file_name: 'existing-chat.jsonl' }]),
-            });
+        const mockFetch = vi.fn().mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve([{ file_name: 'existing-chat.jsonl' }]),
+        });
 
         setDeps({
             console: mockConsole,
@@ -91,11 +88,10 @@ describe('querySTVector — orphan detection', () => {
     });
 
     it('validates group chats via /api/groups/get', async () => {
-        const mockFetch = vi.fn()
-            .mockResolvedValueOnce({
-                ok: true,
-                json: () => Promise.resolve({ chats: ['group-chat-1'] }),
-            });
+        const mockFetch = vi.fn().mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ chats: ['group-chat-1'] }),
+        });
 
         setDeps({
             console: mockConsole,
@@ -126,7 +122,8 @@ describe('querySTVector — orphan detection', () => {
     });
 
     it('caches validation result for the session', async () => {
-        const mockFetch = vi.fn()
+        const mockFetch = vi
+            .fn()
             .mockResolvedValueOnce({
                 ok: true,
                 json: () => Promise.resolve([{ file_name: 'cached-chat.jsonl' }]),
@@ -169,15 +166,12 @@ describe('querySTVector — orphan detection', () => {
         // Total: 3 calls, but only 1 validation call
         expect(mockFetch).toHaveBeenCalledTimes(3);
         // Verify that only one call was to the validation endpoint
-        const validationCalls = mockFetch.mock.calls.filter(
-            call => call[0].includes('/characters/chats')
-        );
+        const validationCalls = mockFetch.mock.calls.filter((call) => call[0].includes('/characters/chats'));
         expect(validationCalls).toHaveLength(1);
     });
 
     it('assumes chat exists on validation error (fail-safe)', async () => {
-        const mockFetch = vi.fn()
-            .mockRejectedValueOnce(new Error('Network error'));
+        const mockFetch = vi.fn().mockRejectedValueOnce(new Error('Network error'));
 
         setDeps({
             console: mockConsole,

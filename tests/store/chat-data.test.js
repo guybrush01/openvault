@@ -309,9 +309,7 @@ describe('store/chat-data', () => {
             await deleteCurrentChatData();
 
             // Verify no purge call was made
-            const purgeCalls = mockFetch.mock.calls.filter(
-                (call) => call[0] === '/api/vector/purge'
-            );
+            const purgeCalls = mockFetch.mock.calls.filter((call) => call[0] === '/api/vector/purge');
             expect(purgeCalls).toHaveLength(0);
         });
 

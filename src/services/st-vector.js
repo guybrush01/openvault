@@ -1,6 +1,6 @@
 import { getDeps } from '../deps.js';
 import { showToast } from '../utils/dom.js';
-import { logDebug, logError, logWarn } from '../utils/logging.js';
+import { logError, logWarn } from '../utils/logging.js';
 
 // Cache of validated chats for this session (module-level state)
 const validatedChats = new Set();
@@ -35,7 +35,7 @@ async function chatExists(chatId) {
                 return true; // Fail-safe: assume exists on error
             }
             const chats = await response.json();
-            return chats.some(chat => chat.file_name.replace('.jsonl', '') === chatId);
+            return chats.some((chat) => chat.file_name.replace('.jsonl', '') === chatId);
         }
 
         // For group chats - check group data

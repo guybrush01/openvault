@@ -131,7 +131,11 @@ describe('OllamaStrategy abort signal', () => {
         const { getStrategy } = await import('../src/embeddings.js');
         const strategy = getStrategy('ollama');
         const ctrl = new AbortController();
-        await strategy.getEmbedding('test text', { signal: ctrl.signal, url: 'http://test:11434', model: 'test-model' });
+        await strategy.getEmbedding('test text', {
+            signal: ctrl.signal,
+            url: 'http://test:11434',
+            model: 'test-model',
+        });
 
         expect(fetchSpy).toHaveBeenCalledTimes(1);
         const fetchOptions = fetchSpy.mock.calls[0][1];
@@ -220,7 +224,7 @@ describe('testOllamaConnection', () => {
         expect(result).toBe(true);
         expect(fetch).toHaveBeenCalledWith(
             'http://localhost:11434/api/tags',
-            expect.objectContaining({ method: 'GET' }),
+            expect.objectContaining({ method: 'GET' })
         );
     });
 

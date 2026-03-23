@@ -512,8 +512,6 @@ export async function mergeOrInsertEntity(graphData, name, type, description, ca
     return { key, stChanges };
 }
 
-
-
 /**
  * Consolidate graph edges that have exceeded token budget.
  * Runs during community detection phase.

@@ -29,9 +29,16 @@ import {
 } from '../prompts/index.js';
 import { accumulateImportance, generateReflections, shouldReflect } from '../reflection/reflect.js';
 import { calculateIDF, cosineSimilarity, tokenize } from '../retrieval/math.js';
-import { clearAllLocks, isWorkerRunning, operationState } from '../state.js';
 import { deleteItemsFromST, isStVectorSource, syncItemsToST } from '../services/st-vector.js';
-import { addMemories, getCurrentChatId, getOpenVaultData, incrementGraphMessageCount, markMessagesProcessed, saveOpenVaultData } from '../store/chat-data.js';
+import { clearAllLocks, isWorkerRunning, operationState } from '../state.js';
+import {
+    addMemories,
+    getCurrentChatId,
+    getOpenVaultData,
+    incrementGraphMessageCount,
+    markMessagesProcessed,
+    saveOpenVaultData,
+} from '../store/chat-data.js';
 import { showToast } from '../utils/dom.js';
 import { cyrb53, getEmbedding, hasEmbedding, isStSynced, markStSynced } from '../utils/embedding-codec.js';
 import { logDebug, logError, logInfo } from '../utils/logging.js';
@@ -1209,7 +1216,7 @@ export async function extractAllMessages(optionsOrCallback) {
         }
 
         // Update progress (toast for normal, callback for Emergency Cut)
-        const progress = Math.round((batchesProcessed / initialBatchCount) * 100);
+        const _progress = Math.round((batchesProcessed / initialBatchCount) * 100);
         const retryText =
             retryCount > 0
                 ? ` (retry ${retryCount}, backoff ${Math.round(cumulativeBackoffMs / 1000)}s/${Math.round(MAX_BACKOFF_TOTAL_MS / 1000)}s)`
@@ -1272,9 +1279,11 @@ export async function extractAllMessages(optionsOrCallback) {
                     `Batch ${batchesProcessed + 1} failed: cumulative backoff reached ${Math.round(cumulativeBackoffMs / 1000)}s (limit: ${Math.round(MAX_BACKOFF_TOTAL_MS / 1000)}s). Stopping extraction.`
                 );
                 logError('Extraction stopped after exceeding backoff limit', error);
-                onError?.(new Error(
-                    `Extraction stopped: API errors persisted for ${Math.round(cumulativeBackoffMs / 1000)}s. Check your API connection and try again.`
-                ));
+                onError?.(
+                    new Error(
+                        `Extraction stopped: API errors persisted for ${Math.round(cumulativeBackoffMs / 1000)}s. Check your API connection and try again.`
+                    )
+                );
                 break;
             }
 

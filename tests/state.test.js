@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { setDeps, resetDeps } from '../src/deps.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetDeps, setDeps } from '../src/deps.js';
 import {
     clearAllLocks,
     getSessionSignal,

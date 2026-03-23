@@ -18,7 +18,9 @@ describe('hideExtractedMessages', () => {
         vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getProcessedFingerprints').mockReturnValue(
             new Set(['fp1', 'fp2'])
         );
-        vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getFingerprint').mockImplementation((msg) => msg.fp);
+        vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getFingerprint').mockImplementation(
+            (msg) => msg.fp
+        );
 
         // Mock data module
         vi.spyOn(await import('../../src/store/chat-data.js'), 'getOpenVaultData').mockReturnValue({ memories: [] });
@@ -55,7 +57,9 @@ describe('hideExtractedMessages', () => {
         vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getProcessedFingerprints').mockReturnValue(
             new Set([])
         );
-        vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getFingerprint').mockImplementation((msg) => msg.fp);
+        vi.spyOn(await import('../../src/extraction/scheduler.js'), 'getFingerprint').mockImplementation(
+            (msg) => msg.fp
+        );
 
         // Mock data module
         vi.spyOn(await import('../../src/store/chat-data.js'), 'getOpenVaultData').mockReturnValue({ memories: [] });

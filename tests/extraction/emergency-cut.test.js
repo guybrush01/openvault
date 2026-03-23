@@ -39,7 +39,9 @@ describe('executeEmergencyCut', () => {
 
         const schedulerModule = await import('../../src/extraction/scheduler.js');
         vi.spyOn(schedulerModule, 'getBackfillStats').mockReturnValue({
-            totalMessages: 5, extractedCount: 5, unextractedCount: 0,
+            totalMessages: 5,
+            extractedCount: 5,
+            unextractedCount: 0,
         });
         vi.spyOn(schedulerModule, 'getProcessedFingerprints').mockReturnValue(new Set());
         vi.spyOn(schedulerModule, 'getFingerprint').mockImplementation((msg) => msg.fp);
@@ -68,7 +70,9 @@ describe('executeEmergencyCut', () => {
 
         const schedulerModule = await import('../../src/extraction/scheduler.js');
         vi.spyOn(schedulerModule, 'getBackfillStats').mockReturnValue({
-            totalMessages: 10, extractedCount: 5, unextractedCount: 5,
+            totalMessages: 10,
+            extractedCount: 5,
+            unextractedCount: 5,
         });
 
         const dataModule = await import('../../src/store/chat-data.js');
@@ -97,7 +101,9 @@ describe('executeEmergencyCut', () => {
 
         const schedulerModule = await import('../../src/extraction/scheduler.js');
         vi.spyOn(schedulerModule, 'getBackfillStats').mockReturnValue({
-            totalMessages: 5, extractedCount: 5, unextractedCount: 0,
+            totalMessages: 5,
+            extractedCount: 5,
+            unextractedCount: 0,
         });
         vi.spyOn(schedulerModule, 'getProcessedFingerprints').mockReturnValue(new Set(['fp1', 'fp2']));
         vi.spyOn(schedulerModule, 'getFingerprint').mockImplementation((msg) => msg.fp);
@@ -128,7 +134,7 @@ describe('executeEmergencyCut', () => {
         expect(onConfirmPrompt).toHaveBeenCalled();
         expect(onStart).not.toHaveBeenCalled(); // No extraction phase
         expect(onComplete).toHaveBeenCalledWith(
-            expect.objectContaining({ messagesProcessed: 0, eventsCreated: 0, hiddenCount: 2 }),
+            expect.objectContaining({ messagesProcessed: 0, eventsCreated: 0, hiddenCount: 2 })
         );
     });
 

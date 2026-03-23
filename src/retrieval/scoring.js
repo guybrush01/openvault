@@ -187,7 +187,12 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
         if (candidates.length > 0) {
             // Build BM25 tokens (same as local path)
             const recentMessages = parseRecentMessages(recentContext, 10);
-            const queryContext = extractQueryContext(recentMessages, activeCharacters, ctx.graphNodes || {}, queryConfig);
+            const queryContext = extractQueryContext(
+                recentMessages,
+                activeCharacters,
+                ctx.graphNodes || {},
+                queryConfig
+            );
 
             const hasEvents = candidates.some((m) => m.type === 'event');
             let bm25Tokens = [];

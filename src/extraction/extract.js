@@ -954,17 +954,10 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
 
         // ===== PHASE 2: Enrichment (non-critical) =====
         try {
-            // Stage 4.6: Reflection check (per character in new events)
+            // Stage 5: Reflection check (per character in new events)
             if (events.length > 0) {
                 initGraphState(data); // Ensures reflection_state exists
                 accumulateImportance(data.reflection_state, events);
-
-                // Collect unique characters from new events
-                const characters = new Set();
-                for (const event of events) {
-                    for (const c of event.characters_involved || []) characters.add(c);
-                    for (const w of event.witnesses || []) characters.add(w);
-                }
 
                 // ===== Backfill guard: skip Phase 2 LLM synthesis =====
                 if (options.isBackfill) {
@@ -973,83 +966,22 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
                 }
                 // ===== END BACKFILL GUARD =====
 
-                // Check each character for reflection trigger
-                const reflectionThreshold = settings.reflectionThreshold;
-                const ladderQueue = await createLadderQueue(settings.maxConcurrency);
-                const reflectionPromises = [];
-
-                for (const characterName of characters) {
-                    if (shouldReflect(data.reflection_state, characterName, reflectionThreshold)) {
-                        reflectionPromises.push(
-                            ladderQueue
-                                .add(async () => {
-                                    const { reflections, stChanges } = await generateReflections(
-                                        characterName,
-                                        data[MEMORIES_KEY] || [],
-                                        data[CHARACTERS_KEY] || {}
-                                    );
-                                    if (reflections.length > 0) {
-                                        data[MEMORIES_KEY].push(...reflections);
-                                    }
-                                    // Reset accumulator after reflection
-                                    data.reflection_state[characterName].importance_sum = 0;
-                                    await applySyncChanges(stChanges);
-                                })
-                                .catch((error) => {
-                                    if (error.name === 'AbortError') throw error;
-                                    logError(`Reflection error for ${characterName}`, error);
-                                })
-                        );
-                    }
+                // Collect unique characters from new events
+                const characters = new Set();
+                for (const event of events) {
+                    for (const c of event.characters_involved || []) characters.add(c);
+                    for (const w of event.witnesses || []) characters.add(w);
                 }
 
-                await Promise.all(reflectionPromises);
+                await synthesizeReflections(data, [...characters], settings, { abortSignal });
             }
 
-            // Stage 4.7: Community detection
+            // Stage 6: Community detection (interval check)
             const communityInterval = settings.communityDetectionInterval;
             const prevCount = (data.graph_message_count || 0) - messages.length;
             const currCount = data.graph_message_count || 0;
-            // Check if we crossed a message boundary for community detection
             if (Math.floor(currCount / communityInterval) > Math.floor(prevCount / communityInterval)) {
-                try {
-                    // Derive node keys for main characters (user + char) to prune hairball edges
-                    const baseKeys = [normalizeKey(characterName), normalizeKey(userName)];
-                    const mainCharacterKeys = expandMainCharacterKeys(baseKeys, data.graph.nodes || {});
-                    const crossScriptKeys = findCrossScriptCharacterKeys(baseKeys, data.graph.nodes || {});
-                    mainCharacterKeys.push(...crossScriptKeys.filter((k) => !mainCharacterKeys.includes(k)));
-                    const communityResult = detectCommunities(data.graph, mainCharacterKeys);
-                    if (communityResult) {
-                        // Consolidate bloated edges before summarization
-                        if (data.graph._edgesNeedingConsolidation?.length > 0) {
-                            const { count: consolidated, stChanges: edgeChanges } = await consolidateEdges(data.graph, settings);
-                            if (consolidated > 0) {
-                                logDebug(`Consolidated ${consolidated} graph edges before community summarization`);
-                            }
-                            await applySyncChanges(edgeChanges);
-                        }
-
-                        const groups = buildCommunityGroups(data.graph, communityResult.communities);
-                        const stalenessThreshold = settings.communityStalenessThreshold;
-                        const isSingleCommunity = communityResult.count === 1;
-                        const communityUpdateResult = await updateCommunitySummaries(
-                            data.graph,
-                            groups,
-                            data.communities || {},
-                            currCount,
-                            stalenessThreshold,
-                            isSingleCommunity
-                        );
-                        data.communities = communityUpdateResult.communities;
-                        if (communityUpdateResult.global_world_state) {
-                            data.global_world_state = communityUpdateResult.global_world_state;
-                        }
-                        await applySyncChanges(communityUpdateResult.stChanges);
-                        logDebug(`Community detection: ${communityResult.count} communities found`);
-                    }
-                } catch (error) {
-                    logError('Community detection error', error);
-                }
+                await synthesizeCommunities(data, settings, characterName, userName);
             }
 
             // Final save — Phase 2 enrichment persisted

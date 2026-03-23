@@ -3,9 +3,7 @@
  *
  * Encodes/decodes embedding vectors as Base64 Float32Array strings.
  * Provides accessor functions for lazy migration from legacy number[] format.
- */
-
-/**
+ *
  * Encode a number array to a Base64 string via Float32Array.
  * @param {number[]|Float32Array} vec - Embedding vector
  * @returns {string} Base64-encoded string

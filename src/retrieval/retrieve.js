@@ -3,9 +3,7 @@
  *
  * Main retrieval logic for selecting and injecting memories into context.
  * Returns result objects; callers handle UI feedback (toasts, status).
- */
-
-/**
+ *
  * RetrievalContext - Consolidated retrieval parameters
  *
  * @typedef {Object} RetrievalContext

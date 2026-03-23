@@ -8,9 +8,7 @@
  * This handles transient network failures (ERR_CONNECTION_RESET) by automatically
  * falling back to alternative CDNs. If all public CDNs fail, consider adding a
  * self-hosted vendor copy as the final fallback.
- */
-
-/**
+ *
  * Mirror list for CDN fallback.
  * Ordered by preference: fastest/most reliable first.
  *

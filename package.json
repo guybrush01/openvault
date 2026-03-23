@@ -8,6 +8,7 @@
         "prepare": "git config core.hooksPath .githooks",
         "lint": "biome check .",
         "lint:fix": "biome check --write --unsafe .",
+        "lint:jsdoc": "node scripts/check-jsdoc.mjs",
         "format": "biome format --write .",
         "test": "node scripts/test.js",
         "test:run": "vitest run",

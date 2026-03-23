@@ -834,16 +834,6 @@ async function processGraphUpdates(graphData, entities, relationships, settings)
  * @param {Object} [options={}] - Optional configuration
  * @param {boolean} [options.silent=false] - Suppress toast notifications
  * @param {boolean} [options.isBackfill=false] - Skip Phase 2 LLM synthesis (for backfill mode)
- * @returns {Promise<{status: string, events_created?: number, messages_processed?: number, reason?: string}>}
- */
-/**
- * Extract events from chat messages
- *
- * @param {number[]} [messageIds=null] - Optional specific message IDs for targeted extraction
- * @param {string} [targetChatId=null] - Optional chat ID to verify before saving
- * @param {Object} [options={}] - Optional configuration
- * @param {boolean} [options.silent=false] - Suppress toast notifications
- * @param {boolean} [options.isBackfill=false] - Skip Phase 2 LLM synthesis (for backfill mode)
  * @param {AbortSignal} [options.abortSignal=null] - Abort signal for cancellation
  * @returns {Promise<{status: string, events_created?: number, messages_processed?: number, reason?: string}>}
  */

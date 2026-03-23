@@ -26,3 +26,7 @@ if [ -n "$CSS_FILES" ]; then
     echo "Checking for unused CSS classes..."
     node scripts/check-css.js
 fi
+
+# Check for double/orphaned JSDoc comments
+echo "Checking JSDoc..."
+node scripts/check-jsdoc.mjs || exit 1

@@ -1,10 +1,3 @@
-/**
- * OpenVault Embeddings
- *
- * Local vector embeddings via Transformers.js or Ollama for semantic similarity search.
- * Supports multiple embedding models with lazy loading.
- */
-
 import { extensionName } from './constants.js';
 import { getDeps } from './deps.js';
 import { record } from './perf/store.js';
@@ -21,6 +14,11 @@ import { logDebug, logError, logInfo } from './utils/logging.js';
 // =============================================================================
 
 /**
+ * OpenVault Embeddings
+ *
+ * Local vector embeddings via Transformers.js or Ollama for semantic similarity search.
+ * Supports multiple embedding models with lazy loading.
+ *
  * Base class for embedding strategies.
  * Subclasses must implement all required methods.
  */

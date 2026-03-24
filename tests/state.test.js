@@ -5,8 +5,10 @@ import {
     getSessionSignal,
     getWakeGeneration,
     incrementWakeGeneration,
+    isSessionDisabled,
     isWorkerRunning,
     resetSessionController,
+    setSessionDisabled,
     setWorkerRunning,
 } from '../src/state.js';
 
@@ -83,5 +85,22 @@ describe('clearAllLocks', () => {
         setWorkerRunning(true);
         clearAllLocks();
         expect(isWorkerRunning()).toBe(false);
+    });
+});
+
+describe('Session Kill-Switch', () => {
+    afterEach(() => {
+        setSessionDisabled(false);
+    });
+
+    it('isSessionDisabled returns false by default', () => {
+        expect(isSessionDisabled()).toBe(false);
+    });
+
+    it('setSessionDisabled toggles the flag', () => {
+        setSessionDisabled(true);
+        expect(isSessionDisabled()).toBe(true);
+        setSessionDisabled(false);
+        expect(isSessionDisabled()).toBe(false);
     });
 });

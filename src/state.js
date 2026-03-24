@@ -12,6 +12,10 @@ import { logWarn } from './utils/logging.js';
 // On CHAT_CHANGED, the old controller is aborted and a new one is created.
 let _sessionController = new AbortController();
 
+// Session-scoped disable flag for migration failures
+// Unlike global settings, this only affects the current chat session
+let _sessionDisabled = false;
+
 /**
  * Get the current session's AbortSignal.
  * Leaf I/O functions (callLLM, embedding) read this as their default signal.
@@ -28,6 +32,24 @@ export function getSessionSignal() {
 export function resetSessionController() {
     _sessionController.abort();
     _sessionController = new AbortController();
+    _sessionDisabled = false; // Reset kill-switch on chat change
+}
+
+/**
+ * Check if OpenVault is disabled for the current session.
+ * Used when schema migration fails to prevent further damage.
+ * @returns {boolean}
+ */
+export function isSessionDisabled() {
+    return _sessionDisabled;
+}
+
+/**
+ * Set the session-scoped disabled flag.
+ * @param {boolean} value
+ */
+export function setSessionDisabled(value) {
+    _sessionDisabled = value;
 }
 
 // Operation state machine to prevent concurrent operations

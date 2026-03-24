@@ -4,19 +4,21 @@
  * Handles all SillyTavern event subscriptions and processing.
  */
 
-import { extensionName, MEMORIES_KEY, RETRIEVAL_TIMEOUT_MS } from './constants.js';
+import { extensionName, MEMORIES_KEY, METADATA_KEY, RETRIEVAL_TIMEOUT_MS } from './constants.js';
 import { getDeps } from './deps.js';
 import './settings.js'; // Side-effect import to initialize settings with lodash.merge
-import { migrateProcessedMessages } from './extraction/scheduler.js';
 import { loadFromChat as loadPerfFromChat, record } from './perf/store.js';
+import { runSchemaMigrations } from './store/migrations/index.js';
 import {
     clearGenerationLock,
     isChatLoadingCooldown,
+    isSessionDisabled,
     operationState,
     resetOperationStatesIfSafe,
     resetSessionController,
     setChatLoadingCooldown,
     setGenerationLock,
+    setSessionDisabled,
 } from './state.js';
 import { getOpenVaultData } from './store/chat-data.js';
 import { refreshAllUI, resetMemoryBrowserPage } from './ui/render.js';
@@ -112,6 +114,12 @@ export async function autoHideOldMessages() {
 export async function onBeforeGeneration(type, _options, dryRun = false) {
     // Skip if disabled, manual mode, or dry run
     if (!isExtensionEnabled() || dryRun) {
+        return;
+    }
+
+    // Skip if session disabled (migration failure)
+    if (isSessionDisabled()) {
+        logDebug('Skipping retrieval - session disabled due to migration failure');
         return;
     }
 
@@ -220,20 +228,42 @@ export async function onChatChanged() {
 
     logDebug('Chat changed, clearing injection, cache and setting load cooldown');
 
-    // Cleanup corrupted character states
     const data = getOpenVaultData();
     const context = getDeps().getContext();
+
+    // Check session kill-switch
+    if (isSessionDisabled()) {
+        logDebug('OpenVault disabled for this session due to migration failure');
+        return;
+    }
+
+    // Cleanup corrupted character states
     if (data && context) {
         const validCharNames = [context.name1, context.name2].filter(Boolean);
         cleanupCharacterStates(data, validCharNames);
     }
 
-    // Run migration if needed
-    const chat = context.chat || [];
-    if (migrateProcessedMessages(chat, data)) {
-        showToast('info', 'OpenVault upgraded tracking format.', 'Data Migration');
-        const { saveOpenVaultData } = await import('./store/chat-data.js');
-        await saveOpenVaultData();
+    // Run schema migration if needed
+    if (data && (!data.schema_version || data.schema_version < 2)) {
+        const backup = structuredClone(data);
+
+        try {
+            const chat = context.chat || [];
+            if (runSchemaMigrations(data, chat)) {
+                showToast('info', 'OpenVault database optimized.', 'Data Migration');
+                const { saveOpenVaultData } = await import('./store/chat-data.js');
+                await saveOpenVaultData();
+            }
+        } catch (error) {
+            // Rollback
+            logError('Schema migration failed! Rolling back.', error);
+            context.chatMetadata[METADATA_KEY] = backup;
+
+            // Session kill-switch
+            setSessionDisabled(true);
+            showToast('error', 'Data migration failed. OpenVault disabled for this chat session.');
+            return;
+        }
     }
 
     // Check for embedding model mismatch and wipe stale vectors
@@ -284,6 +314,12 @@ export async function onChatChanged() {
  */
 export async function onMessageReceived(messageId) {
     if (!isExtensionEnabled()) return;
+
+    // Skip if session disabled (migration failure)
+    if (isSessionDisabled()) {
+        logDebug('Skipping extraction - session disabled due to migration failure');
+        return;
+    }
 
     const { wakeUpBackgroundWorker } = await import('./extraction/worker.js');
 

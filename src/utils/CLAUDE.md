@@ -34,8 +34,13 @@
 - **Turn-Boundary Snapping** (`snapToTurnBoundary`): Trims message index arrays backward until it finds a valid `Bot -> User` transition or End-of-Chat. **CRITICAL**: Prevents auto-hide or batching from splitting a User message from its Bot response.
 
 ### `text.js`
-- `stripThinkingTags()`: Strips `<think>`, `<reasoning>`, `<tool_call>`, `<search>`, etc. (Case insensitive). Handles tag attributes (`<tool_call name="extract">`). Also strips bracket variants (`[TOOL_CALL]...[/TOOL_CALL]`). Handles orphaned closing tags (e.g., `</think>`, `</tool_call>` without opening) from assistant prefill continuations — strips everything before and including the orphaned tag.
-- `safeParseJSON()`: Multi-layer recovery. Extracts markdown codeblocks -> bracket-balances to isolate LAST JSON block (LLMs output noise before payload) -> fixes string concatenation hallucinations (`" + "` -> merged string) -> applies `jsonrepair`. Wraps bare arrays in an `{ events: [] }` object if the LLM forgot the root key.
+- `normalizeText()`: Fixes invisible chars - strips control chars (preserves 
+	), replaces smart quotes, removes Unicode line/paragraph separators.
+- `stripMarkdownFences()`: Strips ``` and ~~~ fences (with/without `json` specifier). Called BEFORE parsing - mid-tier LLMs output valid JSON in fences 90% of the time.
+- `extractJsonBlocks()`: Robust balanced bracket extraction. Handles strings, escape sequences, nested structures. Returns `[{ start, end, text, isObject }]`. Correctly handles `\` before quotes (escaped backslash).
+- `scrubConcatenation()`: Fixes LLM string concatenation hallucinations (`"a" + "b"` -> `"ab"`). Only at Tier 4 (desperation) to avoid damaging valid math.
+- `safeParseJSON()`: 5-tier waterfall returning `{ success, data?, error?, errorContext? }`. Tier 1: JSON.parse → Tier 2: Extract + jsonrepair → Tier 3: Normalize + Extract → Tier 4: Aggressive Scrub → Tier 5: Fatal. **Domain-agnostic** - no wrapping of bare arrays. Domain logic (e.g., wrap bare arrays in `{ events: [] }`) goes in `structured.js` parsers.
+- `stripThinkingTags()`: Strips LLM reasoning tags before parsing. Handles paired XML/bracket tags, orphaned closings from prefills.
 - `jaccardSimilarity(setA, setB, tokenizeFn?)`: Computes Jaccard index (intersection/union) between two token sets. Accepts strings, Sets, or arrays. Optional custom tokenizer. Used for deduplication: event dedup in extraction, edge description dedup in graph. Default tokenizer filters single-char letters but preserves single-digit numbers.
 - `getMemoryPosition(memory)`: Returns average position from `message_ids` for bucket assignment.
 - `assignMemoriesToBuckets(memories, chatLength)`: Assigns memories to old/mid/recent buckets. Old: < (len-500), Mid: (len-500) to (len-100), Recent: >= (len-100). Used by soft balance budgeting.

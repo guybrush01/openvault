@@ -12,8 +12,6 @@
         "format": "biome format --write .",
         "test": "node scripts/test.js",
         "test:run": "vitest run",
-        "test:changed": "vitest --changed=HEAD~1 --run",
-        "test:watch": "vitest",
         "test:related": "vitest --run --reporter=dot related",
         "test:math": "vitest --run tests/math.test.js tests/retrieval/math.test.js",
         "test:extract": "vitest --run tests/extraction/",

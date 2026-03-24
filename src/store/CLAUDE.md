@@ -21,6 +21,25 @@ Repository pattern for local chat metadata mutations. Encapsulates all CRUD oper
 - `deleteCurrentChatData()` - Delete all OpenVault data for current chat. Unhides all hidden messages. Purges ST Vector collection if using st_vector.
 - `generateId()` - Generate a unique ID (timestamp + random).
 
+## MIGRATIONS
+
+Located in `migrations/` subfolder:
+- `index.js` - Orchestrator: checks `schema_version`, runs required migrations sequentially
+- `v2.js` - v1→v2 conversion: processed message fingerprints, embedding arrays→base64, graph state backfill
+
+**Transactional Rollback Pattern**:
+```javascript
+const backup = structuredClone(data);
+try {
+    if (runSchemaMigrations(data, chat)) { await saveOpenVaultData(); }
+} catch (error) {
+    context.chatMetadata[METADATA_KEY] = backup;  // Restore
+    setSessionDisabled(true);  // Per-session, NOT global settings
+}
+```
+
+**Version Tracking**: `data.schema_version` (integer). Missing = v1. New chats get current version from `getOpenVaultData()`.
+
 ## GOTCHAS & RULES
 - **Chat Change Guard**: `saveOpenVaultData(expectedChatId)` checks if chat changed before saving. Prevents data corruption from async operations.
 - **ST Vector Purge**: `deleteCurrentChatData()` calls `purgeSTCollection()` from `services/st-vector.js` to clean up remote embeddings.

@@ -13,7 +13,6 @@ import {
     consolidateEdges,
     expandMainCharacterKeys,
     findCrossScriptCharacterKeys,
-    initGraphState,
     mergeOrInsertEntity,
     normalizeKey,
     upsertRelationship,
@@ -939,7 +938,6 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
         }
 
         // Stage 4: Graph updates
-        initGraphState(data);
         const { graphSyncChanges } = await processGraphUpdates(
             data.graph,
             graphResult.entities,
@@ -985,7 +983,6 @@ export async function extractMemories(messageIds = null, targetChatId = null, op
         try {
             // Stage 5: Reflection check (per character in new events)
             if (events.length > 0) {
-                initGraphState(data); // Ensures reflection_state exists
                 accumulateImportance(data.reflection_state, events);
 
                 // ===== Backfill guard: skip Phase 2 LLM synthesis =====
@@ -1056,7 +1053,6 @@ export async function runPhase2Enrichment(data, settings, targetChatId, options 
     logDebug('runPhase2Enrichment: Starting comprehensive Phase 2 synthesis');
 
     try {
-        initGraphState(data);
         const characterNames = Object.keys(data.reflection_state || {});
         await synthesizeReflections(data, characterNames, settings, { abortSignal });
 

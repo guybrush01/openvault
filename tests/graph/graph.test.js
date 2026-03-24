@@ -6,7 +6,6 @@ import {
     createEmptyGraph,
     expandMainCharacterKeys,
     findCrossScriptCharacterKeys,
-    initGraphState,
     markEdgeForConsolidation,
     mergeOrInsertEntity,
     normalizeKey,
@@ -331,32 +330,6 @@ describe('createEmptyGraph', () => {
     it('returns an object with empty nodes and edges', () => {
         const g = createEmptyGraph();
         expect(g).toEqual({ nodes: {}, edges: {} });
-    });
-});
-
-describe('initGraphState', () => {
-    it('initializes graph, communities, reflection_state, and graph_message_count on openvault data', () => {
-        const data = { memories: [], character_states: {} };
-        initGraphState(data);
-        expect(data.graph).toEqual({ nodes: {}, edges: {} });
-        expect(data.communities).toEqual({});
-        expect(data.reflection_state).toEqual({});
-        expect(data.graph_message_count).toBe(0);
-    });
-
-    it('does not overwrite existing graph data', () => {
-        const data = {
-            memories: [],
-            graph: { nodes: { castle: { name: 'Castle' } }, edges: {} },
-            communities: { C0: { title: 'Test' } },
-            reflection_state: { 'King Aldric': { importance_sum: 15 } },
-            graph_message_count: 42,
-        };
-        initGraphState(data);
-        expect(data.graph.nodes.castle.name).toBe('Castle');
-        expect(data.communities.C0.title).toBe('Test');
-        expect(data.reflection_state['King Aldric'].importance_sum).toBe(15);
-        expect(data.graph_message_count).toBe(42);
     });
 });
 

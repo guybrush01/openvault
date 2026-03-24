@@ -80,9 +80,14 @@ describe('extractMemories pipeline', () => {
 
     beforeEach(() => {
         mockData = {
+            schema_version: 2,
             memories: [],
             character_states: {},
             processed_message_ids: [],
+            graph: { nodes: {}, edges: {} },
+            communities: {},
+            reflection_state: {},
+            graph_message_count: 0,
         };
 
         mockContext = {

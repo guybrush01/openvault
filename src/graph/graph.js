@@ -261,7 +261,7 @@ export function createEmptyGraph() {
  * Does not overwrite existing fields.
  * @param {Object} data - The openvault data object (mutated in place)
  */
-export function initGraphState(data) {
+function initGraphState(data) {
     if (!data.graph) data.graph = createEmptyGraph();
     if (!data.communities) data.communities = {};
     if (!data.reflection_state) data.reflection_state = {};

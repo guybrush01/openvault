@@ -196,8 +196,13 @@ export const COMBINED_BOOST_WEIGHT = 15;
 /** Forgetfulness curve: minimum score for importance-5 memories */
 export const IMPORTANCE_5_FLOOR = 5;
 
-/** Entity merge: semantic similarity threshold for clustering */
-export const ENTITY_MERGE_THRESHOLD = 0.8;
+/**
+ * Entity merge: semantic similarity threshold for clustering.
+ * Note: 0.8 produced false positives where unrelated entities merged due to
+ * inflated embedding similarity scores. Different entity types and semantically
+ * distinct concepts (e.g., "rain" vs "milk") incorrectly merged at 0.80-0.87.
+ */
+export const ENTITY_MERGE_THRESHOLD = 0.9;
 
 // UI hint defaults - derived from defaultSettings and QUERY_CONTEXT_DEFAULTS
 // Used to populate "(default: X)" hints in settings_panel.html

@@ -17,8 +17,9 @@ Designate the current target data shape as **v2**. Legacy shapes are implicitly 
 | Architecture | Eager, run-on-load pipeline | Validating/migrating data on `onChatChanged` guarantees the rest of the application only ever interacts with the newest data shape. |
 | Version Tracking | `schema_version` at root | `data.schema_version` (integer). If missing, assumed to be v1. |
 | Isolation | `src/store/migrations/` folder | Keeps `store/chat-data.js` clean. Follows standard DB migration patterns. |
-| Error Handling | Transactional rollback + kill-switch | Backup via `structuredClone()` before migration. On failure: restore backup, disable OpenVault for that chat session, show error toast. |
+| Error Handling | Transactional rollback + session kill-switch | Backup via `structuredClone()` before migration. On failure: restore backup, set session-scoped flag (NOT global settings), show error toast. |
 | Lazy Codec | Removed | Because v2 migration eagerly converts all `embedding: number[]` to `embedding_b64`, the codec becomes simpler and faster. |
+| New Chat Schema | Eager instantiation | `getOpenVaultData()` creates complete v2 schema for new chats. Migration only backfills legacy data. |
 
 ## Architecture
 
@@ -71,12 +72,13 @@ export function runSchemaMigrations(data, chat) {
 
 2. **Embedding Array to Base64**
    - Loop over `data.memories`, `data.graph.nodes`, `data.communities`
-   - If `obj.embedding` (Array) exists, convert to `obj.embedding_b64` (Base64)
+   - If `obj.embedding` (Array) exists, call `encode()` from `embedding-codec.js` to convert to `embedding_b64`
    - Delete `obj.embedding`
+   - **Note:** Uses exported `encode()` from codec — no duplicated logic
 
-3. **Graph Initialization**
-   - Ensure `data.graph_message_count`, `data.communities` exist
-   - Moves safety checks out of `extract.js:initGraphState`
+3. **Graph Initialization (Legacy Backfill)**
+   - Ensure `data.graph`, `data.communities`, `data.graph_message_count` exist
+   - Only runs for v1 chats — new chats already have these from `getOpenVaultData()`
 
 ### Transactional Rollback Pattern
 
@@ -95,12 +97,38 @@ if (data && (!data.schema_version || data.schema_version < 2)) {
         logError('Schema migration failed! Rolling back.', error);
         context.chatMetadata[METADATA_KEY] = backup;
 
-        // Kill-switch: disable for this session
-        showToast('error', 'Data migration failed. OpenVault disabled for this chat.');
-        getDeps().getExtensionSettings()[extensionName].enabled = false;
+        // Session kill-switch: set flag in state.js (NOT global settings!)
+        setSessionDisabled(true);
+        showToast('error', 'Data migration failed. OpenVault disabled for this chat session.');
         return;
     }
 }
+```
+
+### Session Kill-Switch (`state.js`)
+
+**Why not mutate settings?** SillyTavern's settings object is global. Setting `enabled = false` would disable OpenVault for ALL chats until manually toggled.
+
+**Solution:** Add a session-scoped runtime flag:
+
+```javascript
+// In src/state.js
+let _sessionDisabled = false;
+
+export function isSessionDisabled() {
+    return _sessionDisabled;
+}
+
+export function setSessionDisabled(value) {
+    _sessionDisabled = value;
+}
+```
+
+**Guard locations:** Add `isSessionDisabled()` check to entry points:
+- `onBeforeGeneration()` in `events.js`
+- `onMessageReceived()` in `events.js`
+- `extractAllMessages()` in `extract.js`
+- Reset on `onChatChanged()` (new chat = fresh start)
 ```
 
 ## File-by-File Changes
@@ -117,28 +145,33 @@ if (data && (!data.schema_version || data.schema_version < 2)) {
 
 | File | Change |
 |------|--------|
-| `src/store/chat-data.js` | New chats get `schema_version: 2` |
-| `src/events.js` | Replace `migrateProcessedMessages` with `runSchemaMigrations` + rollback |
+| `src/store/chat-data.js` | New chats get complete v2 schema: `schema_version`, `memories`, `character_states`, `graph`, `communities`, `graph_message_count` |
+| `src/state.js` | Add `isSessionDisabled()`, `setSessionDisabled()` for migration failure handling |
+| `src/events.js` | Replace `migrateProcessedMessages` with `runSchemaMigrations` + rollback; add session disabled guards |
 | `src/extraction/scheduler.js` | Delete `migrateProcessedMessages` |
-| `src/utils/embedding-codec.js` | Remove legacy array fallbacks |
+| `src/utils/embedding-codec.js` | Export `encode()` for migration; remove legacy array fallbacks |
+| `src/extraction/extract.js` | Delete `initGraphState` — repository guarantees shape |
 
 ### Deleted Code
 
 | Location | What's Removed |
 |----------|----------------|
 | `scheduler.js` | `migrateProcessedMessages` function |
-| `embedding-codec.js` | `obj.embedding && obj.embedding.length` fallbacks |
-| `embedding-codec.js` | `hasEmbedding()` legacy array check |
+| `embedding-codec.js` | `obj.embedding && obj.embedding.length` fallbacks, `hasEmbedding()` legacy array check |
+| `extract.js` | `initGraphState` function (repository guarantees shape) |
 
 ## Execution Order
 
 | Step | File | Risk | Test Impact |
 |------|------|------|-------------|
 | 1 | `migrations/v2.js` & `migrations/index.js` | Low | Create test file. Mock v1 data, assert v2 output. |
-| 2 | `store/chat-data.js` | Low | Assert `schema_version: 2` on new chats. |
-| 3 | `events.js` | Medium | Wire rollback pattern. Manual testing. |
-| 4 | `scheduler.js` | Low | Delete function and its tests. |
-| 5 | `embedding-codec.js` | Medium | Remove fallbacks. Update tests to expect null on old arrays. |
+| 2 | `embedding-codec.js` | Low | Export `encode()`. Add unit test for exported function. |
+| 3 | `store/chat-data.js` | Low | Instantiate full v2 schema. Assert all fields present on new chats. |
+| 4 | `state.js` | Low | Add session disabled flag. Unit test getters/setters. |
+| 5 | `events.js` | Medium | Wire rollback + session kill-switch. Manual testing. |
+| 6 | `scheduler.js` | Low | Delete function and its tests. |
+| 7 | `embedding-codec.js` | Medium | Remove legacy fallbacks. Update tests to expect null on old arrays. |
+| 8 | `extract.js` | Low | Delete `initGraphState`. Verify extraction still works (repo guarantees shape). |
 
 ## Verification
 
@@ -146,6 +179,7 @@ if (data && (!data.schema_version || data.schema_version < 2)) {
 ```bash
 grep -r "obj.embedding &&" src/       # Must return 0 hits
 grep -r "\.embedding\.length" src/    # Must return 0 hits
+grep -r "initGraphState" src/         # Must return 0 hits (deleted)
 ```
 
 **Test suite:**

@@ -84,7 +84,7 @@ export function stripThinkingTags(text) {
     return (
         text
             // Paired XML tags: <think>...</think>, <tool_call>...</tool_call>, etc.
-            // (?:s+[^>]*)? matches optional attributes like <tool_call name="extract_events">
+            // (?:\s+[^>]*)? matches optional attributes like <tool_call name="extract_events">
             .replace(
                 /<(think|thinking|thought|reasoning|reflection|tool_call|search)(?:\s+[^>]*)?>\s*[\s\S]*?<\/\1>/gi,
                 ''
@@ -94,7 +94,12 @@ export function stripThinkingTags(text) {
             .replace(/\*thinks?:[\s\S]*?\*/gi, '')
             .replace(/\(thinking:[\s\S]*?\)/gi, '')
             // Orphaned closing tags (opening tag was in assistant prefill)
+            // NOTE: ideal_output is NOT included here because the pattern is different:
+            // Thinking tags: [reasoning]</thinking>[json] → strip reasoning, keep json
+            // ideal_output: [json]</ideal_output> → keep json, strip only the tag
             .replace(/^[\s\S]*?<\/(think|thinking|thought|reasoning|tool_call|search)>\s*/i, '')
+            // ideal_output: few-shot example wrapper that LLM sometimes reproduces after JSON
+            .replace(/<\/ideal_output>\s*/gi, '')
             .trim()
     );
 }

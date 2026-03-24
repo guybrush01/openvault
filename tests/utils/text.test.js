@@ -108,6 +108,17 @@ describe('text', () => {
             const input = '[TOOL_CALL]function call here[/TOOL_CALL]{"result": true}';
             expect(stripThinkingTags(input)).toBe('{"result": true}');
         });
+
+        it('strips orphaned </ideal_output> closing tag (few-shot example wrapper)', () => {
+            // ideal_output appears AFTER the JSON, not before like thinking tags
+            const input = '{"events": [{"summary": "test"}]}\n</ideal_output>';
+            expect(stripThinkingTags(input)).toBe('{"events": [{"summary": "test"}]}');
+        });
+
+        it('strips </ideal_output> with trailing whitespace', () => {
+            const input = '{"events": []}\n</ideal_output>\n\n';
+            expect(stripThinkingTags(input)).toBe('{"events": []}');
+        });
     });
 
     describe('safeParseJSON', () => {

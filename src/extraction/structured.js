@@ -123,8 +123,13 @@ function parseStructuredResponse(content, schema) {
         const repaired = jsonrepair(jsonContent);
         parsed = JSON.parse(repaired);
     } catch (e) {
+        // Show both start and end for better debugging of truncation issues
+        const start = content.slice(0, 500);
+        const end = content.slice(-500);
         logError('JSON parse failed in structured response', e, {
-            rawContent: content.slice(0, 2000),
+            rawContentStart: start,
+            rawContentEnd: end,
+            length: content.length,
         });
         throw new Error(`JSON parse failed: ${e.message}`);
     }
@@ -179,8 +184,13 @@ export function parseEventExtractionResponse(content) {
         const repaired = jsonrepair(jsonContent);
         parsed = JSON.parse(repaired);
     } catch (e) {
+        // Show both start and end for better debugging of truncation issues
+        const start = content.slice(0, 500);
+        const end = content.slice(-500);
         logError('JSON parse failed in event extraction', e, {
-            rawContent: content.slice(0, 2000),
+            rawContentStart: start,
+            rawContentEnd: end,
+            length: content.length,
         });
         throw new Error(`JSON parse failed: ${e.message}`);
     }
@@ -232,8 +242,13 @@ export function parseGraphExtractionResponse(content) {
         const repaired = jsonrepair(jsonContent);
         parsed = JSON.parse(repaired);
     } catch (e) {
+        // Show both start and end for better debugging of truncation issues
+        const start = content.slice(0, 500);
+        const end = content.slice(-500);
         logError('JSON parse failed in graph extraction', e, {
-            rawContent: content.slice(0, 2000),
+            rawContentStart: start,
+            rawContentEnd: end,
+            length: content.length,
         });
         throw new Error(`JSON parse failed: ${e.message}`);
     }

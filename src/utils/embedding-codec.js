@@ -40,6 +40,8 @@ function decode(b64) {
 export function getEmbedding(obj) {
     if (!obj) return null;
     if (obj.embedding_b64) return decode(obj.embedding_b64);
+    // Legacy fallback: only needed during transition from v1 to v2
+    // After all chats are migrated, this branch can be removed
     if (obj.embedding && obj.embedding.length > 0) return new Float32Array(obj.embedding);
     return null;
 }

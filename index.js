@@ -11,7 +11,7 @@
 import { extensionName, MEMORIES_KEY } from './src/constants.js';
 import { getDeps } from './src/deps.js';
 import { updateEventListeners } from './src/events.js';
-import { setChatLoadingCooldown } from './src/state.js';
+import { setChatLoadingCooldown, isSessionDisabled } from './src/state.js';
 import { refreshAllUI } from './src/ui/render.js';
 import { loadSettings } from './src/ui/settings.js';
 import { setStatus } from './src/ui/status.js';
@@ -35,6 +35,10 @@ function registerCommands() {
         command.fromProps({
             name: 'openvault-extract',
             callback: async () => {
+                if (isSessionDisabled()) {
+                    showToast('warning', 'OpenVault is disabled for this chat due to a data migration failure.');
+                    return '';
+                }
                 const { extractMemories } = await import('./src/extraction/extract.js');
                 setStatus('extracting');
                 try {
@@ -67,6 +71,10 @@ function registerCommands() {
         command.fromProps({
             name: 'openvault-retrieve',
             callback: async () => {
+                if (isSessionDisabled()) {
+                    showToast('warning', 'OpenVault is disabled for this chat due to a data migration failure.');
+                    return '';
+                }
                 const { retrieveAndInjectContext } = await import('./src/retrieval/retrieve.js');
                 setStatus('retrieving');
                 try {

@@ -504,6 +504,13 @@ describe('text', () => {
             expect(blocks[0].text).toBe("{'key': 'value with {brackets}'}");
         });
 
+        it('ignores brackets inside backtick template literals', () => {
+            // Some LLMs hallucinate template literals instead of standard quotes
+            const blocks = extractJsonBlocks('{"summary": `They walked into the {dark} room`}');
+            expect(blocks).toHaveLength(1);
+            expect(blocks[0].text).toBe('{"summary": `They walked into the {dark} room`}');
+        });
+
         it('handles escaped quotes correctly', () => {
             const blocks = extractJsonBlocks('{"key": "value \\"with\\" quotes"}');
             expect(blocks).toHaveLength(1);

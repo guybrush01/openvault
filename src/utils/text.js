@@ -77,7 +77,7 @@ export function extractJsonBlocks(text, _options = {}) {
             }
 
             // String delimiter handling
-            if ((ch === '"' || ch === "'") && !inString) {
+            if ((ch === '"' || ch === "'" || ch === '`') && !inString) {
                 inString = true;
                 stringDelim = ch;
                 i++;

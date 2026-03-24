@@ -153,3 +153,5 @@ OpenVault implements ideas from two papers:
 14.00 - add Emergency Cut button. Useful when switching presets or models (since the new LLM can get confused by the previous model chat style), or when the LLM starts repeating itself (a sign the context is too cluttered). Think of it like pruning a tree: it cuts away the bulk to keep things healthy, but saves the key events that matter for your story.
 
 15.00 - big refactoring, fixed lots of small bugs
+
+15.50 - added version to data we store inside ST chat (v2 atm). So easier to migrate later

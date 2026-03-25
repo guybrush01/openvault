@@ -26,7 +26,7 @@
 
 // @ts-check
 
-/** @typedef {import('../types.js').CdnMirrorFn} CdnMirrorFn */
+/** @typedef {import('../types.d.ts').CdnMirrorFn} CdnMirrorFn */
 
 /** @type {CdnMirrorFn[]} */
 const MIRRORS = [

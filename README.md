@@ -119,7 +119,7 @@ Everything stays on your machine. The in-browser embedding model means no text g
 
 ## Free models
 
-Check my other project https://github.com/vadash/litellm_loader Its a bit Do It Yourself but should provide nice start. You can setup complex fallbacks. For example, try (Kimi K2 and Kimi K2 0905 at Nvidia NIM), if both down then use long cat chat
+Check my other project https://github.com/vadash/litellm_loader. Its a bit Do It Yourself, but should provide nice start. You can setup complex fallbacks. For example, try (Kimi K2 and Kimi K2 0905 at Nvidia NIM), if both down then use long cat chat
 
 ## License
 

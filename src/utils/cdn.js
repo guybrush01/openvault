@@ -37,10 +37,15 @@ const MAX_ROUNDS = 2;
 const cache = new Map();
 
 /**
- * Test-only override map. Populated by vitest setup before modules load.
+ * Test-only override map. Stored on globalThis to survive vi.resetModules().
  * @type {Map<string, object>}
  */
-const _testOverrides = new Map();
+const getTestOverrides = () => {
+    if (!globalThis.__openvault_cdn_test_overrides) {
+        globalThis.__openvault_cdn_test_overrides = new Map();
+    }
+    return globalThis.__openvault_cdn_test_overrides;
+};
 
 /**
  * Register a local module for a package spec (test-only).
@@ -49,7 +54,7 @@ const _testOverrides = new Map();
  * @param {object} mod - The module namespace object
  */
 export function _setTestOverride(packageSpec, mod) {
-    _testOverrides.set(packageSpec, mod);
+    getTestOverrides().set(packageSpec, mod);
 }
 
 /**
@@ -61,7 +66,8 @@ export function _setTestOverride(packageSpec, mod) {
  */
 export async function cdnImport(packageSpec) {
     // Test override — instant, no network
-    if (_testOverrides.has(packageSpec)) return _testOverrides.get(packageSpec);
+    const testOverrides = getTestOverrides();
+    if (testOverrides.has(packageSpec)) return testOverrides.get(packageSpec);
 
     // Application-level cache — same package spec never fetched twice
     if (cache.has(packageSpec)) return cache.get(packageSpec);

@@ -304,6 +304,10 @@
  * @property {string} [charDesc] - Character description
  * @property {string} [personaDesc] - Persona description
  */
+/**
+ * @type {PromptContext}
+ */
+const EMPTY_PROMPT_CONTEXT = {};
 
 /**
  * Base prompt builder parameters
@@ -313,7 +317,7 @@
  * @property {PromptContext} [context] - Additional context
  * @property {string} preamble - System prompt preamble
  * @property {string} prefill - Assistant prefill text (required)
- * @property {string} [outputLanguage] - Output language ('en' | 'ru' | 'auto')
+ * @property {'auto'|'en'|'ru'} [outputLanguage] - Output language
  */
 
 /**

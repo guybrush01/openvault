@@ -291,6 +291,102 @@
  */
 
 /**
+ * Character names pair for prompt building
+ * @typedef {Object} CharacterNames
+ * @property {string} char - Character name
+ * @property {string} user - User name
+ */
+
+/**
+ * Context object for prompt builders
+ * @typedef {Object} PromptContext
+ * @property {Memory[]} [memories] - Existing memories for context
+ * @property {string} [charDesc] - Character description
+ * @property {string} [personaDesc] - Persona description
+ */
+
+/**
+ * Base prompt builder parameters
+ * @typedef {Object} BasePromptParams
+ * @property {string} messages - Chat message text
+ * @property {CharacterNames} names - Character and user names
+ * @property {PromptContext} [context] - Additional context
+ * @property {string} preamble - System prompt preamble
+ * @property {string} prefill - Assistant prefill text (required)
+ * @property {string} [outputLanguage] - Output language ('en' | 'ru' | 'auto')
+ */
+
+/**
+ * Graph extraction prompt parameters
+ * @typedef {Object} GraphPromptParams
+ * @property {string} messages - Chat message text
+ * @property {CharacterNames} names - Character and user names
+ * @property {PromptContext} [context] - Additional context
+ * @property {string} preamble - System prompt preamble
+ * @property {string} prefill - Assistant prefill text (required)
+ * @property {string} [outputLanguage] - Output language ('en' | 'ru' | 'auto')
+ * @property {string[]} [extractedEvents] - Previously extracted events for context
+ */
+
+/**
+ * Edge consolidation prompt parameters
+ * @typedef {Object} EdgeConsolidationParams
+ * @property {GraphEdge} edgeData - Edge to consolidate
+ * @property {string} preamble - System prompt preamble
+ * @property {string} prefill - Assistant prefill text (required)
+ * @property {string} [outputLanguage] - Output language
+ */
+
+/**
+ * Reflection prompt parameters
+ * @typedef {Object} ReflectionPromptParams
+ * @property {string} characterName - Character name to reflect on
+ * @property {Memory[]} recentMemories - Recent memories for reflection
+ * @property {string} preamble - System prompt preamble
+ * @property {string} prefill - Assistant prefill text (required)
+ * @property {string} [outputLanguage] - Output language
+ */
+
+/**
+ * Community summary prompt parameters
+ * @typedef {Object} CommunitySummaryParams
+ * @property {string[]} nodeLines - Formatted node descriptions
+ * @property {string[]} edgeLines - Formatted edge descriptions
+ * @property {string} preamble - System prompt preamble
+ * @property {string} prefill - Assistant prefill text (required)
+ * @property {string} [outputLanguage] - Output language
+ */
+
+/**
+ * Global synthesis prompt parameters
+ * @typedef {Object} GlobalSynthesisParams
+ * @property {CommunitySummary[]} communities - Community summaries to synthesize
+ * @property {string} preamble - System prompt preamble
+ * @property {string} prefill - Assistant prefill text (required)
+ * @property {string} [outputLanguage] - Output language
+ */
+
+/**
+ * Community summary result (from LLM)
+ * @typedef {Object} CommunitySummaryResult
+ * @property {string} title - Community title
+ * @property {string} summary - Community summary
+ * @property {string[]} [findings] - Key findings
+ */
+
+/**
+ * LLM message array (OpenAI format)
+ * @typedef {Array<{role: string, content: string}>} LLMMessages
+ */
+
+/**
+ * Return value from mergeOrInsertEntity
+ * @typedef {Object} MergeEntityResult
+ * @property {string} key - The node key (may be merged target)
+ * @property {StSyncChanges} stChanges - ST Vector sync changes
+ */
+
+/**
  * Community summary from GraphRAG Louvain clustering
  * @typedef {Object} CommunitySummary
  * @property {string} id - Community identifier

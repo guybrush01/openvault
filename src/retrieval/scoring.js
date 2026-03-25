@@ -1,9 +1,19 @@
+// @ts-check
+
 /**
  * OpenVault Memory Scoring
  *
  * Algorithms for selecting relevant memories for retrieval.
  * Uses forgetfulness curve (exponential decay) and optional vector similarity.
  */
+
+/** @typedef {import('../types.js').Memory} Memory */
+/** @typedef {import('../types.js').ScoredMemory} ScoredMemory */
+/** @typedef {import('../types.js').RetrievalContext} RetrievalContext */
+/** @typedef {import('../types.js').ScoringConfig} ScoringConfig */
+/** @typedef {import('../types.js').ForgetfulnessConstants} ForgetfulnessConstants */
+/** @typedef {import('../types.js').ScoringSettings} ScoringSettings */
+/** @typedef {import('../types.js').IDFCache} IDFCache */
 
 import { OVER_FETCH_MULTIPLIER } from '../constants.js';
 import { getQueryEmbedding, getStrategy, isEmbeddingsEnabled } from '../embeddings.js';
@@ -22,15 +32,16 @@ import {
 
 /**
  * Score memories (main-thread, async to allow yielding).
- * @param {Object[]} memories - Memories to score
+ * @param {Memory[]} memories - Memories to score
  * @param {number[]|null} contextEmbedding - Context embedding
  * @param {number} chatLength - Current chat length
  * @param {number} limit - Maximum results
  * @param {string|string[]} queryTokens - Query text or pre-tokenized array for BM25
  * @param {string[]} [characterNames] - Main character names to filter from query tokens
- * @param {Object[]} [hiddenMemories] - Hidden memories for expanded corpus IDF
- * @param {Object|null} [idfCache] - Pre-computed IDF cache
- * @returns {Promise<{memories: Object[], scoredResults: Array<{memory: Object, score: number, breakdown: Object}>}>}
+ * @param {Memory[]} [hiddenMemories] - Hidden memories for expanded corpus IDF
+ * @param {IDFCache|null} [idfCache] - Pre-computed IDF cache
+ * @param {ScoringConfig} scoringConfig - Flat scoring configuration from settings
+ * @returns {Promise<{memories: Memory[], scoredResults: ScoredMemory[]}>}
  */
 async function scoreMemoriesDirect(
     memories,
@@ -41,7 +52,7 @@ async function scoreMemoriesDirect(
     characterNames = [],
     hiddenMemories = [],
     idfCache = null,
-    scoringConfig
+    scoringConfig = {}
 ) {
     // Destructure flat scoringConfig into the {constants, settings} shape math.js expects
     const constants = {
@@ -74,16 +85,12 @@ async function scoreMemoriesDirect(
 
 /**
  * Select relevant memories using forgetfulness curve scoring
- * @param {Object[]} memories - Available memories
- * @param {Object} ctx - Retrieval context object
- * @param {string} ctx.recentContext - Recent chat context (for query context extraction)
- * @param {string} ctx.userMessages - Last 3 user messages for embedding (capped at 1000 chars)
- * @param {string[]} ctx.activeCharacters - List of active characters for entity extraction
- * @param {number} ctx.chatLength - Current chat length (for distance calculation)
+ * @param {Memory[]} memories - Available memories
+ * @param {RetrievalContext} ctx - Retrieval context object
  * @param {number} limit - Maximum memories to return
- * @param {Object[]} [allHiddenMemories] - All hidden memories for IDF corpus
- * @param {Object|null} [idfCache] - Pre-computed IDF cache
- * @returns {Promise<{memories: Object[], scoredResults: Array<{memory: Object, score: number, breakdown: Object}>}>}
+ * @param {Memory[]} [allHiddenMemories] - All hidden memories for IDF corpus
+ * @param {IDFCache|null} [idfCache] - Pre-computed IDF cache
+ * @returns {Promise<{memories: Memory[], scoredResults: ScoredMemory[]}>}
  */
 async function selectRelevantMemoriesSimple(memories, ctx, limit, allHiddenMemories = [], idfCache = null) {
     const { recentContext, userMessages, activeCharacters, chatLength, scoringConfig, queryConfig } = ctx;
@@ -160,6 +167,13 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit, allHiddenMemor
 /**
  * Select relevant memories using ST Vector Storage + Alpha-Blend reranking.
  * Over-fetches from ST, assigns rank-position proxy scores, then feeds into scoreMemories.
+ * @param {Memory[]} memories - Available memories
+ * @param {RetrievalContext} ctx - Retrieval context object
+ * @param {number} limit - Maximum memories to return
+ * @param {Memory[]} allHiddenMemories - All hidden memories for IDF corpus
+ * @param {IDFCache|null} idfCache - Pre-computed IDF cache
+ * @param {Object} strategy - ST Vector strategy object with searchItems method
+ * @returns {Promise<{memories: Memory[], scoredResults: ScoredMemory[]}>}
  */
 async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemories, idfCache, strategy) {
     const { recentContext, userMessages, activeCharacters, chatLength, scoringConfig, queryConfig } = ctx;
@@ -269,12 +283,12 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
 
 /**
  * Select memories using pre-allocated bucket quotas with score-based filling.
- * Fixed: Pre-allocates minRepresentation per bucket first, then fills remainder by score.
- * @param {Array<{memory: Object, score: number, breakdown: Object}>} scoredMemories - Pre-scored, sorted
+ * Pre-allocates minRepresentation per bucket first, then fills remainder by score.
+ * @param {ScoredMemory[]} scoredMemories - Pre-scored, sorted
  * @param {number} tokenBudget - Maximum tokens to select
  * @param {number} chatLength - Current chat length
  * @param {number} [minRepresentation=0.20] - Minimum 20% per bucket
- * @returns {Object[]} Selected memories
+ * @returns {Memory[]} Selected memories
  */
 export function selectMemoriesWithSoftBalance(scoredMemories, tokenBudget, chatLength, minRepresentation = 0.2) {
     if (!scoredMemories || scoredMemories.length === 0) return [];
@@ -330,14 +344,9 @@ export function selectMemoriesWithSoftBalance(scoredMemories, tokenBudget, chatL
 
 /**
  * Select relevant memories using scoring and token budget
- * @param {Object[]} memories - Available memories
- * @param {Object} ctx - Retrieval context object
- * @param {string} ctx.recentContext - Recent chat context
- * @param {string} ctx.userMessages - Last 3 user messages for embedding
- * @param {string[]} ctx.activeCharacters - List of active characters
- * @param {number} ctx.chatLength - Current chat length (for distance calculation)
- * @param {number} ctx.finalTokens - Final context token budget
- * @returns {Promise<Object[]>} Selected memories
+ * @param {Memory[]} memories - Available memories
+ * @param {RetrievalContext} ctx - Retrieval context object
+ * @returns {Promise<Memory[]>} Selected memories
  */
 export async function selectRelevantMemories(memories, ctx) {
     if (!memories || memories.length === 0) return [];

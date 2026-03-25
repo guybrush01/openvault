@@ -7,13 +7,13 @@
  * Uses forgetfulness curve (exponential decay) and optional vector similarity.
  */
 
-/** @typedef {import('../types.js').Memory} Memory */
-/** @typedef {import('../types.js').ScoredMemory} ScoredMemory */
-/** @typedef {import('../types.js').RetrievalContext} RetrievalContext */
-/** @typedef {import('../types.js').ScoringConfig} ScoringConfig */
-/** @typedef {import('../types.js').ForgetfulnessConstants} ForgetfulnessConstants */
-/** @typedef {import('../types.js').ScoringSettings} ScoringSettings */
-/** @typedef {import('../types.js').IDFCache} IDFCache */
+/** @typedef {import('../types').Memory} Memory */
+/** @typedef {import('../types').ScoredMemory} ScoredMemory */
+/** @typedef {import('../types').RetrievalContext} RetrievalContext */
+/** @typedef {import('../types').ScoringConfig} ScoringConfig */
+/** @typedef {import('../types').ForgetfulnessConstants} ForgetfulnessConstants */
+/** @typedef {import('../types').ScoringSettings} ScoringSettings */
+/** @typedef {import('../types').IDFCache} IDFCache */
 
 import { OVER_FETCH_MULTIPLIER } from '../constants.js';
 import { getQueryEmbedding, getStrategy, isEmbeddingsEnabled } from '../embeddings.js';

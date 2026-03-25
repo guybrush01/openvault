@@ -21,9 +21,9 @@ import { showToast } from './utils/dom.js';
 import { logDebug, logError, logRequest } from './utils/logging.js';
 import { withTimeout } from './utils/st-helpers.js';
 
-/** @typedef {import('./types.js').LLMConfig} LLMConfig */
-/** @typedef {import('./types.js').LLMCallOptions} LLMCallOptions */
-/** @typedef {import('./types.js').LLMMessages} LLMMessages */
+/** @typedef {import('./types.d.ts').LLMConfig} LLMConfig */
+/** @typedef {import('./types.d.ts').LLMCallOptions} LLMCallOptions */
+/** @typedef {import('./types.d.ts').LLMMessages} LLMMessages */
 
 /**
  * Race a promise against an AbortSignal.

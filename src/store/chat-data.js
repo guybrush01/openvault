@@ -9,9 +9,9 @@ import { showToast } from '../utils/dom.js';
 import { deleteEmbedding } from '../utils/embedding-codec.js';
 import { logDebug, logError, logInfo, logWarn } from '../utils/logging.js';
 
-/** @typedef {import('../types.js').OpenVaultData} OpenVaultData */
-/** @typedef {import('../types.js').Memory} Memory */
-/** @typedef {import('../types.js').MemoryUpdate} MemoryUpdate */
+/** @typedef {import('../types.d.ts').OpenVaultData} OpenVaultData */
+/** @typedef {import('../types.d.ts').Memory} Memory */
+/** @typedef {import('../types.d.ts').MemoryUpdate} MemoryUpdate */
 
 /**
  * Get OpenVault data from chat metadata.

@@ -1,16 +1,16 @@
 // @ts-check
 
-/** @typedef {import('../types.js').Memory} Memory */
-/** @typedef {import('../types.js').Entity} Entity */
-/** @typedef {import('../types.js').Relationship} Relationship */
-/** @typedef {import('../types.js').ExtractedEvent} ExtractedEvent */
-/** @typedef {import('../types.js').GraphExtraction} GraphExtraction */
-/** @typedef {import('../types.js').StSyncChanges} StSyncChanges */
-/** @typedef {import('../types.js').ExtractionOptions} ExtractionOptions */
-/** @typedef {import('../types.js').ExtractionContextParams} ExtractionContextParams */
-/** @typedef {import('../types.js').ExtractionLLMOptions} ExtractionLLMOptions */
-/** @typedef {import('../types.js').GenerateReflectionsResult} GenerateReflectionsResult */
-/** @typedef {import('../types.js').ConsolidateEdgesResult} ConsolidateEdgesResult */
+/** @typedef {import('../types').Memory} Memory */
+/** @typedef {import('../types').Entity} Entity */
+/** @typedef {import('../types').Relationship} Relationship */
+/** @typedef {import('../types').ExtractedEvent} ExtractedEvent */
+/** @typedef {import('../types').GraphExtraction} GraphExtraction */
+/** @typedef {import('../types').StSyncChanges} StSyncChanges */
+/** @typedef {import('../types').ExtractionOptions} ExtractionOptions */
+/** @typedef {import('../types').ExtractionContextParams} ExtractionContextParams */
+/** @typedef {import('../types').ExtractionLLMOptions} ExtractionLLMOptions */
+/** @typedef {import('../types').GenerateReflectionsResult} GenerateReflectionsResult */
+/** @typedef {import('../types').ConsolidateEdgesResult} ConsolidateEdgesResult */
 
 /**
  * OpenVault Extraction - Simplified Procedural Interface

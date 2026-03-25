@@ -202,29 +202,41 @@ export const QueryConfigSchema = z.object({
 
 // Graph extraction result from LLM
 export const GraphExtractionSchema = z.object({
-    entities: z.array(z.object({
-        name: z.string(),
-        entityType: z.string(),
-        description: z.string(),
-    })),
-    relationships: z.array(z.object({
-        source: z.string(),
-        target: z.string(),
-        relation: z.string(),
-        description: z.string(),
-    })),
+    entities: z.array(
+        z.object({
+            name: z.string(),
+            entityType: z.string(),
+            description: z.string(),
+        })
+    ),
+    relationships: z.array(
+        z.object({
+            source: z.string(),
+            target: z.string(),
+            relation: z.string(),
+            description: z.string(),
+        })
+    ),
 });
 
 // ST Vector sync changes
 export const StSyncChangesSchema = z.object({
-    toSync: z.array(z.object({
-        hash: z.number(),
-        text: z.string(),
-        item: z.any(),
-    })).optional(),
-    toDelete: z.array(z.object({
-        hash: z.number(),
-    })).optional(),
+    toSync: z
+        .array(
+            z.object({
+                hash: z.number(),
+                text: z.string(),
+                item: z.any(),
+            })
+        )
+        .optional(),
+    toDelete: z
+        .array(
+            z.object({
+                hash: z.number(),
+            })
+        )
+        .optional(),
 });
 
 // Extraction phase options
@@ -304,10 +316,12 @@ export const LLMCallOptionsSchema = z.object({
 });
 
 // LLM message array (OpenAI format)
-export const LLMMessagesSchema = z.array(z.object({
-    role: z.string(),
-    content: z.string(),
-}));
+export const LLMMessagesSchema = z.array(
+    z.object({
+        role: z.string(),
+        content: z.string(),
+    })
+);
 
 // Retrieval context for scoring
 export const RetrievalContextSchema = z.object({

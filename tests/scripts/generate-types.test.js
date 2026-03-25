@@ -1,8 +1,9 @@
 // @ts-check
-import { describe, it, expect } from 'vitest';
+
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { describe, expect, it } from 'vitest';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '../..');

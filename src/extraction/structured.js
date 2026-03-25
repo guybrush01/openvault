@@ -2,16 +2,10 @@ import { cdnImport } from '../utils/cdn.js';
 
 const { z } = await cdnImport('zod');
 
+// Import base schemas from store/schemas.js
+import { BaseEntitySchema, BaseRelationshipSchema, EventExtractionSchema, EventSchema } from '../store/schemas.js';
 import { logError, logWarn } from '../utils/logging.js';
 import { safeParseJSON, stripMarkdownFences } from '../utils/text.js';
-
-// Import base schemas from store/schemas.js
-import {
-    BaseEntitySchema,
-    BaseRelationshipSchema,
-    EventSchema,
-    EventExtractionSchema,
-} from '../store/schemas.js';
 
 // --- Schemas Extended with .catch() Fallbacks for LLM Validation ---
 
@@ -34,7 +28,9 @@ export { EventSchema, EventExtractionSchema };
 export const EntitySchema = z.object({
     name: BaseEntitySchema.shape.name.catch('Unknown').describe('Entity name, capitalized'),
     type: BaseEntitySchema.shape.type.catch('OBJECT'),
-    description: BaseEntitySchema.shape.description.catch('No description available').describe('Comprehensive description of the entity'),
+    description: BaseEntitySchema.shape.description
+        .catch('No description available')
+        .describe('Comprehensive description of the entity'),
 });
 
 /**
@@ -45,7 +41,9 @@ export const EntitySchema = z.object({
 export const RelationshipSchema = z.object({
     source: BaseRelationshipSchema.shape.source.catch('Unknown').describe('Source entity name'),
     target: BaseRelationshipSchema.shape.target.catch('Unknown').describe('Target entity name'),
-    description: BaseRelationshipSchema.shape.description.catch('No description').describe('Description of the relationship'),
+    description: BaseRelationshipSchema.shape.description
+        .catch('No description')
+        .describe('Description of the relationship'),
 });
 
 /**

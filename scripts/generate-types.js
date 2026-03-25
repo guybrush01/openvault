@@ -90,7 +90,7 @@ const typeMappings = [
     { name: 'GraphData', schema: GraphDataSchema },
     { name: 'ScoreBreakdown', schema: ScoreBreakdownSchema },
     { name: 'ScoredMemory', schema: ScoredMemorySchema },
-    { name: 'Entity', schema: BaseEntitySchema },      // Use base schema for types
+    { name: 'Entity', schema: BaseEntitySchema }, // Use base schema for types
     { name: 'Relationship', schema: BaseRelationshipSchema },
     { name: 'ExtractedEvent', schema: EventSchema },
     { name: 'EventExtraction', schema: EventExtractionSchema },
@@ -174,7 +174,7 @@ ${typeContent}`;
     console.log(`Generated ${typeMappings.length} types in ${OUTPUT_PATH}`);
 }
 
-generateTypes().catch(err => {
+generateTypes().catch((err) => {
     console.error('Type generation failed:', err.message);
     process.exit(1);
 });

@@ -185,7 +185,7 @@
  * @property {string} personaDesc - Persona description
  * @property {string} preamble - System prompt preamble
  * @property {string} prefill - Assistant prefill text
- * @property {string} outputLanguage - Output language ('en' | 'ru')
+ * @property {'auto'|'en'|'ru'} outputLanguage - Output language
  */
 
 /**
@@ -256,6 +256,7 @@
  * @property {ReflectionState} [reflection_state] - Reflection tracking
  * @property {number} [graph_message_count] - Messages processed since last community detection
  * @property {GlobalWorldState} [global_world_state] - Macro-level world state synthesis
+ * @property {string} [embedding_model_id] - Embedding model fingerprint for migration detection
  */
 
 /**

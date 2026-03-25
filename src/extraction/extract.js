@@ -695,7 +695,7 @@ async function synthesizeCommunities(data, settings, characterName, userName) {
  * @param {string} contextParams.personaDesc
  * @param {string} contextParams.preamble
  * @param {string} contextParams.prefill
- * @param {string} contextParams.outputLanguage
+ * @param {'auto'|'en'|'ru'} contextParams.outputLanguage
  * @param {Array} existingMemories - Curated memory subset for prompt context
  * @param {AbortSignal} [abortSignal] - Abort signal for mid-request cancellation
  * @returns {Promise<{events: ExtractedEvent[]}>}
@@ -732,7 +732,7 @@ async function fetchEventsFromLLM(contextParams, existingMemories, abortSignal) 
  * @param {string} contextParams.personaDesc
  * @param {string} contextParams.preamble
  * @param {string} contextParams.prefill
- * @param {string} contextParams.outputLanguage
+ * @param {'auto'|'en'|'ru'} contextParams.outputLanguage
  * @param {string[]} formattedEvents - Pre-formatted event strings for the prompt
  * @param {AbortSignal} [abortSignal] - Abort signal for mid-request cancellation
  * @returns {Promise<GraphExtraction>}
@@ -1204,7 +1204,7 @@ export async function extractAllMessages(optionsOrCallback) {
             const freshData = getOpenVaultData();
 
             // Debug: log processed message tracking state
-            const processedCount = (freshData?.processed_message_ids || []).length;
+            const processedCount = (freshData?.processed_messages || []).length;
             const memoryCount = (freshData?.memories || []).length;
             logDebug(`Backfill state: ${processedCount} processed messages tracked, ${memoryCount} memories stored`);
 

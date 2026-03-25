@@ -66,5 +66,10 @@
                 "useButtonType": "off"
             }
         }
+    },
+    "html": {
+        "parser": {
+            "interpolation": true
+        }
     }
 }

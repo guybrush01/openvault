@@ -21,6 +21,12 @@ Agentic memory extension for SillyTavern providing POV-aware memory, witness tra
 - **Pre-commit**: Biome lints/formats automatically. DO NOT format manually. `npm run test` uses Vitest + JSDOM.
 - **Plans Archive**: `docs/plans/` contains execution plans. Move to `docs/designs/` after completion.
 
+### Type Safety (JSDoc + @ts-check)
+- **Zero-Transpile Types**: Add `// @ts-check` to enable TypeScript checking without a build step. JSDoc comments provide IntelliSense.
+- **Centralized Types**: All typedefs live in `src/types.js`. Import via `/** @typedef {import('../types.js').Memory} Memory */`.
+- **Where to Stop**: Type the domain layer (`src/extraction/`, `src/retrieval/`, `src/graph/`, `src/store/`). Do NOT type `src/ui/*.js` — jQuery/DOM manipulations are too painful via JSDoc.
+- **Generic Syntax**: JSDoc supports `/** @param {<T>(x: T) => T} fn */` for generic function types.
+
 ### Code Intelligence
 
 Prefer LSP over Grep/Glob/Read for code navigation:

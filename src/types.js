@@ -209,5 +209,40 @@
  * @property {StSyncChanges} stChanges - ST Vector sync changes
  */
 
+/**
+ * Flat graph structure stored in chatMetadata.openvault.graph
+ * @typedef {Object} GraphData
+ * @property {Object.<string, GraphNode>} nodes - Keyed by normalized entity name
+ * @property {Object.<string, GraphEdge>} edges - Keyed by "source__target"
+ * @property {Object.<string, string>} [_mergeRedirects] - Maps old keys to merged keys
+ * @property {string[]} [_edgesNeedingConsolidation] - Edge keys pending consolidation
+ */
+
+/**
+ * Graph node (entity) structure
+ * @typedef {Object} GraphNode
+ * @property {string} name - Display name (original casing preserved)
+ * @property {string} type - PERSON | PLACE | ORGANIZATION | OBJECT | CONCEPT
+ * @property {string} description - Entity description (pipe-separated segments)
+ * @property {number} mentions - How many times this entity was seen
+ * @property {number[]} [embedding] - Vector representation (deprecated, use embedding_b64)
+ * @property {string} [embedding_b64] - Base64-encoded Float32Array embedding
+ * @property {string[]} [aliases] - Alternative names merged into this node
+ * @property {boolean} [_st_synced] - ST Vector sync status
+ */
+
+/**
+ * Graph edge (relationship) structure
+ * @typedef {Object} GraphEdge
+ * @property {string} source - Source entity key (normalized)
+ * @property {string} target - Target entity key (normalized)
+ * @property {string} description - Relationship description (pipe-separated segments)
+ * @property {number} weight - Strength/occurrence count
+ * @property {number} [_descriptionTokens] - Token count for consolidation trigger
+ * @property {number[]} [embedding] - Vector representation (deprecated)
+ * @property {string} [embedding_b64] - Base64-encoded Float32Array embedding
+ * @property {boolean} [_st_synced] - ST Vector sync status
+ */
+
 // Empty export to make this file a module for JSDoc imports
 export {};

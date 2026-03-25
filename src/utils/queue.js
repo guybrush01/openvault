@@ -23,7 +23,7 @@ const _RATE_LIMIT_COOLOFF_MS = 4000;
 
 /**
  * Detect rate-limit or timeout errors.
- * @param {Error} error
+ * @param {Error & {status?: number}} error
  * @returns {boolean}
  */
 function isRateLimitError(error) {

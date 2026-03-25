@@ -131,7 +131,7 @@ export function findCrossScriptCharacterKeys(baseKeys, graphNodes) {
  * Merges descriptions and increments mentions on duplicates.
  * @param {GraphData} graphData - The graph object { nodes, edges } (mutated in place)
  * @param {string} name - Entity name (original casing preserved on first insert)
- * @param {string} type - PERSON | PLACE | ORGANIZATION | OBJECT | CONCEPT
+ * @param {"PERSON" | "PLACE" | "ORGANIZATION" | "OBJECT" | "CONCEPT"} type - Entity type
  * @param {string} description - Entity description
  * @param {number} [cap=3] - Maximum number of description segments to retain
  * @returns {void}
@@ -361,7 +361,7 @@ export function hasSufficientTokenOverlap(tokensA, tokensB, minOverlapRatio = 0.
  * @param {Set<string>} tokensA - Word tokens from entity A's key (pre-computed)
  * @param {string} keyA - Entity A's normalized key
  * @param {string} keyB - Entity B's normalized key
- * @param {string} [type='OBJECT'] - Entity type (PERSON, OBJECT, CONCEPT, etc.)
+ * @param {"PERSON" | "PLACE" | "ORGANIZATION" | "OBJECT" | "CONCEPT"} [type='OBJECT'] - Entity type
  * @returns {boolean}
  */
 export function shouldMergeEntities(cosine, threshold, tokensA, keyA, keyB, type = 'OBJECT') {
@@ -380,7 +380,7 @@ export function shouldMergeEntities(cosine, threshold, tokensA, keyA, keyB, type
  * Merge-or-insert an entity with semantic deduplication.
  * @param {GraphData} graphData - The graph object { nodes, edges }
  * @param {string} name - Entity name
- * @param {string} type - Entity type
+ * @param {"PERSON" | "PLACE" | "ORGANIZATION" | "OBJECT" | "CONCEPT"} type - Entity type
  * @param {string} description - Entity description
  * @param {number} cap - Description segment cap
  * @param {Object} _settings - Extension settings

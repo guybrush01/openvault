@@ -305,4 +305,407 @@ export type QueryConfig = {
     exactPhraseBoostWeight?: number | undefined;
 };
 
+export type GraphExtraction = {
+    entities: {
+        name: string;
+        entityType: string;
+        description: string;
+    }[];
+    relationships: {
+        source: string;
+        target: string;
+        relation: string;
+        description: string;
+    }[];
+};
+
+export type StSyncChanges = {
+    toSync?: {
+        hash: number;
+        text: string;
+        item: any;
+    }[] | undefined;
+    toDelete?: {
+        hash: number;
+    }[] | undefined;
+};
+
+export type ExtractionOptions = {
+    isBackfill?: boolean | undefined;
+    isEmergencyCut?: boolean | undefined;
+    silent?: boolean | undefined;
+    abortSignal?: any | undefined;
+    progressCallback?: any | undefined;
+    onPhase2Start?: any | undefined;
+};
+
+export type IDFCache = {
+    memoryCount: number;
+    idfMap: {
+        [key: string]: number;
+    };
+    avgDL: number;
+};
+
+export type ExtractionContextParams = {
+    messagesText: string;
+    names: string[];
+    charDesc: string;
+    personaDesc: string;
+    preamble: string;
+    prefill: string;
+    outputLanguage: "auto" | "en" | "ru";
+};
+
+export type ExtractionLLMOptions = {
+    structured: boolean;
+    signal?: any | undefined;
+};
+
+export type GenerateReflectionsResult = {
+    reflections: {
+        id: string;
+        summary: string;
+        importance: number;
+        embedding?: number[] | undefined;
+        message_id: number;
+        timestamp: number;
+        witnesses?: string[] | undefined;
+        type?: ("event" | "reflection" | "global_synthesis") | undefined;
+        level?: number | undefined;
+        tokens: string[];
+        message_ids?: number[] | undefined;
+        mentions?: number | undefined;
+        retrieval_hits?: number | undefined;
+        archived?: boolean | undefined;
+        _st_synced?: boolean | undefined;
+        _proxyVectorScore?: number | undefined;
+    }[];
+    stChanges: {
+        toSync?: {
+            hash: number;
+            text: string;
+            item: any;
+        }[] | undefined;
+        toDelete?: {
+            hash: number;
+        }[] | undefined;
+    };
+};
+
+export type ConsolidateEdgesResult = {
+    count: number;
+    stChanges: {
+        toSync?: {
+            hash: number;
+            text: string;
+            item: any;
+        }[] | undefined;
+        toDelete?: {
+            hash: number;
+        }[] | undefined;
+    };
+};
+
+export type MergeEntityResult = {
+    key: string;
+    stChanges: {
+        toSync?: {
+            hash: number;
+            text: string;
+            item: any;
+        }[] | undefined;
+        toDelete?: {
+            hash: number;
+        }[] | undefined;
+    };
+};
+
+export type StVectorQueryResult = {
+    id: string;
+    hash: number;
+    text: string;
+};
+
+export type LLMConfig = {
+    profileSettingKey: string;
+    maxTokens: number;
+    errorContext: string;
+    timeoutMs: number;
+    getJsonSchema?: any | undefined;
+};
+
+export type LLMCallOptions = {
+    structured?: boolean | undefined;
+    signal?: any | undefined;
+    profileId?: string | undefined;
+    backupProfileId?: string | undefined;
+};
+
+export type LLMMessages = {
+    role: string;
+    content: string;
+}[];
+
+export type RetrievalContext = {
+    recentContext: string;
+    userMessages: string;
+    activeCharacters: string[];
+    chatLength: number;
+    finalTokens: number;
+    scoringConfig: {
+        forgetfulnessBaseLambda: number;
+        forgetfulnessImportance5Floor: number;
+        reflectionDecayThreshold: number;
+        reflectionLevelMultiplier: number;
+        vectorSimilarityThreshold: number;
+        alpha: number;
+        combinedBoostWeight: number;
+        embeddingSource: "local" | "ollama" | "st_vector";
+    };
+    queryConfig: {
+        contextWindowSize?: number | undefined;
+        entityBoostWeight?: number | undefined;
+        corpusGroundedBoost?: number | undefined;
+        corpusNonGroundedBoost?: number | undefined;
+        exactPhraseBoostWeight?: number | undefined;
+    };
+    graphNodes?: {
+        [key: string]: {
+            name: string;
+            type: "PERSON" | "PLACE" | "ORGANIZATION" | "OBJECT" | "CONCEPT";
+            description: string;
+            mentions: number;
+            embedding?: number[] | undefined;
+            embedding_b64?: string | undefined;
+            aliases?: string[] | undefined;
+            _st_synced?: boolean | undefined;
+        };
+    } | undefined;
+    graphEdges?: {
+        [key: string]: {
+            source: string;
+            target: string;
+            description: string;
+            weight: number;
+            _descriptionTokens?: number | undefined;
+            embedding?: number[] | undefined;
+            embedding_b64?: string | undefined;
+            _st_synced?: boolean | undefined;
+        };
+    } | undefined;
+    allAvailableMemories?: {
+        id: string;
+        summary: string;
+        importance: number;
+        embedding?: number[] | undefined;
+        message_id: number;
+        timestamp: number;
+        witnesses?: string[] | undefined;
+        type?: ("event" | "reflection" | "global_synthesis") | undefined;
+        level?: number | undefined;
+        tokens: string[];
+        message_ids?: number[] | undefined;
+        mentions?: number | undefined;
+        retrieval_hits?: number | undefined;
+        archived?: boolean | undefined;
+        _st_synced?: boolean | undefined;
+        _proxyVectorScore?: number | undefined;
+    }[] | undefined;
+    idfCache?: {
+        memoryCount: number;
+        idfMap: {
+            [key: string]: number;
+        };
+        avgDL: number;
+    } | undefined;
+};
+
+export type BM25Context = {
+    idfMap: Map<string, number>;
+    avgDL: number;
+};
+
+export type ForgetfulnessConstants = {
+    BASE_LAMBDA: number;
+    IMPORTANCE_5_FLOOR: number;
+    reflectionDecayThreshold: number;
+    reflectionLevelMultiplier?: number | undefined;
+};
+
+export type ScoringSettings = {
+    vectorSimilarityThreshold: number;
+    alpha: number;
+    combinedBoostWeight: number;
+};
+
+export type MemoryUpdate = {
+    summary?: string | undefined;
+    importance?: number | undefined;
+    tags?: string[] | undefined;
+    is_secret?: boolean | undefined;
+};
+
+export type CharacterNames = {
+    char: string;
+    user: string;
+};
+
+export type PromptContext = {
+    memories?: {
+        id: string;
+        summary: string;
+        importance: number;
+        embedding?: number[] | undefined;
+        message_id: number;
+        timestamp: number;
+        witnesses?: string[] | undefined;
+        type?: ("event" | "reflection" | "global_synthesis") | undefined;
+        level?: number | undefined;
+        tokens: string[];
+        message_ids?: number[] | undefined;
+        mentions?: number | undefined;
+        retrieval_hits?: number | undefined;
+        archived?: boolean | undefined;
+        _st_synced?: boolean | undefined;
+        _proxyVectorScore?: number | undefined;
+    }[] | undefined;
+    charDesc?: string | undefined;
+    personaDesc?: string | undefined;
+};
+
+export type BasePromptParams = {
+    messages: string;
+    names: {
+        char: string;
+        user: string;
+    };
+    context?: {
+        memories?: {
+            id: string;
+            summary: string;
+            importance: number;
+            embedding?: number[] | undefined;
+            message_id: number;
+            timestamp: number;
+            witnesses?: string[] | undefined;
+            type?: ("event" | "reflection" | "global_synthesis") | undefined;
+            level?: number | undefined;
+            tokens: string[];
+            message_ids?: number[] | undefined;
+            mentions?: number | undefined;
+            retrieval_hits?: number | undefined;
+            archived?: boolean | undefined;
+            _st_synced?: boolean | undefined;
+            _proxyVectorScore?: number | undefined;
+        }[] | undefined;
+        charDesc?: string | undefined;
+        personaDesc?: string | undefined;
+    } | undefined;
+    preamble: string;
+    prefill: string;
+    outputLanguage?: ("auto" | "en" | "ru") | undefined;
+};
+
+export type GraphPromptParams = {
+    messages: string;
+    names: {
+        char: string;
+        user: string;
+    };
+    context?: {
+        memories?: {
+            id: string;
+            summary: string;
+            importance: number;
+            embedding?: number[] | undefined;
+            message_id: number;
+            timestamp: number;
+            witnesses?: string[] | undefined;
+            type?: ("event" | "reflection" | "global_synthesis") | undefined;
+            level?: number | undefined;
+            tokens: string[];
+            message_ids?: number[] | undefined;
+            mentions?: number | undefined;
+            retrieval_hits?: number | undefined;
+            archived?: boolean | undefined;
+            _st_synced?: boolean | undefined;
+            _proxyVectorScore?: number | undefined;
+        }[] | undefined;
+        charDesc?: string | undefined;
+        personaDesc?: string | undefined;
+    } | undefined;
+    preamble: string;
+    prefill: string;
+    outputLanguage?: ("auto" | "en" | "ru") | undefined;
+    extractedEvents?: string[] | undefined;
+};
+
+export type EdgeConsolidationParams = {
+    edgeData: {
+        source: string;
+        target: string;
+        description: string;
+        weight: number;
+        _descriptionTokens?: number | undefined;
+        embedding?: number[] | undefined;
+        embedding_b64?: string | undefined;
+        _st_synced?: boolean | undefined;
+    };
+    preamble: string;
+    prefill: string;
+    outputLanguage?: ("auto" | "en" | "ru") | undefined;
+};
+
+export type ReflectionPromptParams = {
+    characterName: string;
+    recentMemories: {
+        id: string;
+        summary: string;
+        importance: number;
+        embedding?: number[] | undefined;
+        message_id: number;
+        timestamp: number;
+        witnesses?: string[] | undefined;
+        type?: ("event" | "reflection" | "global_synthesis") | undefined;
+        level?: number | undefined;
+        tokens: string[];
+        message_ids?: number[] | undefined;
+        mentions?: number | undefined;
+        retrieval_hits?: number | undefined;
+        archived?: boolean | undefined;
+        _st_synced?: boolean | undefined;
+        _proxyVectorScore?: number | undefined;
+    }[];
+    preamble: string;
+    prefill: string;
+    outputLanguage?: ("auto" | "en" | "ru") | undefined;
+};
+
+export type CommunitySummaryParams = {
+    nodeLines: string[];
+    edgeLines: string[];
+    preamble: string;
+    prefill: string;
+    outputLanguage?: ("auto" | "en" | "ru") | undefined;
+};
+
+export type GlobalSynthesisParams = {
+    communities: {
+        id: string;
+        title: string;
+        summary: string;
+        entities?: string[] | undefined;
+        findings?: string[] | undefined;
+        last_updated?: number | undefined;
+    }[];
+    preamble: string;
+    prefill: string;
+    outputLanguage?: ("auto" | "en" | "ru") | undefined;
+};
+
+export type CdnMirrorFn = any;
+
+export type LadderQueue = any;
+
 // End of generated types

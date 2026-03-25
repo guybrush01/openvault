@@ -197,3 +197,232 @@ export const QueryConfigSchema = z.object({
     corpusNonGroundedBoost: z.number().optional(),
     exactPhraseBoostWeight: z.number().optional(),
 });
+
+// --- Additional Types for Type Generation ---
+
+// Graph extraction result from LLM
+export const GraphExtractionSchema = z.object({
+    entities: z.array(z.object({
+        name: z.string(),
+        entityType: z.string(),
+        description: z.string(),
+    })),
+    relationships: z.array(z.object({
+        source: z.string(),
+        target: z.string(),
+        relation: z.string(),
+        description: z.string(),
+    })),
+});
+
+// ST Vector sync changes
+export const StSyncChangesSchema = z.object({
+    toSync: z.array(z.object({
+        hash: z.number(),
+        text: z.string(),
+        item: z.any(),
+    })).optional(),
+    toDelete: z.array(z.object({
+        hash: z.number(),
+    })).optional(),
+});
+
+// Extraction phase options
+export const ExtractionOptionsSchema = z.object({
+    isBackfill: z.boolean().optional(),
+    isEmergencyCut: z.boolean().optional(),
+    silent: z.boolean().optional(),
+    abortSignal: z.any().optional(),
+    progressCallback: z.any().optional(),
+    onPhase2Start: z.any().optional(),
+});
+
+// IDF cache object
+export const IDFCacheSchema = z.object({
+    memoryCount: z.number(),
+    idfMap: z.record(z.string(), z.number()),
+    avgDL: z.number(),
+});
+
+// Context parameters for LLM extraction
+export const ExtractionContextParamsSchema = z.object({
+    messagesText: z.string(),
+    names: z.array(z.string()),
+    charDesc: z.string(),
+    personaDesc: z.string(),
+    preamble: z.string(),
+    prefill: z.string(),
+    outputLanguage: z.enum(['auto', 'en', 'ru']),
+});
+
+// LLM call options for structured extraction
+export const ExtractionLLMOptionsSchema = z.object({
+    structured: z.boolean(),
+    signal: z.any().optional(),
+});
+
+// Return value from generateReflections
+export const GenerateReflectionsResultSchema = z.object({
+    reflections: z.array(MemorySchema),
+    stChanges: StSyncChangesSchema,
+});
+
+// Return value from consolidateEdges
+export const ConsolidateEdgesResultSchema = z.object({
+    count: z.number(),
+    stChanges: StSyncChangesSchema,
+});
+
+// Return value from mergeOrInsertEntity
+export const MergeEntityResultSchema = z.object({
+    key: z.string(),
+    stChanges: StSyncChangesSchema,
+});
+
+// ST Vector query result
+export const StVectorQueryResultSchema = z.object({
+    id: z.string(),
+    hash: z.number(),
+    text: z.string(),
+});
+
+// LLM configuration preset
+export const LLMConfigSchema = z.object({
+    profileSettingKey: z.string(),
+    maxTokens: z.number(),
+    errorContext: z.string(),
+    timeoutMs: z.number(),
+    getJsonSchema: z.any().optional(),
+});
+
+// LLM call options
+export const LLMCallOptionsSchema = z.object({
+    structured: z.boolean().optional(),
+    signal: z.any().optional(),
+    profileId: z.string().optional(),
+    backupProfileId: z.string().optional(),
+});
+
+// LLM message array (OpenAI format)
+export const LLMMessagesSchema = z.array(z.object({
+    role: z.string(),
+    content: z.string(),
+}));
+
+// Retrieval context for scoring
+export const RetrievalContextSchema = z.object({
+    recentContext: z.string(),
+    userMessages: z.string(),
+    activeCharacters: z.array(z.string()),
+    chatLength: z.number(),
+    finalTokens: z.number(),
+    scoringConfig: ScoringConfigSchema,
+    queryConfig: QueryConfigSchema,
+    graphNodes: z.record(z.string(), GraphNodeSchema).optional(),
+    graphEdges: z.record(z.string(), GraphEdgeSchema).optional(),
+    allAvailableMemories: z.array(MemorySchema).optional(),
+    idfCache: IDFCacheSchema.optional(),
+});
+
+// BM25 calculation context
+export const BM25ContextSchema = z.object({
+    idfMap: z.map(z.string(), z.number()),
+    avgDL: z.number(),
+});
+
+// Forgetfulness curve constants
+export const ForgetfulnessConstantsSchema = z.object({
+    BASE_LAMBDA: z.number(),
+    IMPORTANCE_5_FLOOR: z.number(),
+    reflectionDecayThreshold: z.number(),
+    reflectionLevelMultiplier: z.number().optional(),
+});
+
+// Scoring settings
+export const ScoringSettingsSchema = z.object({
+    vectorSimilarityThreshold: z.number(),
+    alpha: z.number(),
+    combinedBoostWeight: z.number(),
+});
+
+// Memory update fields for updateMemory()
+export const MemoryUpdateSchema = z.object({
+    summary: z.string().optional(),
+    importance: z.number().int().min(1).max(5).optional(),
+    tags: z.array(z.string()).optional(),
+    is_secret: z.boolean().optional(),
+});
+
+// Character names pair for prompt building
+export const CharacterNamesSchema = z.object({
+    char: z.string(),
+    user: z.string(),
+});
+
+// Context object for prompt builders
+export const PromptContextSchema = z.object({
+    memories: z.array(MemorySchema).optional(),
+    charDesc: z.string().optional(),
+    personaDesc: z.string().optional(),
+});
+
+// Base prompt builder parameters
+export const BasePromptParamsSchema = z.object({
+    messages: z.string(),
+    names: CharacterNamesSchema,
+    context: PromptContextSchema.optional(),
+    preamble: z.string(),
+    prefill: z.string(),
+    outputLanguage: z.enum(['auto', 'en', 'ru']).optional(),
+});
+
+// Graph extraction prompt parameters
+export const GraphPromptParamsSchema = z.object({
+    messages: z.string(),
+    names: CharacterNamesSchema,
+    context: PromptContextSchema.optional(),
+    preamble: z.string(),
+    prefill: z.string(),
+    outputLanguage: z.enum(['auto', 'en', 'ru']).optional(),
+    extractedEvents: z.array(z.string()).optional(),
+});
+
+// Edge consolidation prompt parameters
+export const EdgeConsolidationParamsSchema = z.object({
+    edgeData: GraphEdgeSchema,
+    preamble: z.string(),
+    prefill: z.string(),
+    outputLanguage: z.enum(['auto', 'en', 'ru']).optional(),
+});
+
+// Reflection prompt parameters
+export const ReflectionPromptParamsSchema = z.object({
+    characterName: z.string(),
+    recentMemories: z.array(MemorySchema),
+    preamble: z.string(),
+    prefill: z.string(),
+    outputLanguage: z.enum(['auto', 'en', 'ru']).optional(),
+});
+
+// Community summary prompt parameters
+export const CommunitySummaryParamsSchema = z.object({
+    nodeLines: z.array(z.string()),
+    edgeLines: z.array(z.string()),
+    preamble: z.string(),
+    prefill: z.string(),
+    outputLanguage: z.enum(['auto', 'en', 'ru']).optional(),
+});
+
+// Global synthesis prompt parameters
+export const GlobalSynthesisParamsSchema = z.object({
+    communities: z.array(CommunitySummarySchema),
+    preamble: z.string(),
+    prefill: z.string(),
+    outputLanguage: z.enum(['auto', 'en', 'ru']).optional(),
+});
+
+// CdnMirrorFn - function type (represented as any for Zod)
+export const CdnMirrorFnSchema = z.any();
+
+// LadderQueue - complex interface (represented as any for Zod)
+export const LadderQueueSchema = z.any();

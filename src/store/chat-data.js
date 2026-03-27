@@ -1,6 +1,6 @@
 // @ts-check
 
-import { CHARACTERS_KEY, MEMORIES_KEY, METADATA_KEY, PROCESSED_MESSAGES_KEY } from '../constants.js';
+import { CHARACTERS_KEY, EMBEDDING_SOURCES, MEMORIES_KEY, METADATA_KEY, PROCESSED_MESSAGES_KEY } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { createEmptyGraph } from '../graph/graph.js';
 import { record } from '../perf/store.js';
@@ -183,7 +183,7 @@ export async function deleteCurrentChatData() {
 
     // Purge ST Vector Storage if using st_vector
     const settings = getDeps().getExtensionSettings()?.openvault;
-    if (settings?.embeddingSource === 'st_vector') {
+    if (settings?.embeddingSource === EMBEDDING_SOURCES.ST_VECTOR) {
         const chatId = getCurrentChatId();
         if (chatId) {
             try {

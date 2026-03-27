@@ -376,7 +376,7 @@ export function hasSufficientTokenOverlap(
  * @param {"PERSON" | "PLACE" | "ORGANIZATION" | "OBJECT" | "CONCEPT"} [type='OBJECT'] - Entity type
  * @returns {boolean}
  */
-export function shouldMergeEntities(cosine, threshold, tokensA, keyA, keyB, type = 'OBJECT') {
+export function shouldMergeEntities(cosine, threshold, tokensA, keyA, keyB, type = ENTITY_TYPES.OBJECT) {
     // PERSON entities: names are unique identifiers, high similarity is sufficient
     if (type === ENTITY_TYPES.PERSON && cosine >= threshold) return true;
 
@@ -385,7 +385,7 @@ export function shouldMergeEntities(cosine, threshold, tokensA, keyA, keyB, type
     if (cosine < threshold - 0.1) return false;
 
     const tokensB = new Set(keyB.split(/\s+/));
-    return hasSufficientTokenOverlap(tokensA, tokensB, 0.6, keyA, keyB);
+    return hasSufficientTokenOverlap(tokensA, tokensB, GRAPH_JACCARD_DUPLICATE_THRESHOLD, keyA, keyB);
 }
 
 /**

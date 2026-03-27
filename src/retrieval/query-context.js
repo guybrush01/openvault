@@ -8,10 +8,8 @@
 import { getOptimalChunkSize } from '../embeddings.js';
 import { stemName, stemWord } from '../utils/stemmer.js';
 import { tokenize } from './math.js';
+import { CORPUS_GROUNDED_BOOST_RATIO, NON_GROUNDED_BOOST_RATIO } from '../constants.js';
 
-// Three-tier BM25 token weights (multipliers of entityBoostWeight)
-const CORPUS_GROUNDED_BOOST_RATIO = 0.6; // Layer 2: 60% of entity boost (3x when entityBoostWeight=5)
-const NON_GROUNDED_BOOST_RATIO = 0.4; // Layer 3: 40% of entity boost (2x when entityBoostWeight=5)
 
 /**
  * Extract entities from recent messages using graph-anchored stem matching

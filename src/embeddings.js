@@ -1,4 +1,4 @@
-import { extensionName } from './constants.js';
+import { EMBEDDING_SOURCES, extensionName } from './constants.js';
 import { getDeps } from './deps.js';
 import { record } from './perf/store.js';
 import { getSessionSignal } from './state.js';
@@ -469,7 +469,7 @@ export async function testOllamaConnection(url) {
 
 class StVectorStrategy extends EmbeddingStrategy {
     getId() {
-        return 'st_vector';
+        return EMBEDDING_SOURCES.ST_VECTOR;
     }
 
     isEnabled() {
@@ -532,7 +532,7 @@ const strategies = {
     'bge-small-en-v1.5': new TransformersStrategy(),
     'embeddinggemma-300m': new TransformersStrategy(),
     ollama: new OllamaStrategy(),
-    st_vector: new StVectorStrategy(),
+    [EMBEDDING_SOURCES.ST_VECTOR]: new StVectorStrategy(),
 };
 
 // Configure model-specific transformers strategies
@@ -583,7 +583,7 @@ function getOptimalChunkSize() {
     }
 
     // For Ollama, use a safe default
-    if (source === 'ollama') {
+    if (source === EMBEDDING_SOURCES.OLLAMA) {
         return 800;
     }
 

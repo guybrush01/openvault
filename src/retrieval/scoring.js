@@ -64,6 +64,7 @@ async function scoreMemoriesDirect(
         vectorSimilarityThreshold: scoringConfig.vectorSimilarityThreshold,
         alpha: scoringConfig.alpha,
         combinedBoostWeight: scoringConfig.combinedBoostWeight,
+        transientDecayMultiplier: scoringConfig.transientDecayMultiplier,
     };
     const scored = await scoreMemories(
         memories,
@@ -231,6 +232,7 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
                 vectorSimilarityThreshold: scoringConfig.vectorSimilarityThreshold,
                 alpha: scoringConfig.alpha,
                 combinedBoostWeight: scoringConfig.combinedBoostWeight,
+                transientDecayMultiplier: scoringConfig.transientDecayMultiplier,
             };
             const scored = await scoreMemories(
                 candidates,

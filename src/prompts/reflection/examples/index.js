@@ -7,7 +7,7 @@ import * as ru from './ru.js';
  * @param {'auto'|'en'|'ru'} [language='auto'] - Language filter
  * @returns {Array} Filtered examples
  */
-export function getExamples(type, language = 'auto') {
+export function getExamples(_type, language = 'auto') {
     if (language === 'en') return en.REFLECTIONS || [];
     if (language === 'ru') return ru.REFLECTIONS || [];
     // Auto: merge both languages

@@ -146,7 +146,7 @@ export function formatContextForInjection(
     let totalTokens = 0;
 
     for (const memory of [...buckets.old, ...buckets.mid, ...buckets.recent]) {
-        const memoryTokens = countTokens(memory.summary || '') + 5;
+        const memoryTokens = countTokens(formatMemory(memory)) + 1;
         if (totalTokens + memoryTokens <= availableForMemories) {
             fittingMemoryIds.add(memory.id);
             totalTokens += memoryTokens;

@@ -58,6 +58,10 @@ characters_involved: Characters who actively participated in or were directly af
 witnesses: ALL characters who would know this event occurred — includes characters_involved PLUS any characters present in the scene, observing, or mentioned as being aware. In a 1-on-1 scene between User and Character, BOTH are witnesses. If you are unsure whether a character knows, include them — the system will filter appropriately.
 
 is_secret: Set to true ONLY if the event is explicitly hidden from the main character (e.g., user's internal thoughts, secret actions behind character's back, hidden plots). Most events are NOT secrets.
+
+temporal_anchor: Look for timestamp headers in messages (e.g., time/date markers). Extract ONLY the concise date and time as written by the user (e.g., "Friday, June 14, 3:40 PM" or "Wednesday, 30 October 2024. 4:43 PM"). Strip decorative elements like emojis, locations, and weather if present, but preserve the verbatim date/time format chosen by the user. If no time is stated, return null.
+
+is_transient: Set to true ONLY for short-term intentions, temporary states, or immediate plans (e.g., "going to wash up", "waiting for 10 minutes", "be right back", "let's meet at 7 PM"). Set to false for permanent facts, completed actions, or durable relationship changes (e.g., "revealed a secret", "professed love", "moved to a new city").
 </field_instructions>
 
 <thinking_process>

@@ -31,6 +31,8 @@ export const MemorySchema = z.object({
     mentions: z.number().optional(),
     retrieval_hits: z.number().optional(),
     archived: z.boolean().optional(),
+    temporal_anchor: z.string().nullable().optional(),
+    is_transient: z.boolean().optional(),
     _st_synced: z.boolean().optional(),
     _proxyVectorScore: z.number().optional(),
 });
@@ -120,6 +122,8 @@ export const EventSchema = z.object({
     witnesses: z.array(z.string().trim()).default([]),
     location: z.string().nullable().default(null),
     is_secret: z.boolean().default(false),
+    temporal_anchor: z.string().nullable().optional().default(null),
+    is_transient: z.boolean().optional().default(false),
     emotional_impact: z.record(z.string().trim(), z.any()).optional().default({}),
     relationship_impact: z.record(z.string().trim(), z.any()).optional().default({}),
 });
@@ -188,6 +192,7 @@ export const ScoringConfigSchema = z.object({
     alpha: z.number(),
     combinedBoostWeight: z.number(),
     embeddingSource: z.enum(['local', 'ollama', 'st_vector']),
+    transientDecayMultiplier: z.number().positive().optional().default(5.0),
 });
 
 export const QueryConfigSchema = z.object({
@@ -365,6 +370,8 @@ export const MemoryUpdateSchema = z.object({
     importance: z.number().int().min(1).max(5).optional(),
     tags: z.array(z.string()).optional(),
     is_secret: z.boolean().optional(),
+    temporal_anchor: z.string().nullable().optional(),
+    is_transient: z.boolean().optional(),
 });
 
 // Character names pair for prompt building

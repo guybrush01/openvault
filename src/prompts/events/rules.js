@@ -12,12 +12,15 @@ Core principle: Name the exact action, emotion, or revelation. The output summar
 - Emotional events: name the specific emotion and its cause
 - Revelations: state the exact information that was disclosed
 - Combat: name the weapon, target, and outcome
+- Commitments & Rules: state the exact promise, schedule, boundary, or ongoing agreement established (e.g., "agreed to check in every day").
+- Preferences: state exactly what a character explicitly revealed they like, dislike, or require.
 
 A correct extraction preserves all source specificity.
 An incorrect extraction loses detail through generalization.
 
 These are all WRONG — information destroyed by vagueness:
 ✗ "they got intimate" ✗ "combat occurred" ✗ "feelings were expressed" ✗ "a secret was shared" ✗ "things escalated"
+✗ "they made a promise" ✗ "rules were discussed"
 </precision>
 
 <dedup>

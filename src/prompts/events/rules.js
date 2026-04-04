@@ -63,7 +63,7 @@ is_secret: Set to true ONLY if the event is explicitly hidden from the main char
 <thinking_process>
 Follow these steps IN ORDER. Write your work inside <think> tags BEFORE outputting the JSON:
 
-Step 1: List the specific actions, emotions, and facts in the new messages.
+Step 1: List the specific actions, emotions, facts, promises, stated preferences, and ongoing rules in the new messages.
 Step 2: Check <established_memories>. Is any of this already recorded?
 Step 3: Apply dedup rules. If this is a continuation, look for the newest progression. If there is none at all, plan to output "events": [].
 Step 4: For genuinely NEW events, assign importance (1-5), write a specific factual summary, and identify ALL witnesses (not just participants).

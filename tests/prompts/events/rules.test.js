@@ -39,4 +39,10 @@ describe('events/rules', () => {
             expect(EVENT_RULES).toContain('strict ongoing rules agreed upon');
         });
     });
+
+    describe('thinking process', () => {
+        it('should include promises and preferences in thinking Step 1', () => {
+            expect(EVENT_RULES).toContain('promises, stated preferences, and ongoing rules');
+        });
+    });
 });

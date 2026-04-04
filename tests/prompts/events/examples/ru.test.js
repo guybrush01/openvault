@@ -7,23 +7,23 @@ describe('events/examples/ru', () => {
     });
 
     it('should include conversational commitment example', () => {
-        const commitmentExample = EXAMPLES.find(e => e.label.includes('Conversational commitment'));
+        const commitmentExample = EXAMPLES.find((e) => e.label.includes('Conversational commitment'));
         expect(commitmentExample).toBeDefined();
         expect(commitmentExample.input).toContain('вторникам');
         expect(commitmentExample.input).toContain('Alice');
     });
 
     it('should have Russian input/output and English thinking', () => {
-        const commitmentExample = EXAMPLES.find(e => e.label.includes('Conversational commitment'));
+        const commitmentExample = EXAMPLES.find((e) => e.label.includes('Conversational commitment'));
         // Thinking should be in English (per language rules)
         expect(commitmentExample.thinking).toContain('Cross-reference');
         expect(commitmentExample.thinking).toContain('durable');
         // Output should contain Russian text
-        expect(commitmentExample.output).toContain('ср');  // средам (Wednesdays)
+        expect(commitmentExample.output).toContain('ср'); // средам (Wednesdays)
     });
 
     it('should show durability evaluation in thinking process', () => {
-        const commitmentExample = EXAMPLES.find(e => e.label.includes('Conversational commitment'));
+        const commitmentExample = EXAMPLES.find((e) => e.label.includes('Conversational commitment'));
         expect(commitmentExample.thinking).toContain('momentary');
         expect(commitmentExample.thinking).toContain('durable');
     });

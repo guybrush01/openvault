@@ -7,7 +7,7 @@ describe('events/examples/en', () => {
     });
 
     it('should include conversational commitment example', () => {
-        const commitmentExample = EXAMPLES.find(e => e.label.includes('Conversational commitment'));
+        const commitmentExample = EXAMPLES.find((e) => e.label.includes('Conversational commitment'));
         expect(commitmentExample).toBeDefined();
         expect(commitmentExample.input).toContain("I can't do Tuesdays anymore");
         expect(commitmentExample.input).toContain('Alice');
@@ -15,13 +15,13 @@ describe('events/examples/en', () => {
     });
 
     it('should show durability evaluation in thinking process', () => {
-        const commitmentExample = EXAMPLES.find(e => e.label.includes('Conversational commitment'));
+        const commitmentExample = EXAMPLES.find((e) => e.label.includes('Conversational commitment'));
         expect(commitmentExample.thinking).toContain('momentary (skip)');
         expect(commitmentExample.thinking).toContain('durable');
     });
 
     it('should extract schedule change and promise as importance 3', () => {
-        const commitmentExample = EXAMPLES.find(e => e.label.includes('Conversational commitment'));
+        const commitmentExample = EXAMPLES.find((e) => e.label.includes('Conversational commitment'));
         expect(commitmentExample.output).toContain('importance": 3');
         expect(commitmentExample.output).toContain('move their meetups to Wednesdays');
         expect(commitmentExample.output).toContain('promised to text');

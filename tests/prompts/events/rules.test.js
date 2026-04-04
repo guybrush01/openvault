@@ -16,4 +16,27 @@ describe('events/rules', () => {
         expect(EVENT_RULES).toContain('"they made a promise"');
         expect(EVENT_RULES).toContain('"rules were discussed"');
     });
+
+    describe('importance scale', () => {
+        it('should include durability-framed importance scale', () => {
+            expect(EVENT_RULES).toContain('<importance_scale>');
+            expect(EVENT_RULES).toContain('</importance_scale>');
+            expect(EVENT_RULES).toContain('durable — they matter for future interactions');
+        });
+
+        it('should demote momentary actions in importance scale', () => {
+            expect(EVENT_RULES).toContain('A goodbye kiss or a one-time compliment is 2');
+            expect(EVENT_RULES).toContain('it matters now but not next week');
+        });
+
+        it('should explicitly name stated preferences at importance 3', () => {
+            expect(EVENT_RULES).toContain('Stated preferences (likes/dislikes)');
+            expect(EVENT_RULES).toContain('everyday promises');
+        });
+
+        it('should explicitly name boundaries at importance 4', () => {
+            expect(EVENT_RULES).toContain('Hard boundaries established');
+            expect(EVENT_RULES).toContain('strict ongoing rules agreed upon');
+        });
+    });
 });

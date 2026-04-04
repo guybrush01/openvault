@@ -45,9 +45,9 @@ When in doubt, extract a brief progression event rather than output nothing. The
 Rate each event from 1 (trivial) to 5 (critical):
 
 1 — Trivial: Quick greeting, passing touch, mundane small talk. Usually skip these entirely.
-2 — Minor: Standard continuation of an established dynamic. Routine intimate acts between characters already in a sexual relationship. Repeated daily actions.
-3 — Notable: Meaningful conversation, change of location or scene, new emotional context, minor secret shared, notable gift.
-4 — Significant: A major narrative shift, deep emotional vulnerability, first use of a safeword, establishing a new relationship dynamic, a major argument or confrontation.
+2 — Minor: Standard continuation of an established dynamic, routine acts, momentary reactions. A goodbye kiss or a one-time compliment is 2 — it matters now but not next week.
+3 — Notable: Meaningful conversation, Stated preferences (likes/dislikes), everyday promises ("I'll be there Saturday"), minor secrets shared, change of location. These are durable — they matter for future interactions.
+4 — Significant: Hard boundaries established, strict ongoing rules agreed upon, long-term relationship commitments, major narrative shift, deep emotional vulnerability.
      Do NOT rate every intimate act as 4. If characters already have an established intimate relationship, routine acts are 2 or 3. Reserve 4 for narrative milestones.
 5 — Critical: Life-changing events — first "I love you", pregnancy discovery, major betrayal revealed, permanent relationship change, character death.
 </importance_scale>

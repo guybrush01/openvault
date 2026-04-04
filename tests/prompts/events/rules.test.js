@@ -42,7 +42,7 @@ describe('events/rules', () => {
 
     describe('thinking process', () => {
         it('should include promises and preferences in thinking Step 1', () => {
-            expect(EVENT_RULES).toContain('promises, stated preferences, and ongoing rules');
+            expect(EVENT_RULES).toContain('promises, stated preferences, or ongoing rules');
         });
     });
 });

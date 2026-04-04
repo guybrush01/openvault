@@ -9,9 +9,11 @@ export const GRAPH_RULES = `Extract named entities mentioned or clearly implied 
 - ${ENTITY_TYPES.PLACE}: Named locations, buildings, rooms, cities, regions
 - ${ENTITY_TYPES.ORGANIZATION}: Named groups, factions, guilds, companies
 - ${ENTITY_TYPES.OBJECT}: Highly significant unique items, weapons, or plot devices. Do NOT extract mundane furniture, clothing, or food unless they are critical to the scene's dynamic
-- ${ENTITY_TYPES.CONCEPT}: Named abilities, spells, diseases, prophecies
+- ${ENTITY_TYPES.CONCEPT}: Named abilities, spells, diseases, prophecies, or strict dietary/lifestyle requirements (e.g., "Peanut Allergy", "Veganism").
 
 Also extract relationships between pairs of entities when the connection is stated or clearly implied. Do NOT re-describe existing static relationships unless a specific progression or change occurred in this batch.
+
+IMPORTANT: Capture durable character preferences as relationships (e.g., Character -> CONCEPT: "Strongly dislikes").
 
 IMPORTANT: Extract entities and relationships even when no events are extracted. Entity data builds world knowledge over time and is always valuable. Limit output to the most significant updates per batch.
 

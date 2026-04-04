@@ -17,6 +17,8 @@ Step 4: Format JSON — Importance: 3 (meaningful conversation, relationship dee
   "events": [{
     "summary": "Лена призналась Диме в глубоком одиночестве, он обнял её за плечо и пообещал остаться",
     "importance": 3,
+    "temporal_anchor": null,
+    "is_transient": false,
     "characters_involved": ["Лена", "Дима"],
     "witnesses": ["Лена", "Дима"],
     "location": null,
@@ -40,6 +42,8 @@ Step 4: Format JSON — Importance: 4 (first romantic escalation). Values in Rus
   "events": [{
     "summary": "Сергей признался Анне в своих чувствах и приблизился к первому поцелую, а она не отстранилась",
     "importance": 4,
+    "temporal_anchor": null,
+    "is_transient": false,
     "characters_involved": ["Анна", "Сергей"],
     "witnesses": ["Анна", "Сергей"],
     "location": null,
@@ -62,6 +66,8 @@ Step 4: Format JSON — Importance: 3 (continuation between established partners
   "events": [{
     "summary": "Саша села на Вову сверху, они занялись сексом в позе наездницы до близости к оргазму",
     "importance": 3,
+    "temporal_anchor": null,
+    "is_transient": false,
     "characters_involved": ["Саша", "Вова"],
     "witnesses": ["Саша", "Вова"],
     "location": null,
@@ -85,6 +91,8 @@ Step 4: Format JSON — Importance: 4 (new domination dynamic, consent protocol)
   "events": [{
     "summary": "Маша надела ошейник на Кая, установила стоп-слово 'малина' и прижала его к полу ногой",
     "importance": 4,
+    "temporal_anchor": null,
+    "is_transient": false,
     "characters_involved": ["Маша", "Кай"],
     "witnesses": ["Маша", "Кай"],
     "location": null,
@@ -121,6 +129,8 @@ Step 4: Format JSON — The hug and sipping tea are momentary (skip). The schedu
   "events": [{
     "summary": "Alice и Bob договорились перенести встречи на средам, и Bob явно пообещал написать ей, если опоздает",
     "importance": 3,
+    "temporal_anchor": null,
+    "is_transient": false,
     "characters_involved": ["Alice", "Bob"],
     "witnesses": ["Alice", "Bob"],
     "location": null,

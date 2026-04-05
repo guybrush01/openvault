@@ -55,7 +55,7 @@ Rate each event from 1 (trivial) to 5 (critical):
 <field_instructions>
 characters_involved: Characters who actively participated in or were directly affected by this event (the main actors).
 
-witnesses: ALL characters who would know this event occurred — includes characters_involved PLUS any characters present in the scene, observing, or mentioned as being aware. In a 1-on-1 scene between User and Character, BOTH are witnesses. If you are unsure whether a character knows, include them — the system will filter appropriately.
+witnesses: ALL named characters from the lore who would know this event occurred — includes characters_involved PLUS any named characters present in the scene, observing, or mentioned as being aware. In a 1-on-1 scene between User and Character, BOTH are witnesses. If you are unsure whether a character knows, include them — the system will filter appropriately. Do NOT include generic NPCs described only by role (e.g., "saleswoman", "passerby", "waiter", "guard") — only characters with proper names.
 
 is_secret: Set to true ONLY if the event is explicitly hidden from the main character (e.g., user's internal thoughts, secret actions behind character's back, hidden plots). Most events are NOT secrets.
 

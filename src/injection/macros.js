@@ -1,6 +1,5 @@
 import { getDeps } from '../deps.js';
 
-
 /**
  * Cached content for macro access.
  * Exported so injection logic can update it.
@@ -10,7 +9,6 @@ export const cachedContent = {
     memory: '',
     world: '',
 };
-
 
 /**
  * Initialize macros by registering with SillyTavern.
@@ -39,7 +37,6 @@ export function initMacros() {
         context.registerMacro('openvault_world', () => cachedContent.world);
     }
 }
-
 
 // Auto-initialize on import
 initMacros();

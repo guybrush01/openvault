@@ -15,7 +15,7 @@
 /** @typedef {import('../types').ScoringSettings} ScoringSettings */
 /** @typedef {import('../types').IDFCache} IDFCache */
 
-import { OVER_FETCH_MULTIPLIER } from '../constants.js';
+import { DEBUG_TRIMMED_CANDIDATES, OVER_FETCH_MULTIPLIER } from '../constants.js';
 import { getQueryEmbedding, getStrategy, isEmbeddingsEnabled } from '../embeddings.js';
 import { logDebug } from '../utils/logging.js';
 import { assignMemoriesToBuckets, getMemoryPosition } from '../utils/text.js';
@@ -379,6 +379,12 @@ export async function selectRelevantMemories(memories, ctx) {
 
     const countTokens = (bucket) => bucket.reduce((sum, m) => sum + (m.summary?.length || 0), 0); // Approximation
 
+    // Capture top trimmed candidates (highest-scoring memories that missed the budget cut)
+    const trimmedCandidates = scoredResults
+        .filter((r) => !selectedIds.has(r.memory.id))
+        .slice(0, DEBUG_TRIMMED_CANDIDATES)
+        .map((r) => ({ id: r.memory.id, score: r.score, summary: r.memory.summary?.slice(0, 120) }));
+
     // Cache token budget utilization and bucket distribution for debug export
     cacheRetrievalDebug({
         tokenBudget: {
@@ -386,6 +392,7 @@ export async function selectRelevantMemories(memories, ctx) {
             scoredCount: scoredMemories.length,
             selectedCount: finalResults.length,
             trimmedByBudget: scoredMemories.length - finalResults.length,
+            trimmed_candidates: trimmedCandidates,
         },
         bucketDistribution: {
             before: {

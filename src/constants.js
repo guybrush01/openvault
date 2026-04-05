@@ -156,6 +156,9 @@ export const VECTOR_PASS_LIMIT = 200;
 /** Over-fetch multiplier for ST Vector Storage candidate retrieval */
 export const OVER_FETCH_MULTIPLIER = 3;
 
+/** Max trimmed candidates to include in debug export (highest-scoring memories cut by budget) */
+export const DEBUG_TRIMMED_CANDIDATES = 10;
+
 // Query context extraction defaults
 export const QUERY_CONTEXT_DEFAULTS = {
     entityWindowSize: 10, // messages to scan for entities

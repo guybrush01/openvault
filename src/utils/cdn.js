@@ -36,7 +36,7 @@
  * @type {Record<string, string>}
  */
 const CDN_VERSIONS = Object.freeze({
-    '@huggingface/transformers': '3.5.1',
+    '@huggingface/transformers': '4.0.1',
     'graphology': '0.26.0',
     'graphology-communities-louvain': '2.0.2',
     'graphology-operators': '1.6.1',

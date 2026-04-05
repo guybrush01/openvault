@@ -377,7 +377,7 @@ export async function selectRelevantMemories(memories, ctx) {
     const beforeBuckets = assignMemoriesToBuckets(scoredMemories, ctx.chatLength);
     const afterBuckets = assignMemoriesToBuckets(finalResults, ctx.chatLength);
 
-    const countTokens = (bucket) => bucket.reduce((sum, m) => sum + (m.summary?.length || 0), 0); // Approximation
+    const sumBucketTokens = (bucket) => bucket.reduce((sum, m) => sum + countTokens(m.summary || ''), 0);
 
     // Capture top trimmed candidates (highest-scoring memories that missed the budget cut)
     const trimmedCandidates = scoredResults
@@ -396,14 +396,14 @@ export async function selectRelevantMemories(memories, ctx) {
         },
         bucketDistribution: {
             before: {
-                old: countTokens(beforeBuckets.old),
-                mid: countTokens(beforeBuckets.mid),
-                recent: countTokens(beforeBuckets.recent),
+                old: sumBucketTokens(beforeBuckets.old),
+                mid: sumBucketTokens(beforeBuckets.mid),
+                recent: sumBucketTokens(beforeBuckets.recent),
             },
             after: {
-                old: countTokens(afterBuckets.old),
-                mid: countTokens(afterBuckets.mid),
-                recent: countTokens(afterBuckets.recent),
+                old: sumBucketTokens(afterBuckets.old),
+                mid: sumBucketTokens(afterBuckets.mid),
+                recent: sumBucketTokens(afterBuckets.recent),
             },
             selectedCount: finalResults.length,
         },

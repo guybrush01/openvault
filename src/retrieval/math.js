@@ -244,17 +244,27 @@ export function calculateScore(
     /** @type {number} */ chatLength,
     /** @type {ForgetfulnessConstants} */ constants,
     /** @type {ScoringSettings} */ settings,
-    /** @type {number} */ bm25Score = 0
+    /** @type {number} */ bm25Score = 0,
+    /** @type {Map<string, number>|null} */ chatFingerprintMap = null
 ) {
     // === Forgetfulness Curve ===
-    // Use message distance (narrative time) instead of timestamp
-    const messageIds = memory.message_ids || [0];
-    let maxMessageId = -Infinity;
-    for (let i = 0; i < messageIds.length; i++) {
-        if (messageIds[i] > maxMessageId) maxMessageId = messageIds[i];
+    // Resolve message positions using fingerprints when available,
+    // falling back to raw indices for backward compatibility
+    let maxMessagePosition = 0;
+    if (chatFingerprintMap && memory.message_fingerprints?.length > 0) {
+        for (const fp of memory.message_fingerprints) {
+            const pos = chatFingerprintMap.get(fp);
+            if (pos !== undefined && pos > maxMessagePosition) {
+                maxMessagePosition = pos;
+            }
+        }
+    } else {
+        const messageIds = memory.message_ids || [0];
+        for (let i = 0; i < messageIds.length; i++) {
+            if (messageIds[i] > maxMessagePosition) maxMessagePosition = messageIds[i];
+        }
     }
-    if (!isFinite(maxMessageId)) maxMessageId = 0;
-    const distance = Math.max(0, chatLength - maxMessageId);
+    const distance = Math.max(0, chatLength - maxMessagePosition);
 
     // Get importance (1-5, default 3)
     const importance = memory.importance || 3;
@@ -378,7 +388,8 @@ export async function scoreMemories(
     /** @type {string|string[]} */ queryTokens,
     /** @type {string[]} */ characterNames = [],
     /** @type {Memory[]} */ hiddenMemories = [],
-    /** @type {IDFCache|null} */ idfCache = null
+    /** @type {IDFCache|null} */ idfCache = null,
+    /** @type {Map<string, number>|null} */ chatFingerprintMap = null
 ) {
     const start = performance.now();
 
@@ -499,7 +510,8 @@ export async function scoreMemories(
             chatLength,
             constants,
             settings,
-            normalizedBM25Scores[i]
+            normalizedBM25Scores[i],
+            chatFingerprintMap
         );
         fastPassScores.push({ memory, score: breakdown.total, breakdown, index: i });
     }
@@ -546,7 +558,8 @@ export async function scoreMemories(
             chatLength,
             constants,
             settings,
-            normalizedBM25Scores[i]
+            normalizedBM25Scores[i],
+            chatFingerprintMap
         );
 
         // If we have a pre-computed vector similarity, override the vectorBonus

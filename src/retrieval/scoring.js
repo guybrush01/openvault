@@ -52,7 +52,8 @@ async function scoreMemoriesDirect(
     characterNames = [],
     hiddenMemories = [],
     idfCache = null,
-    scoringConfig = /** @type {Partial<ScoringConfig>} */ ({})
+    scoringConfig = /** @type {Partial<ScoringConfig>} */ ({}),
+    chatFingerprintMap = null
 ) {
     // Destructure flat scoringConfig into the {constants, settings} shape math.js expects
     const constants = {
@@ -75,7 +76,8 @@ async function scoreMemoriesDirect(
         queryTokens,
         characterNames,
         hiddenMemories,
-        idfCache
+        idfCache,
+        chatFingerprintMap
     );
     const topScored = scored.slice(0, limit);
     return {
@@ -161,7 +163,8 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit, allHiddenMemor
         activeCharacters || [],
         allHiddenMemories,
         idfCache,
-        scoringConfig
+        scoringConfig,
+        ctx.chatFingerprintMap
     );
 }
 
@@ -243,7 +246,8 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
                 bm25Tokens,
                 activeCharacters || [],
                 allHiddenMemories,
-                idfCache
+                idfCache,
+                ctx.chatFingerprintMap
             );
 
             const topScored = scored.slice(0, limit);
@@ -279,7 +283,8 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
         activeCharacters || [],
         allHiddenMemories,
         idfCache,
-        scoringConfig
+        scoringConfig,
+        ctx.chatFingerprintMap
     );
 }
 

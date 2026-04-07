@@ -587,3 +587,107 @@ describe('Transient decay multiplier', () => {
         expect(transientResult.base).toBeGreaterThan(0);
     });
 });
+
+describe('calculateScore - fingerprint resolution', () => {
+    it('uses message_fingerprints over message_ids for distance calculation', async () => {
+        const { calculateScore } = await import('../../src/retrieval/math.js');
+
+        const chatFingerprintMap = new Map([['fp_45', 45]]);
+
+        // Memory created at chat length 100 with message_ids=[90] (now stale after deletion)
+        // But message_fingerprints point to a message that is now at index 45
+        const memory = {
+            importance: 3,
+            message_ids: [90],               // stale — original index
+            message_fingerprints: ['fp_45'], // current fingerprint
+        };
+
+        const result = calculateScore(
+            memory,
+            null,
+            50,  // current chat length (after 50 messages deleted)
+            { BASE_LAMBDA: 0.05, IMPORTANCE_5_FLOOR: 5 },
+            { alpha: 0.7, combinedBoostWeight: 15, vectorSimilarityThreshold: 0.5 },
+            0,
+            chatFingerprintMap,
+        );
+
+        // With stale message_ids: distance = max(0, 50 - 90) = 0 (broken — appears brand new)
+        // With fingerprints: distance = max(0, 50 - 45) = 5 (correct)
+        expect(result.distance).toBe(5);
+    });
+
+    it('falls back to message_ids when no fingerprints available', async () => {
+        const { calculateScore } = await import('../../src/retrieval/math.js');
+
+        const memory = {
+            importance: 3,
+            message_ids: [40],
+            // no message_fingerprints
+        };
+
+        const result = calculateScore(
+            memory,
+            null,
+            50,
+            { BASE_LAMBDA: 0.05, IMPORTANCE_5_FLOOR: 5 },
+            { alpha: 0.7, combinedBoostWeight: 15, vectorSimilarityThreshold: 0.5 },
+            0,
+            null,
+        );
+
+        expect(result).toBeDefined();
+        expect(result.distance).toBe(10); // 50 - 40
+    });
+
+    it('falls back to message_ids when chatFingerprintMap is null', async () => {
+        const { calculateScore } = await import('../../src/retrieval/math.js');
+
+        const memory = {
+            importance: 3,
+            message_ids: [40],
+            message_fingerprints: ['fp_40'],
+        };
+
+        const result = calculateScore(
+            memory,
+            null,
+            50,
+            { BASE_LAMBDA: 0.05, IMPORTANCE_5_FLOOR: 5 },
+            { alpha: 0.7, combinedBoostWeight: 15, vectorSimilarityThreshold: 0.5 },
+            0,
+            null, // no map — should fall back to message_ids
+        );
+
+        expect(result).toBeDefined();
+        expect(result.distance).toBe(10);
+    });
+
+    it('uses max fingerprint position when multiple fingerprints', async () => {
+        const { calculateScore } = await import('../../src/retrieval/math.js');
+
+        const chatFingerprintMap = new Map([
+            ['fp_10', 10],
+            ['fp_42', 42],
+        ]);
+
+        const memory = {
+            importance: 3,
+            message_ids: [99],                // stale
+            message_fingerprints: ['fp_10', 'fp_42'],
+        };
+
+        const result = calculateScore(
+            memory,
+            null,
+            50,
+            { BASE_LAMBDA: 0.05, IMPORTANCE_5_FLOOR: 5 },
+            { alpha: 0.7, combinedBoostWeight: 15, vectorSimilarityThreshold: 0.5 },
+            0,
+            chatFingerprintMap,
+        );
+
+        // Should use max fingerprint position: 42
+        expect(result.distance).toBe(8); // 50 - 42
+    });
+});

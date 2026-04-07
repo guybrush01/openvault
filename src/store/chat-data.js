@@ -2,11 +2,11 @@
 
 import { CHARACTERS_KEY, EMBEDDING_SOURCES, MEMORIES_KEY, METADATA_KEY, PROCESSED_MESSAGES_KEY } from '../constants.js';
 import { getDeps } from '../deps.js';
-import { createEmptyGraph } from '../graph/graph.js';
+import { createEmptyGraph, normalizeKey } from '../graph/graph.js';
 import { record } from '../perf/store.js';
 import { purgeSTCollection } from '../services/st-vector.js';
 import { showToast } from '../utils/dom.js';
-import { deleteEmbedding } from '../utils/embedding-codec.js';
+import { cyrb53, deleteEmbedding } from '../utils/embedding-codec.js';
 import { logDebug, logError, logInfo, logWarn } from '../utils/logging.js';
 
 /** @typedef {import('../types.d.ts').OpenVaultData} OpenVaultData */
@@ -152,6 +152,113 @@ export async function deleteMemory(id) {
     await getDeps().saveChatConditional();
     logDebug(`Deleted memory ${id}`);
     return true;
+}
+
+/**
+ * Update an entity's fields. Handles rename by rewriting edges and merge redirects.
+ * @param {string} key - Current normalized entity key
+ * @param {Object} updates - { name?, type?, description?, aliases? }
+ * @returns {Promise<{key: string, stChanges?: {toDelete: string[]}}|null>} Result with new key and optional ST Vector changes, null on failure
+ */
+export async function updateEntity(key, updates) {
+    const { saveChatConditional } = getDeps();
+    const graph = getOpenVaultData().graph;
+    const node = graph.nodes[key];
+
+    if (!node) {
+        logWarn(`Cannot update entity: ${key} not found`);
+        return null;
+    }
+
+    // Determine if renaming
+    const newName = updates.name ?? node.name;
+    const newKey = normalizeKey(newName);
+
+    // If renaming, check for collision
+    if (newKey !== key) {
+        if (graph.nodes[newKey]) {
+            logWarn(`Cannot rename to '${newName}': entity already exists`);
+            return null;
+        }
+    }
+
+    if (newKey !== key) {
+        // Track old hash for ST Vector deletion if synced
+        const toDelete = [];
+        if (node._st_synced) {
+            // Calculate hash using same format as insertion in graph.js:486:
+            // [OV_ID:key] description (no fallback to name)
+            const text = `[OV_ID:${key}] ${node.description}`;
+            const hash = cyrb53(text).toString();
+            toDelete.push(hash);
+        }
+
+        // Create new node with updated fields
+        graph.nodes[newKey] = {
+            ...node,
+            name: newName,
+            type: updates.type ?? node.type,
+            description: updates.description ?? node.description,
+            aliases: updates.aliases ?? node.aliases ?? [],
+        };
+
+        // Delete old node
+        delete graph.nodes[key];
+
+        // Rewrite edges
+        for (const [edgeKey, edge] of Object.entries(graph.edges)) {
+            let needsRewrite = false;
+            let newSource = edge.source;
+            let newTarget = edge.target;
+
+            if (edge.source === key) {
+                newSource = newKey;
+                needsRewrite = true;
+            }
+            if (edge.target === key) {
+                newTarget = newKey;
+                needsRewrite = true;
+            }
+
+            if (needsRewrite) {
+                const newEdgeKey = `${newSource}__${newTarget}`;
+                delete graph.edges[edgeKey];
+                graph.edges[newEdgeKey] = {
+                    ...edge,
+                    source: newSource,
+                    target: newTarget,
+                };
+            }
+        }
+
+        // Guard _mergeRedirects (matches pattern in graph.js:272)
+        if (!graph._mergeRedirects) graph._mergeRedirects = {};
+        graph._mergeRedirects[key] = newKey;
+
+        // Invalidate embedding on new node
+        deleteEmbedding(graph.nodes[newKey]);
+
+        await saveChatConditional();
+        return {
+            key: newKey,
+            stChanges: toDelete.length > 0 ? { toDelete } : undefined,
+        };
+    } else {
+        // Simple field update, no rename
+        Object.assign(node, {
+            type: updates.type ?? node.type,
+            description: updates.description ?? node.description,
+            aliases: updates.aliases ?? node.aliases ?? [],
+        });
+
+        // Invalidate embedding on description change
+        if (updates.description !== undefined) {
+            deleteEmbedding(node);
+        }
+
+        await saveChatConditional();
+        return { key };
+    }
 }
 
 /**

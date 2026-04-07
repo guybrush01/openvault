@@ -1,0 +1,146 @@
+// @ts-check
+/* global describe, it, expect, beforeEach, vi, setupTestContext */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { METADATA_KEY } from '../../src/constants.js';
+import { setDeps } from '../../src/deps.js';
+import { normalizeKey } from '../../src/graph/graph.js';
+import { getOpenVaultData, updateEntity } from '../../src/store/chat-data.js';
+import { buildMockGraphNode } from '../factories.js';
+
+describe('updateEntity', () => {
+    let mockContext;
+
+    beforeEach(() => {
+        // Use a stable context reference so getOpenVaultData() always returns the same object
+        mockContext = { chatMetadata: { [METADATA_KEY]: {} }, chatId: 'test-chat-123' };
+        setupTestContext({
+            deps: { saveChatConditional: vi.fn() },
+        });
+        // Override getContext to return stable reference
+        setDeps({
+            getContext: () => mockContext,
+        });
+        // Initialize graph data
+        mockContext.chatMetadata[METADATA_KEY].graph = {
+            nodes: {},
+            edges: {},
+            _mergeRedirects: {},
+        };
+    });
+
+    it('should update entity description without rename', async () => {
+        const data = getOpenVaultData();
+        const key = normalizeKey('Marcus Hale');
+        data.graph.nodes[key] = buildMockGraphNode({
+            name: 'Marcus Hale',
+            type: 'PERSON',
+            description: 'A former soldier',
+        });
+
+        const result = await updateEntity(key, {
+            description: 'A former soldier turned mercenary',
+        });
+
+        expect(result.key).toBe(key);
+        expect(data.graph.nodes[key].description).toBe('A former soldier turned mercenary');
+    });
+
+    it('should rename entity and rewrite edges', async () => {
+        const data = getOpenVaultData();
+        const oldKey = normalizeKey('Marcus Hale');
+        const newKey = normalizeKey('Marcus the Brave');
+        const tavernKey = normalizeKey('The Tavern');
+        const oldEdgeKey = `${oldKey}__${tavernKey}`;
+        const newEdgeKey = `${newKey}__${tavernKey}`;
+
+        data.graph.nodes[oldKey] = buildMockGraphNode({
+            name: 'Marcus Hale',
+            type: 'PERSON',
+            description: 'A soldier',
+        });
+        data.graph.nodes[tavernKey] = buildMockGraphNode({
+            name: 'The Tavern',
+            type: 'PLACE',
+            description: 'A pub',
+        });
+        data.graph.edges[oldEdgeKey] = {
+            source: oldKey,
+            target: tavernKey,
+            relation: 'frequents',
+        };
+
+        const result = await updateEntity(oldKey, {
+            name: 'Marcus the Brave',
+        });
+
+        expect(result.key).toBe(newKey);
+        expect(data.graph.nodes[newKey]).toBeDefined();
+        expect(data.graph.nodes[oldKey]).toBeUndefined();
+        expect(data.graph.edges[newEdgeKey]).toBeDefined();
+        expect(data.graph.edges[oldEdgeKey]).toBeUndefined();
+        expect(data.graph._mergeRedirects[oldKey]).toBe(newKey);
+    });
+
+    it('should return stChanges.toDelete when renaming synced entity', async () => {
+        const data = getOpenVaultData();
+        const oldKey = normalizeKey('Marcus Hale');
+        const newKey = normalizeKey('Marcus the Brave');
+
+        data.graph.nodes[oldKey] = buildMockGraphNode({
+            name: 'Marcus Hale',
+            type: 'PERSON',
+            description: 'A soldier',
+            _st_synced: true,
+        });
+
+        const result = await updateEntity(oldKey, {
+            name: 'Marcus the Brave',
+        });
+
+        expect(result.key).toBe(newKey);
+        expect(result.stChanges?.toDelete).toBeDefined();
+        expect(result.stChanges.toDelete.length).toBe(1);
+    });
+
+    it('should block rename to existing entity name', async () => {
+        const data = getOpenVaultData();
+        const marcusKey = normalizeKey('Marcus Hale');
+        const johnKey = normalizeKey('John Doe');
+
+        data.graph.nodes[marcusKey] = buildMockGraphNode({
+            name: 'Marcus Hale',
+            type: 'PERSON',
+            description: 'A soldier',
+        });
+        data.graph.nodes[johnKey] = buildMockGraphNode({
+            name: 'John Doe',
+            type: 'PERSON',
+            description: 'Another person',
+        });
+
+        const result = await updateEntity(marcusKey, {
+            name: 'John Doe',
+        });
+
+        expect(result).toBeNull();
+        expect(data.graph.nodes[marcusKey]).toBeDefined();
+    });
+
+    it('should update aliases array', async () => {
+        const data = getOpenVaultData();
+        const key = normalizeKey('Marcus Hale');
+        data.graph.nodes[key] = buildMockGraphNode({
+            name: 'Marcus Hale',
+            type: 'PERSON',
+            description: 'A soldier',
+            aliases: ['masked figure'],
+        });
+
+        const result = await updateEntity(key, {
+            aliases: ['masked figure', 'the stranger'],
+        });
+
+        expect(result.key).toBe(key);
+        expect(data.graph.nodes[key].aliases).toEqual(['masked figure', 'the stranger']);
+    });
+});

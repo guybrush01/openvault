@@ -8,9 +8,13 @@
 import { CHARACTERS_KEY, MEMORIES_KEY, MEMORIES_PER_PAGE } from '../constants.js';
 import { getDeps } from '../deps.js';
 import { getDocumentEmbedding, isEmbeddingsEnabled } from '../embeddings.js';
+import { deleteItemsFromST } from '../services/st-vector.js';
 import {
+    deleteEntity as deleteEntityStoreAction,
     deleteMemory as deleteMemoryAction,
+    getCurrentChatId,
     getOpenVaultData,
+    updateEntity,
     updateMemory as updateMemoryAction,
 } from '../store/chat-data.js';
 import { escapeHtml, showToast } from '../utils/dom.js';
@@ -29,6 +33,7 @@ import {
     renderCharacterState,
     renderCommunityAccordion,
     renderEntityCard,
+    renderEntityEdit,
     renderMemoryEdit,
     renderMemoryItem,
     renderReflectionProgress,
@@ -384,9 +389,7 @@ function renderEntityList() {
         return;
     }
 
-    const html = filtered
-        .map(([key, entity]) => renderEntityCard(entity, key))
-        .join('');
+    const html = filtered.map(([key, entity]) => renderEntityCard(entity, key)).join('');
     $container.html(html);
 }
 
@@ -396,11 +399,273 @@ function renderWorldTab() {
 }
 
 // =============================================================================
+// Entity CRUD Event Bindings & Actions
+// =============================================================================
+
+// In-memory storage for edit form state
+const entityEditState = new Map();
+
+/**
+ * Initialize entity list event bindings
+ * Called once during UI setup
+ */
+function initEntityEventBindings() {
+    const $container = $('#openvault_entity_list');
+    if ($container.length === 0) return;
+
+    // Edit button - switch to edit mode
+    $container.on('click', '.openvault-edit-entity', (e) => {
+        const key = $(e.currentTarget).data('key');
+        enterEntityEditMode(key);
+    });
+
+    // Delete button - confirm and delete
+    $container.on('click', '.openvault-delete-entity', async (e) => {
+        const key = $(e.currentTarget).data('key');
+        await deleteEntityAction(key);
+    });
+
+    // Cancel button - revert to view mode
+    $container.on('click', '.openvault-cancel-entity-edit', (e) => {
+        const key = $(e.currentTarget).data('key');
+        cancelEntityEdit(key);
+    });
+
+    // Save button - validate and save
+    $container.on('click', '.openvault-save-entity-edit', async (e) => {
+        const key = $(e.currentTarget).data('key');
+        await saveEntityEdit(key, e.currentTarget);
+    });
+
+    // Remove alias button
+    $container.on('click', '.openvault-remove-alias', (e) => {
+        const key = $(e.currentTarget).data('key');
+        const alias = $(e.currentTarget).data('alias');
+        removeAliasChip(key, alias);
+    });
+
+    // Add alias button
+    $container.on('click', '.openvault-add-alias', (e) => {
+        const key = $(e.currentTarget).data('key');
+        addAliasChip(key);
+    });
+
+    // Add alias on Enter key
+    $container.on('keypress', '.openvault-alias-input', (e) => {
+        if (e.which === 13) {
+            const key = $(e.currentTarget).data('key');
+            addAliasChip(key);
+        }
+    });
+}
+
+/**
+ * Enter edit mode for an entity
+ * @param {string} key - Entity key
+ */
+function enterEntityEditMode(key) {
+    const graph = getOpenVaultData().graph;
+    const entity = graph.nodes[key];
+    if (!entity) return;
+
+    // Store current state for potential cancel
+    entityEditState.set(key, { ...entity });
+
+    // Replace card with edit form
+    const $card = $(`.openvault-entity-card[data-key="${key}"]`);
+    const editHtml = renderEntityEdit(entity, key);
+    $card.replaceWith(editHtml);
+}
+
+/**
+ * Cancel entity edit and revert to view mode
+ * @param {string} key - Entity key
+ */
+function cancelEntityEdit(key) {
+    const graph = getOpenVaultData().graph;
+    const entity = graph.nodes[key];
+    if (!entity) return;
+
+    entityEditState.delete(key);
+
+    const $edit = $(`.openvault-entity-edit[data-key="${key}"]`);
+    const viewHtml = renderEntityCard(entity, key);
+    $edit.replaceWith(viewHtml);
+}
+
+/**
+ * Save entity edit
+ * @param {string} key - Entity key
+ * @param {HTMLElement} btn - Save button element
+ */
+async function saveEntityEdit(key, btn) {
+    const $edit = $(`.openvault-entity-edit[data-key="${key}"]`);
+    const name = $edit.find('.openvault-edit-name').val()?.toString().trim();
+    const type = $edit.find('.openvault-edit-type').val()?.toString();
+    const description = $edit.find('.openvault-edit-description').val()?.toString().trim();
+
+    // Validation
+    if (!name) {
+        showToast('warning', 'Entity name cannot be empty');
+        return;
+    }
+
+    // Build aliases from chips
+    const aliases = $edit
+        .find('.openvault-alias-chip')
+        .map((_, chip) => $(chip).text().replace('×', '').trim())
+        .get();
+
+    // Capture any pending alias in the input field
+    const pendingAlias = $edit.find('.openvault-alias-input').val()?.toString().trim();
+    if (pendingAlias) {
+        const existingLower = aliases.map((a) => a.toLowerCase());
+        if (!existingLower.includes(pendingAlias.toLowerCase())) {
+            aliases.push(pendingAlias);
+        }
+    }
+
+    const updates = {
+        name,
+        type,
+        description,
+        aliases,
+    };
+
+    // Show loading state
+    const $btn = $(btn);
+    const originalText = $btn.text();
+    $btn.prop('disabled', true).text('Saving...');
+
+    try {
+        const result = await updateEntity(key, updates);
+
+        if (result === null) {
+            showToast(
+                'warning',
+                'An entity with that name already exists. Merging will be available in a future update.'
+            );
+            $btn.prop('disabled', false).text(originalText);
+            return;
+        }
+
+        // Clear edit state (use old key and new key for rename case)
+        entityEditState.delete(key);
+
+        // Handle ST Vector cleanup if renaming synced entity
+        if (result.stChanges?.toDelete?.length > 0) {
+            const chatId = getCurrentChatId();
+            if (chatId) {
+                await deleteItemsFromST(result.stChanges.toDelete, chatId);
+            }
+        }
+
+        // Replace with updated view card (use newKey if renamed)
+        const graph = getOpenVaultData().graph;
+        const entity = graph.nodes[result.key];
+        const viewHtml = renderEntityCard(entity, result.key);
+        $edit.replaceWith(viewHtml);
+
+        showToast('success', 'Entity updated');
+        refreshStats();
+    } catch (err) {
+        console.error('[OpenVault] Failed to save entity:', err);
+        $btn.prop('disabled', false).text(originalText);
+    }
+}
+
+/**
+ * Delete entity action with confirmation
+ * @param {string} key - Entity key
+ */
+async function deleteEntityAction(key) {
+    const graph = getOpenVaultData().graph;
+    const entity = graph.nodes[key];
+    if (!entity) return;
+
+    // Count connected edges
+    const edgeCount = Object.values(graph.edges).filter((e) => e.source === key || e.target === key).length;
+
+    const confirmMsg =
+        edgeCount > 0
+            ? `Delete "${entity.name}"? This will also remove ${edgeCount} connected relationship(s).`
+            : `Delete "${entity.name}"?`;
+
+    if (!confirm(confirmMsg)) return;
+
+    const result = await deleteEntityStoreAction(key);
+    if (result.success) {
+        // Clean up stale edit state
+        entityEditState.delete(key);
+
+        // Remove from DOM
+        $(`.openvault-entity-card[data-key="${key}"]`).remove();
+
+        // Clean up ST Vector if needed
+        if (result.stChanges?.toDelete?.length > 0) {
+            const chatId = getCurrentChatId();
+            if (chatId) {
+                await deleteItemsFromST(result.stChanges.toDelete, chatId);
+            }
+        }
+
+        showToast('success', 'Entity deleted');
+        refreshStats();
+        // Update entity count
+        $('#openvault_entity_count').text(Object.keys(getOpenVaultData().graph?.nodes || {}).length);
+    }
+}
+
+/**
+ * Remove alias chip from edit form
+ * @param {string} key - Entity key
+ * @param {string} alias - Alias to remove
+ */
+function removeAliasChip(key, alias) {
+    const $edit = $(`.openvault-entity-edit[data-key="${key}"]`);
+    $edit.find(`.openvault-remove-alias[data-alias="${alias}"]`).closest('.openvault-alias-chip').remove();
+}
+
+/**
+ * Add alias chip to edit form
+ * @param {string} key - Entity key
+ */
+function addAliasChip(key) {
+    const $edit = $(`.openvault-entity-edit[data-key="${key}"]`);
+    const $input = $edit.find('.openvault-alias-input');
+    const alias = $input.val()?.toString().trim();
+
+    if (!alias) return;
+
+    // Check for duplicates (case-insensitive)
+    const existingAliases = $edit
+        .find('.openvault-alias-chip')
+        .map((_, chip) => $(chip).text().replace('×', '').trim().toLowerCase())
+        .get();
+
+    if (existingAliases.includes(alias.toLowerCase())) {
+        $input.val('');
+        return;
+    }
+
+    // Add chip
+    const chipHtml = `
+        <span class="openvault-alias-chip">
+            ${escapeHtml(alias)}
+            <span class="remove openvault-remove-alias" data-key="${escapeHtml(key)}" data-alias="${escapeHtml(alias)}">×</span>
+        </span>
+    `;
+    $edit.find('.openvault-alias-list').append(chipHtml);
+    $input.val('');
+}
+
+// =============================================================================
 // Browser Orchestration Layer
 // =============================================================================
 
 export function initBrowser() {
     bindMemoryListEvents();
+    initEntityEventBindings();
     initPositionBadges();
     renderMemoryList();
     renderCharacterStates();

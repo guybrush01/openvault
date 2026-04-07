@@ -253,6 +253,26 @@ export function getBackfillMessageIds(chat, data, tokenBudget, isEmergencyCut = 
         }
     }
 
+    // Swipe protection: exclude recent turns (bypassed for Emergency Cut)
+    if (!isEmergencyCut && messageIds.length > 0) {
+        const before = messageIds.length;
+        const trimmed = trimTailTurns(chat, messageIds, SWIPE_PROTECTION_TAIL_MESSAGES);
+        messageIds.length = 0;
+        messageIds.push(...trimmed);
+        // If we trimmed messages, recalculate batchCount from the remaining messages
+        if (messageIds.length < before) {
+            let sum = 0;
+            batchCount = 0;
+            for (const id of messageIds) {
+                sum += getMessageTokenCount(chat, id);
+                if (sum >= tokenBudget) {
+                    batchCount++;
+                    sum = 0;
+                }
+            }
+        }
+    }
+
     // For Emergency Cut, if we have messages but no complete batches, report as 1 batch
     if (isEmergencyCut && messageIds.length > 0 && batchCount === 0) {
         batchCount = 1;

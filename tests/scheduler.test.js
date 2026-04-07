@@ -523,3 +523,31 @@ describe('getNextBatch swipe protection', () => {
         expect(batch).toEqual([0, 1]);
     });
 });
+
+describe('getBackfillMessageIds swipe protection', () => {
+    it('excludes the last turn from backfill', () => {
+        const chat = makeChat([
+            ['u1', true], ['b1', false],
+            ['u2', true], ['b2', false],
+            ['u3', true], ['b3', false],
+        ]);
+        // Budget of 1 token means each message completes a batch.
+        // After incomplete-last-batch trim, all messages remain.
+        // Swipe protection trims last turn (ids 4,5).
+        const result = getBackfillMessageIds(chat, {}, 1);
+        expect(result.messageIds).not.toContain(4);
+        expect(result.messageIds).not.toContain(5);
+        expect(result.messageIds).toEqual([0, 1, 2, 3]);
+    });
+
+    it('does not trim when isEmergencyCut is true', () => {
+        const chat = makeChat([
+            ['u1', true], ['b1', false],
+            ['u2', true], ['b2', false],
+            ['u3', true], ['b3', false],
+        ]);
+        const result = getBackfillMessageIds(chat, {}, 1, true);
+        // Emergency Cut: no trimming
+        expect(result.messageIds).toEqual([0, 1, 2, 3, 4, 5]);
+    });
+});

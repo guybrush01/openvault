@@ -14,6 +14,7 @@ import {
     deleteMemory as deleteMemoryAction,
     getCurrentChatId,
     getOpenVaultData,
+    mergeEntities,
     updateEntity,
     updateMemory as updateMemoryAction,
 } from '../store/chat-data.js';
@@ -34,6 +35,7 @@ import {
     renderCommunityAccordion,
     renderEntityCard,
     renderEntityEdit,
+    renderEntityMergePicker,
     renderMemoryEdit,
     renderMemoryItem,
     renderReflectionProgress,
@@ -457,6 +459,32 @@ function initEntityEventBindings() {
             addAliasChip(key);
         }
     });
+
+    // Merge button on entity card
+    $container.on('click', '.openvault-merge-entity', (e) => {
+        const key = $(e.currentTarget).data('key');
+        enterEntityMergeMode(key);
+    });
+
+    // Cancel merge picker
+    $container.on('click', '.openvault-cancel-entity-merge', (e) => {
+        const key = $(e.currentTarget).data('key');
+        cancelEntityMerge(key);
+    });
+
+    // Confirm merge
+    $container.on('click', '.openvault-confirm-entity-merge', async (e) => {
+        const sourceKey = $(e.currentTarget).data('source-key');
+        await confirmEntityMerge(sourceKey);
+    });
+
+    // Escape key to cancel
+    $container.on('keydown', '.openvault-entity-merge-panel', (e) => {
+        if (e.key === 'Escape') {
+            const key = $(e.currentTarget).data('source-key');
+            cancelEntityMerge(key);
+        }
+    });
 }
 
 /**
@@ -657,6 +685,125 @@ function addAliasChip(key) {
     `;
     $edit.find('.openvault-alias-list').append(chipHtml);
     $input.val('');
+}
+
+// =============================================================================
+// Entity Merge Flow Handlers
+// =============================================================================
+
+/**
+ * Enter merge mode for an entity - replace card with merge picker.
+ * @param {string} sourceKey
+ */
+function enterEntityMergeMode(sourceKey) {
+    const deps = getDeps();
+    const ctx = deps.getContext();
+    const graph = ctx.chatMetadata?.openvault?.graph;
+
+    if (!graph) return;
+
+    const sourceNode = graph.nodes[sourceKey];
+    if (!sourceNode) return;
+
+    // Render the merge picker
+    const pickerHtml = renderEntityMergePicker(sourceKey, sourceNode, graph.nodes);
+
+    // Replace the entity card with the picker
+    const $card = $(`.openvault-entity-card[data-key="${sourceKey}"]`);
+    $card.replaceWith(pickerHtml);
+
+    // Focus the search input
+    $('.openvault-merge-search').focus();
+}
+
+/**
+ * Cancel merge mode - restore the entity card view.
+ * @param {string} sourceKey
+ */
+function cancelEntityMerge(_sourceKey) {
+    // Re-render the entity list to restore the card
+    renderEntityList();
+}
+
+/**
+ * Find target entity key from user input text.
+ * Matches against node names and aliases (case-insensitive).
+ * @param {string} inputText - The text entered by user
+ * @param {Object} nodes - Graph nodes
+ * @returns {string|null} Target key or null if not found
+ */
+function findMergeTargetFromInput(inputText, nodes) {
+    if (!inputText) return null;
+
+    const normalizedInput = inputText.toLowerCase().trim();
+    // Remove type suffix like " [PERSON]" for matching
+    const cleanInput = normalizedInput.replace(/\s*\[[^\]]+\]$/, '').trim();
+
+    for (const [key, node] of Object.entries(nodes)) {
+        const name = (node.name || '').toLowerCase();
+        if (name === cleanInput) return key;
+
+        const aliases = (node.aliases || []).map((a) => a.toLowerCase());
+        if (aliases.includes(cleanInput)) return key;
+    }
+
+    return null;
+}
+
+/**
+ * Confirm and execute the entity merge.
+ * @param {string} sourceKey
+ */
+async function confirmEntityMerge(sourceKey) {
+    const deps = getDeps();
+    const ctx = deps.getContext();
+    const graph = ctx.chatMetadata?.openvault?.graph;
+
+    if (!graph) {
+        showToast('error', 'Graph not available');
+        return;
+    }
+
+    // Get the input value and find the target
+    const $panel = $(`.openvault-entity-merge-panel[data-source-key="${sourceKey}"]`);
+    const inputText = $panel.find('.openvault-merge-search').val();
+    const targetKey = findMergeTargetFromInput(inputText, graph.nodes);
+
+    if (!targetKey) {
+        showToast('error', 'Please select a valid target entity');
+        return;
+    }
+
+    if (targetKey === sourceKey) {
+        showToast('error', 'Cannot merge an entity into itself');
+        return;
+    }
+
+    try {
+        showToast('info', 'Merging entities...');
+
+        const result = await mergeEntities(sourceKey, targetKey);
+
+        if (!result.success) {
+            showToast('error', 'Failed to merge entities');
+            return;
+        }
+
+        // Delete ST vectors for removed items
+        if (result.stChanges?.toDelete?.length > 0) {
+            const chatId = getCurrentChatId();
+            await deleteItemsFromST(result.stChanges.toDelete, chatId);
+        }
+
+        // Re-render the entity list
+        renderEntityList();
+
+        showToast('success', `Merged into ${graph.nodes[targetKey]?.name || targetKey}`);
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        showToast('error', `Merge failed: ${error.message}`);
+        console.error('Entity merge failed:', error);
+    }
 }
 
 // =============================================================================

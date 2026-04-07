@@ -529,10 +529,10 @@ export async function mergeOrInsertEntity(graphData, name, type, description, ca
  */
 export async function consolidateEdges(graphData, _settings) {
     if (!graphData._edgesNeedingConsolidation?.length) {
-        return { count: 0, stChanges: { toSync: [] } };
+        return { count: 0, stChanges: { toSync: [], toDelete: [] } };
     }
 
-    const stChanges = { toSync: [] };
+    const stChanges = { toSync: [], toDelete: [] };
     const toProcess = graphData._edgesNeedingConsolidation.slice(0, CONSOLIDATION.MAX_CONSOLIDATION_BATCH);
 
     const deps = getDeps();
@@ -555,6 +555,13 @@ export async function consolidateEdges(graphData, _settings) {
 
                     const result = parseConsolidationResponse(response);
                     if (result.consolidated_description) {
+                        // Queue old embedding for ST deletion before overwrite
+                        if (edge._st_synced) {
+                            const oldEdgeId = `edge_${edge.source}_${edge.target}`;
+                            const oldText = `[OV_ID:${oldEdgeId}] ${edge.description}`;
+                            stChanges.toDelete.push({ hash: cyrb53(oldText) });
+                        }
+
                         edge.description = result.consolidated_description;
                         edge._descriptionTokens = countTokens(result.consolidated_description);
 

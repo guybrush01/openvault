@@ -90,4 +90,34 @@ describe('Edge Consolidation (BM25-only mode)', () => {
         expect(graph._edgesNeedingConsolidation).toHaveLength(0);
         expect(stChanges.toSync).toHaveLength(2);
     });
+
+    it('queues old edge hash for deletion when consolidating', async () => {
+        mockCallLLM.mockResolvedValue(
+            JSON.stringify({ consolidated_description: 'Consolidated desc' })
+        );
+
+        const graph = createEmptyGraph();
+        graph.nodes.alice = { name: 'Alice', type: 'PERSON', description: 'test', mentions: 1 };
+        graph.nodes.bob = { name: 'Bob', type: 'PERSON', description: 'test', mentions: 1 };
+        graph.edges.alice__bob = {
+            source: 'alice',
+            target: 'bob',
+            description: 'Old bloated description | Seg2 | Seg3 | Seg4 | Seg5 | Seg6',
+            weight: 6,
+            _descriptionTokens: 600,
+            _st_synced: true,
+        };
+        graph._edgesNeedingConsolidation = ['alice__bob'];
+
+        const { count, stChanges } = await consolidateEdges(graph, {});
+
+        expect(count).toBe(1);
+        expect(stChanges.toSync).toHaveLength(1);
+        // Old edge should be queued for deletion
+        expect(stChanges.toDelete).toHaveLength(1);
+        expect(stChanges.toDelete[0]).toHaveProperty('hash');
+        expect(typeof stChanges.toDelete[0].hash).toBe('number');
+        // toDelete hash should differ from toSync hash (old vs new description)
+        expect(stChanges.toDelete[0].hash).not.toBe(stChanges.toSync[0].hash);
+    });
 });

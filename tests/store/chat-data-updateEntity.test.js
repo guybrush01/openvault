@@ -102,6 +102,29 @@ describe('updateEntity', () => {
         expect(result.stChanges.toDelete.length).toBe(1);
     });
 
+    it('should update existing redirects that point to oldKey on rename', async () => {
+        const data = getOpenVaultData();
+        const oldKey = normalizeKey('Marcus Hale');
+        const newKey = normalizeKey('Marcus the Brave');
+        const aliasKey = normalizeKey('Marc');
+
+        // Simulate a prior merge: "Marc" was merged into "Marcus Hale"
+        data.graph._mergeRedirects[aliasKey] = oldKey;
+
+        data.graph.nodes[oldKey] = buildMockGraphNode({
+            name: 'Marcus Hale',
+            type: 'PERSON',
+            description: 'A soldier',
+        });
+
+        const result = await updateEntity(oldKey, { name: 'Marcus the Brave' });
+
+        expect(result.key).toBe(newKey);
+        // The old redirect should be updated, not left orphaned
+        expect(data.graph._mergeRedirects[aliasKey]).toBe(newKey);
+        expect(data.graph._mergeRedirects[oldKey]).toBe(newKey);
+    });
+
     it('should block rename to existing entity name', async () => {
         const data = getOpenVaultData();
         const marcusKey = normalizeKey('Marcus Hale');

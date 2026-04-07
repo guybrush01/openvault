@@ -25,6 +25,6 @@
 ## ENTITY GRAPH MUTATIONS
 - **Guard `_mergeRedirects` before access.** Use `if (!graph._mergeRedirects) graph._mergeRedirects = {};` — older data structures may lack this field (matches `graph.js:272`).
 - **Rewrite edges on rename.** Edge keys are `sourceKey__targetKey`. When renaming a node, iterate all edges, rebuild keys where the node appears as source or target, delete old edge, write new edge.
-- **Set merge redirect on rename.** `graph._mergeRedirects[oldKey] = newKey` so lookups for the old name resolve forward.
+- **Set merge redirect on rename.** `graph._mergeRedirects[oldKey] = newKey` so lookups for the old name resolve forward. Also update any existing redirects that point to `oldKey` to point to `newKey` instead — `_resolveKey()` is non-recursive, so chained redirects would otherwise break.
 - **Delete ST Vector orphans on rename/delete.** If `node._st_synced === true`, calculate hash via `cyrb53(\`[OV_ID:${key}] ${node.description}\`)` and return it as `stChanges.toDelete` for the caller to pass to `deleteItemsFromST()`. Hash format must match `graph.js:486` exactly — no `|| node.name` fallback.
 - **Return structured results, not bare booleans.** Use `{ success, stChanges? }` for delete, `{ key, stChanges? }` for update. Callers need the hash list for ST Vector cleanup.

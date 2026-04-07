@@ -235,6 +235,15 @@ export async function updateEntity(key, updates) {
         if (!graph._mergeRedirects) graph._mergeRedirects = {};
         graph._mergeRedirects[key] = newKey;
 
+        // Fix any existing redirects that still point to oldKey.
+        // _resolveKey() is non-recursive, so chained redirects
+        // (A → oldKey → newKey) would resolve A to a deleted node.
+        for (const [rk, rv] of Object.entries(graph._mergeRedirects)) {
+            if (rv === key && rk !== key) {
+                graph._mergeRedirects[rk] = newKey;
+            }
+        }
+
         // Invalidate embedding on new node
         deleteEmbedding(graph.nodes[newKey]);
 

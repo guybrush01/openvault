@@ -31,7 +31,7 @@ import {
     resolveExtractionPrefill,
     resolveOutputLanguage,
 } from '../prompts/index.js';
-import { cosineSimilarity } from '../retrieval/math.js';
+import { cosineSimilarity, tokenize } from '../retrieval/math.js';
 import { cyrb53, getEmbedding, hasEmbedding, setEmbedding } from '../utils/embedding-codec.js';
 import { logDebug, logError } from '../utils/logging.js';
 import { createLadderQueue } from '../utils/queue.js';
@@ -202,7 +202,7 @@ export function upsertRelationship(graphData, source, target, description, cap =
         existing.weight += 1;
 
         // Jaccard guard: only append if description is sufficiently different (>60% new content)
-        const jaccard = jaccardSimilarity(existing.description, description);
+        const jaccard = jaccardSimilarity(existing.description, description, tokenize);
         if (jaccard < GRAPH_JACCARD_DUPLICATE_THRESHOLD && !existing.description.includes(description)) {
             existing.description = existing.description + ' | ' + description;
         }

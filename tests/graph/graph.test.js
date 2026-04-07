@@ -324,6 +324,18 @@ describe('upsertRelationship', () => {
         // Should be marked for consolidation
         expect(graph._edgesNeedingConsolidation).toContain('alice__bob');
     });
+
+    it('detects near-duplicate descriptions with stem-aware tokenizer', () => {
+        // Stemming makes inflected words match: running/run, houses/house, etc.
+        // Without stemming, Jaccard is low; with stemming, it crosses the 0.6 threshold.
+        upsertRelationship(graphData, 'King Aldric', 'Castle', 'Running through houses', 5);
+        upsertRelationship(graphData, 'King Aldric', 'Castle', 'Runs towards house', 5);
+
+        const edge = graphData.edges['king aldric__castle'];
+        // Should NOT have appended — stem-aware Jaccard should detect near-duplicate
+        expect(edge.description).toBe('Running through houses');
+        expect(edge.weight).toBe(2);
+    });
 });
 
 describe('createEmptyGraph', () => {

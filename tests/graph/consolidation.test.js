@@ -92,9 +92,7 @@ describe('Edge Consolidation (BM25-only mode)', () => {
     });
 
     it('queues old edge hash for deletion when consolidating', async () => {
-        mockCallLLM.mockResolvedValue(
-            JSON.stringify({ consolidated_description: 'Consolidated desc' })
-        );
+        mockCallLLM.mockResolvedValue(JSON.stringify({ consolidated_description: 'Consolidated desc' }));
 
         const graph = createEmptyGraph();
         graph.nodes.alice = { name: 'Alice', type: 'PERSON', description: 'test', mentions: 1 };

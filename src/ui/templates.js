@@ -304,6 +304,9 @@ export function renderEntityCard(entity, key) {
           <button class="openvault-entity-action-btn openvault-edit-entity" data-key="${escapeHtml(key)}" title="Edit">
             ✏️
           </button>
+          <button class="openvault-entity-action-btn openvault-merge-entity" data-key="${escapeHtml(key)}" title="Merge into another entity">
+            <i class="fa-solid fa-code-merge"></i>
+          </button>
           <button class="openvault-entity-action-btn openvault-delete-entity" data-key="${escapeHtml(key)}" title="Delete">
             🗑️
           </button>

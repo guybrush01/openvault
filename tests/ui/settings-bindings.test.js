@@ -181,12 +181,14 @@ describe('Settings Bindings', () => {
             <div id="openvault_version"></div>
             <div class="openvault-tab-btn" data-tab="dashboard"></div>
             <div class="openvault-tab-btn" data-tab="memories"></div>
-            <div class="openvault-tab-btn" data-tab="world"></div>
+            <div class="openvault-tab-btn" data-tab="entities"></div>
+            <div class="openvault-tab-btn" data-tab="communities"></div>
             <div class="openvault-tab-btn" data-tab="advanced"></div>
             <div class="openvault-tab-btn" data-tab="performance"></div>
             <div class="openvault-tab-content" data-tab="dashboard"></div>
             <div class="openvault-tab-content" data-tab="memories"></div>
-            <div class="openvault-tab-content" data-tab="world"></div>
+            <div class="openvault-tab-content" data-tab="entities"></div>
+            <div class="openvault-tab-content" data-tab="communities"></div>
             <div class="openvault-tab-content" data-tab="advanced"></div>
             <div class="openvault-tab-content" data-tab="performance"></div>
         `;

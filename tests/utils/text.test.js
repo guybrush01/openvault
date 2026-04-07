@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetDeps } from '../../src/deps.js';
 import {
     extractJsonBlocks,
+    mergeDescriptions,
     normalizeText,
     safeParseJSON,
     scrubConcatenation,
@@ -789,6 +790,34 @@ describe('text', () => {
                 expect(result.success).toBe(true);
                 expect(onError).not.toHaveBeenCalled();
             });
+        });
+    });
+
+    describe('mergeDescriptions', () => {
+        it('returns source when target is empty', () => {
+            expect(mergeDescriptions('', 'hello world', 0.6)).toBe('hello world');
+        });
+
+        it('returns target when source is empty', () => {
+            expect(mergeDescriptions('hello world', '', 0.6)).toBe('hello world');
+        });
+
+        it('appends non-duplicate segments', () => {
+            const target = 'Loves apples';
+            const source = 'Hates dogs';
+            expect(mergeDescriptions(target, source, 0.6)).toBe('Loves apples | Hates dogs');
+        });
+
+        it('skips duplicate segments based on threshold', () => {
+            const target = 'Loves apples';
+            const source = 'Loves apples | Fears heights';
+            expect(mergeDescriptions(target, source, 0.6)).toBe('Loves apples | Fears heights');
+        });
+
+        it('handles multiple source segments', () => {
+            const target = 'A | B';
+            const source = 'C | D | E';
+            expect(mergeDescriptions(target, source, 0.6)).toBe('A | B | C | D | E');
         });
     });
 });

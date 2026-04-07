@@ -22,6 +22,11 @@ Agentic memory extension for SillyTavern providing POV-aware memory, witness tra
 - **Yield the main thread in heavy loops.** Call `await yieldToMain()` to polyfill `scheduler.yield()` and prevent ST UI freezes
 - **Format and typecheck before commit.** First run `npm run typecheck` (`@ts-check` + JSDoc) THEN run `npm run lint` (Biome). Never edit `src/types.d.ts` directly; regenerate it from Zod schemas using `npm run generate-types`
 
+### 4. ST Sync Pipeline Types
+- **toDelete items:** Always push `{ hash: number }` objects, never plain strings
+- **Hash computation:** Use `cyrb53(text)` (returns number), never `.toString()`
+- **Schema contract:** `StSyncChangesSchema` in `schemas.js` validates shapes — keep in sync
+
 ## DIRECTORY KNOWLEDGE MAP
 To keep context windows clean, domain-specific rules live in their respective directories:
 - `src/store/CLAUDE.md` - State management, migrations, flat-file DB rules

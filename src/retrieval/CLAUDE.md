@@ -28,3 +28,6 @@
 - **Never spread large iterables into Math.max.** Use `for...of` loops with manual tracking instead of `Math.max(...array)` — spreads hit JS argument limits (~65K) with large IDF maps.
 - **Use Score-First Soft Balancing.** Reserve `minRepresentation` (20%) of the token budget per chronological bucket (Old/Mid/Recent).
 - **Fill the remainder by raw score.** Allocate the remaining 40% purely to the highest-scoring memories regardless of bucket.
+
+## QUERY BUILDING
+- **Prepend entity anchors before truncation.** In `buildEmbeddingQuery()`, prepend `topEntities` before slicing to `chunkSize`. If `weightedText` exceeds budget, entities survive; if appended, they get chopped.

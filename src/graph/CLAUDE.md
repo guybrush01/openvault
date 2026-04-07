@@ -11,9 +11,10 @@ Flat-JSON entity and relationship storage with rigorous semantic deduplication, 
 ## EDGE CONSOLIDATION
 - **Token Tracking**: Each edge stores `_descriptionTokens` count (updated on every `upsertRelationship` call).
 - **Trigger**: When `_descriptionTokens > CONSOLIDATION.TOKEN_THRESHOLD` (`150`), edge marked for consolidation via `_edgesNeedingConsolidation` queue.
-- **Jaccard Guard (Append-time)**: Before appending `old | new`, `upsertRelationship` computes Jaccard similarity between existing and new descriptions. If similarity >= `0.6`, the new description is dropped (considered duplicate), but weight still increments. Only sufficiently distinct descriptions (< 60% overlap) are appended.
+- **Jaccard Guard (Append-time)**: Before appending `old | new`, `upsertRelationship` computes Jaccard similarity with `tokenize` stemmer (from `retrieval/math.js`). If similarity >= `0.6`, the new description is dropped (considered duplicate), but weight still increments. Only sufficiently distinct descriptions (< 60% overlap) are appended.
 - **Batch Processing**: During community detection, `consolidateEdges()` processes up to `MAX_CONSOLIDATION_BATCH` (10) edges per run.
 - **LLM Consolidation**: Uses `LLM_CONFIGS.edge_consolidation` and `buildEdgeConsolidationPrompt()` (standard `buildMessages()` pattern with preamble + prefill). Bloated pipe-separated descriptions synthesized into single coherent summary (<100 tokens), re-embedded for RAG accuracy.
+- **Vector Lifecycle**: On consolidation, push old edge hash to `stChanges.toDelete` before overwriting description, then push new hash to `toSync`. Prevents orphaned embeddings in ST Vector Storage.
 
 ## SEMANTIC MERGE LOGIC
 Prevents duplicate nodes (e.g., "The King" vs "King Aldric"). Uses `shouldMergeEntities()` DRY helper with type-aware logic. Extraction uses delta approach — focuses on NEW entities or CHANGES to existing ones, not re-describing static relationships. Schema limits to 5 entities/relationships per batch.

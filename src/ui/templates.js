@@ -6,6 +6,7 @@
  */
 
 import { isEmbeddingsEnabled } from '../embeddings.js';
+import { ENTITY_TYPES } from '../constants.js';
 import { escapeHtml } from '../utils/dom.js';
 import { hasEmbedding } from '../utils/embedding-codec.js';
 import { formatMemoryDate, formatMemoryImportance, formatWitnesses } from './helpers.js';
@@ -277,19 +278,42 @@ export function renderCommunityAccordion(id, community) {
 }
 
 /**
- * Render a single entity card.
- * @param {Object} entity - { name, type, description, mentions }
- * @returns {string} HTML
+ * Render an entity card in view mode
+ * @param {Object} entity - Entity node with name, type, description, aliases
+ * @param {string} key - Normalized entity key
+ * @returns {string} HTML string
  */
-export function renderEntityCard(entity) {
-    return `
-        <div class="openvault-entity-card">
-            <div class="openvault-entity-header">
-                <span class="openvault-entity-name">${escapeHtml(entity.name)}</span>
-                <span class="openvault-entity-type-badge ${entity.type.toLowerCase()}">${escapeHtml(entity.type)}</span>
-            </div>
-            <div class="openvault-entity-description">${escapeHtml(entity.description || '')}</div>
-            <small class="openvault-entity-mentions">${entity.mentions || 0} mentions</small>
+export function renderEntityCard(entity, key) {
+  const typeLabel = entity.type.charAt(0) + entity.type.slice(1).toLowerCase();
+  const aliasText = entity.aliases?.length > 0
+    ? entity.aliases.join(', ')
+    : '';
+  const pendingBadge = !hasEmbedding(entity)
+    ? '<span class="openvault-pending-embed"><span class="icon">↻</span> pending</span>'
+    : '';
+
+  return `
+    <div class="openvault-entity-card" data-key="${escapeHtml(key)}">
+      <div class="openvault-entity-header">
+        <span class="openvault-entity-name">${escapeHtml(entity.name)}</span>
+        <div class="openvault-entity-badges">
+          <span class="openvault-entity-type-badge ${entity.type.toLowerCase()}">
+            ${typeLabel}
+          </span>
+          ${pendingBadge}
         </div>
-    `;
+        <div class="openvault-entity-actions">
+          <button class="openvault-entity-action-btn openvault-edit-entity" data-key="${escapeHtml(key)}" title="Edit">
+            ✏️
+          </button>
+          <button class="openvault-entity-action-btn openvault-delete-entity" data-key="${escapeHtml(key)}" title="Delete">
+            🗑️
+          </button>
+        </div>
+      </div>
+      ${aliasText ? `<div class="openvault-entity-aliases">${escapeHtml(aliasText)}</div>` : ''}
+      <div class="openvault-entity-description">${escapeHtml(entity.description || '')}</div>
+      <small class="openvault-entity-mentions">${entity.mentions || 0} mentions</small>
+    </div>
+  `;
 }

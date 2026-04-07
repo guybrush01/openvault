@@ -160,33 +160,33 @@ describe('ui/templates', () => {
     describe('renderEntityCard', () => {
         it('renders entity name and type badge', () => {
             const entity = { name: 'King Aldric', type: 'PERSON', description: 'The aging ruler', mentions: 7 };
-            const html = renderEntityCard(entity);
+            const html = renderEntityCard(entity, 'king_aldric');
             expect(html).toContain('King Aldric');
-            expect(html).toContain('PERSON');
             expect(html).toContain('person'); // lowercase class
+            expect(html).toContain('data-key="king_aldric"');
         });
 
         it('renders mention count', () => {
             const entity = { name: 'Castle', type: 'PLACE', description: 'Ancient fortress', mentions: 3 };
-            const html = renderEntityCard(entity);
+            const html = renderEntityCard(entity, 'castle');
             expect(html).toContain('3 mentions');
         });
 
         it('renders description', () => {
             const entity = { name: 'Castle', type: 'PLACE', description: 'Ancient fortress', mentions: 1 };
-            const html = renderEntityCard(entity);
+            const html = renderEntityCard(entity, 'castle');
             expect(html).toContain('Ancient fortress');
         });
 
         it('handles missing description', () => {
             const entity = { name: 'Castle', type: 'PLACE', mentions: 1 };
-            const html = renderEntityCard(entity);
+            const html = renderEntityCard(entity, 'castle');
             expect(html).toContain('Castle');
         });
 
         it('defaults mentions to 0', () => {
             const entity = { name: 'Castle', type: 'PLACE', description: '' };
-            const html = renderEntityCard(entity);
+            const html = renderEntityCard(entity, 'castle');
             expect(html).toContain('0 mentions');
         });
     });

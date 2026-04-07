@@ -162,21 +162,6 @@ for (let i = 0; i < rawBM25Scores.length; i++) {
 }
 ```
 
-**Pattern 3 — `maxMessageId` in `calculateScore` (line ~252):**
-
-Replace:
-```javascript
-const maxMessageId = Math.max(...messageIds);
-```
-With:
-```javascript
-let maxMessageId = -Infinity;
-for (const id of messageIds) {
-    if (id > maxMessageId) maxMessageId = id;
-}
-if (!isFinite(maxMessageId)) maxMessageId = 0;
-```
-
 - [ ] Step 4: Run tests to verify they pass
 
 Run: `npx vitest run tests/retrieval/math-spread.test.js --reporter verbose`
@@ -215,7 +200,7 @@ it('only unhides messages tagged by OpenVault, preserves ST-native hidden messag
     mockContext.chat = [
         { is_system: false },                         // visible — no change
         { is_system: true, is_user: true },            // ST-native hidden (e.g. Author's Note)
-        { is_system: true, _openvault_hidden: true },  // OpenVault hidden — should unhide
+        { is_system: true, openvault_hidden: true },  // OpenVault hidden — should unhide
         { is_system: true },                           // ST-native hidden — should stay hidden
     ];
     setDeps({
@@ -255,7 +240,7 @@ With:
 ```javascript
 for (const idx of snapped) {
     chat[idx].is_system = true;
-    chat[idx]._openvault_hidden = true;
+    chat[idx].openvault_hidden = true;
 }
 ```
 
@@ -272,7 +257,7 @@ With:
 ```javascript
 if (processedFps.has(getFingerprint(msg)) && !msg.is_system) {
     msg.is_system = true;
-    msg._openvault_hidden = true;
+    msg.openvault_hidden = true;
     hiddenCount++;
 }
 ```
@@ -291,9 +276,9 @@ for (const msg of chat) {
 With:
 ```javascript
 for (const msg of chat) {
-    if (msg._openvault_hidden && msg.is_system) {
+    if (msg.openvault_hidden && msg.is_system) {
         msg.is_system = false;
-        delete msg._openvault_hidden;
+        delete msg.openvault_hidden;
         unhiddenCount++;
     }
 }
@@ -893,8 +878,11 @@ function _getHiddenMemories(chat, memories) {
                 const minId = Math.min(...resolvedIndices);
                 return chat[minId]?.is_system;
             }
+            // Fingerprints exist but resolve to nothing — source messages were deleted.
+            // They are no longer visible, so the memory is injectable.
+            return false;
         }
-        // Fall back to message_ids (legacy)
+        // Fall back to message_ids ONLY when fingerprints are absent (unmigrated v2 data)
         if (!m.message_ids?.length) return false;
         const minId = Math.min(...m.message_ids);
         return chat[minId]?.is_system;
@@ -902,22 +890,33 @@ function _getHiddenMemories(chat, memories) {
 }
 ```
 
+**In `src/retrieval/retrieve.js`**, update `buildRetrievalContext` to build the `chatFingerprintMap` and include it in the returned `ctx`:
+
+After `chatLength: chat.length,` in the return object, add:
+```javascript
+chatFingerprintMap: (() => {
+    const map = new Map();
+    for (let i = 0; i < chat.length; i++) {
+        map.set(getFingerprint(chat[i]), i);
+    }
+    return map;
+})(),
+```
+
+This builds the map once where `chat` is accessible, and threads it through `ctx` down the chain.
+
 Add import at the top of `retrieve.js`:
 ```javascript
 import { getFingerprint } from '../extraction/scheduler.js';
 ```
 
-**In `src/retrieval/retrieve.js`**, build the fingerprint map in `selectRelevantMemories` and pass to `calculateScore`. Find where `calculateScore` is called and add the `chatFingerprintMap` parameter:
+**In `src/retrieval/scoring.js`**, thread `ctx.chatFingerprintMap` through the scoring chain:
 
-Build the map before the scoring loop:
-```javascript
-const chatFingerprintMap = new Map();
-for (let i = 0; i < chat.length; i++) {
-    chatFingerprintMap.set(getFingerprint(chat[i]), i);
-}
-```
+In `selectRelevantMemories`, pass `ctx.chatFingerprintMap` to `selectRelevantMemoriesSimple`.
+In `selectRelevantMemoriesSimple`, pass it to `scoreMemoriesDirect` as a new parameter.
+In `scoreMemoriesDirect`, pass it to `scoreMemories`.
 
-Pass it as the 7th argument to `calculateScore` calls.
+**In `src/retrieval/math.js`**, `scoreMemories` passes `chatFingerprintMap` as the 7th argument to `calculateScore`.
 
 - [ ] Step 4: Run tests to verify they pass
 

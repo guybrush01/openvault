@@ -102,6 +102,7 @@ Everything stays on your machine. The in-browser embedding model means no text g
 
 ## Version History
 
+- **19.00** - Exclude the last N complete turns from extraction batches so hallucinated/swiped AI responses dont enter the memory
 - **18.50** - Rewrite examples with sonnet
 - **17.00** - Add commitment/preference to memory, add real time tracking. New type of memories - transient with faster decay
 - **16.00** - Improved LLM answer parsing

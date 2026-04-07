@@ -28,3 +28,7 @@
 - **Set merge redirect on rename.** `graph._mergeRedirects[oldKey] = newKey` so lookups for the old name resolve forward. Also update any existing redirects that point to `oldKey` to point to `newKey` instead — `_resolveKey()` is non-recursive, so chained redirects would otherwise break.
 - **Delete ST Vector orphans on rename/delete.** If `node._st_synced === true`, calculate hash via `cyrb53(\`[OV_ID:${key}] ${node.description}\`)` and return it as `stChanges.toDelete` for the caller to pass to `deleteItemsFromST()`. Hash format must match `graph.js:486` exactly — no `|| node.name` fallback.
 - **Return structured results, not bare booleans.** Use `{ success, stChanges? }` for delete, `{ key, stChanges? }` for update. Callers need the hash list for ST Vector cleanup.
+
+## ENTITY MERGE TESTS
+- **`tests/store/chat-data-merge.test.js`** uses inline objects, not `buildMockGraphNode()`. Merge tests need explicit control over specific field combinations (`_st_synced`, edge structures) where factory defaults would obscure test intent.
+- **Uses `setDeps()` alongside `setupTestContext()`.** The merge module imports `getDeps()` internally, so tests must call `setDeps()` directly to inject the mock context.

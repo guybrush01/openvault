@@ -16,6 +16,9 @@
   5. Fatal Error.
 - **Return Zod-style results.** Always return `{ success, data?, error?, errorContext? }`.
 
+## DESCRIPTION MERGING (`text.js`)
+- **`mergeDescriptions(targetDesc, sourceDesc, threshold)`** — Segmented Jaccard deduplication. Splits source by ` | ` (space-pipe-space), compares each segment against the accumulated target using `jaccardSimilarity()`, appends only segments below the threshold. Default threshold from `GRAPH_JACCARD_DUPLICATE_THRESHOLD`.
+
 ## EMBEDDING CODEC (`embedding-codec.js`)
 - **Store as Base64 strings.** Convert `Float32Array` to `embedding_b64` to cut JSON storage size by 33%.
 - **Read legacy arrays transparently.** Fall back to parsing `number[]` if `embedding_b64` is missing.

@@ -23,4 +23,4 @@
 ## STORE TESTS (chat-data)
 - **Always provide `saveChatConditional` in deps.** `setupTestContext({ deps: { saveChatConditional: vi.fn() } })` — updateEntity/deleteEntity call this.
 - **Reset graph data per test.** Set `data.graph = { nodes: {}, edges: {}, _mergeRedirects: {} }` in `beforeEach` to avoid cross-test leakage.
-- **Use `buildMockGraphNode()` for entity nodes.** Never use inline objects — the factory sets required fields consistently.
+- **Use `buildMockGraphNode()` for entity nodes.** Prefer the factory for consistency. Exception: merge/collision tests where inline objects make the specific field combinations under test more visible.

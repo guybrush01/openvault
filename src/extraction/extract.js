@@ -608,7 +608,7 @@ export async function filterSimilarEvents(
  * @param {Object} [options={}]
  * @param {AbortSignal} [options.abortSignal=null] - Abort signal for cancellation
  */
-async function synthesizeReflections(data, characterNames, settings, options = {}) {
+export async function synthesizeReflections(data, characterNames, settings, options = {}) {
     const { abortSignal = null } = options;
     const reflectionThreshold = settings.reflectionThreshold;
     const ladderQueue = await createLadderQueue(settings.maxConcurrency);
@@ -623,6 +623,11 @@ async function synthesizeReflections(data, characterNames, settings, options = {
             reflectionPromises.push(
                 ladderQueue
                     .add(async () => {
+                        // Reset accumulator BEFORE LLM call to prevent infinite retry loop on failure
+                        // The accumulated importance is "consumed" here - even if the LLM call fails,
+                        // we don't want to retry immediately (to avoid token burning)
+                        data.reflection_state[characterName].importance_sum = 0;
+
                         const { reflections, stChanges } = await generateReflections(
                             characterName,
                             data[MEMORIES_KEY] || [],
@@ -631,8 +636,6 @@ async function synthesizeReflections(data, characterNames, settings, options = {
                         if (reflections.length > 0) {
                             addMemories(reflections);
                         }
-                        // Reset accumulator after reflection
-                        data.reflection_state[characterName].importance_sum = 0;
                         await applySyncChanges(stChanges);
                     })
                     .catch((error) => {

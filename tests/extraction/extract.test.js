@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultSettings } from '../../src/constants.js';
 import { resetDeps } from '../../src/deps.js';
-import { extractAllMessages, extractMemories, runPhase2Enrichment } from '../../src/extraction/extract.js';
+import { extractAllMessages, extractMemories, runPhase2Enrichment, synthesizeReflections } from '../../src/extraction/extract.js';
 
 /**
  * Standard LLM response data for extraction tests.
@@ -416,5 +416,116 @@ describe('extractAllMessages Emergency Cut support', () => {
                 abortSignal: controller.signal,
             })
         ).rejects.toThrow(expect.objectContaining({ name: 'AbortError' }));
+    });
+});
+
+// ── synthesizeReflections accumulator reset (bugfix tests) ──
+
+// Mock the reflection module to control generateReflections
+// Default implementation passes through to original for other tests
+vi.mock('../../src/reflection/reflect.js', async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        generateReflections: vi.fn().mockImplementation(actual.generateReflections),
+    };
+});
+
+import { generateReflections } from '../../src/reflection/reflect.js';
+
+describe('synthesizeReflections accumulator reset', () => {
+    beforeEach(() => {
+        vi.restoreAllMocks();
+        generateReflections.mockReset();
+    });
+
+    afterEach(() => {
+        resetDeps();
+        vi.clearAllMocks();
+    });
+
+    it('should reset importance_sum even when LLM fails', async () => {
+        const data = {
+            reflection_state: {
+                'TestCharacter': { importance_sum: 45 }
+            },
+            memories: [],
+            characters: {}
+        };
+        const settings = {
+            reflectionThreshold: 40,
+            maxConcurrency: 1
+        };
+
+        // Mock generateReflections to fail
+        generateReflections.mockRejectedValue(new Error('LLM timeout'));
+
+        // Mock setupTestContext to provide deps
+        setupTestContext({
+            context: {
+                chat: [],
+                chatMetadata: { openvault: data },
+            },
+            settings: { ...getExtractionSettings(), reflectionThreshold: 40 },
+            deps: {
+                connectionManager: getMockConnectionManager(vi.fn()),
+                fetch: vi.fn(async () => ({
+                    ok: true,
+                    json: async () => ({ embedding: [0.1, 0.2] }),
+                })),
+                saveChatConditional: vi.fn(async () => true),
+            },
+        });
+
+        // Spy on console.error to suppress error output
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        await synthesizeReflections(data, ['TestCharacter'], settings);
+
+        // importance_sum should be reset even though LLM failed
+        expect(data.reflection_state['TestCharacter'].importance_sum).toBe(0);
+    });
+
+    it('should not retry failed reflection on next call', async () => {
+        const data = {
+            reflection_state: {
+                'TestCharacter': { importance_sum: 45 }
+            },
+            memories: [],
+            characters: {}
+        };
+        const settings = {
+            reflectionThreshold: 40,
+            maxConcurrency: 1
+        };
+
+        // Mock generateReflections to fail
+        generateReflections.mockRejectedValue(new Error('LLM timeout'));
+
+        setupTestContext({
+            context: {
+                chat: [],
+                chatMetadata: { openvault: data },
+            },
+            settings: { ...getExtractionSettings(), reflectionThreshold: 40 },
+            deps: {
+                connectionManager: getMockConnectionManager(vi.fn()),
+                fetch: vi.fn(async () => ({
+                    ok: true,
+                    json: async () => ({ embedding: [0.1, 0.2] }),
+                })),
+                saveChatConditional: vi.fn(async () => true),
+            },
+        });
+
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        // First call - should attempt reflection and fail
+        await synthesizeReflections(data, ['TestCharacter'], settings);
+        expect(generateReflections).toHaveBeenCalledTimes(1);
+
+        // Second call - importance_sum is now 0, should NOT attempt reflection
+        await synthesizeReflections(data, ['TestCharacter'], settings);
+        expect(generateReflections).toHaveBeenCalledTimes(1); // Still 1, not 2
     });
 });

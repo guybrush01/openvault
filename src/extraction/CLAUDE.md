@@ -11,6 +11,9 @@
   5. `synthesizeReflections` (Deferred on backfill)
   6. `synthesizeCommunities` (Deferred on backfill)
 
+## TURN BOUNDARY FALLBACK
+- **`snapToTurnBoundary` accepts `allowUserOnly` flag.** When true (Emergency Cut), returns the accumulated messages as-is even if no Bot→User boundary exists. Prevents extraction stall on all-User message queues.
+
 ## BACKFILL OPTIMIZATION
 - **Defer Phase 2 enrichment during manual backfills.** Pass `{ isBackfill: true }` to `extractMemories` to skip reflections and communities. 
 - **Run Phase 2 once at the end.** Execute `runPhase2Enrichment()` over all accumulated data to save API calls and UI lockups.
@@ -22,6 +25,9 @@
 - **Transliterate for cross-script merges.** Match Cyrillic to Latin character nodes using `levenshteinDistance <= 2` on transliterated names.
 - **Consolidate bloated edges.** Track `_descriptionTokens`. Trigger LLM consolidation when tokens `> 150`.
 - **Prevent Louvain hairballs.** Attenuate edges involving User/Char by 95% (`MAIN_CHARACTER_ATTENUATION`) to allow secondary clusters to form without breaking hub-and-spoke RP structures.
+
+## REFLECTION ACCUMULATOR LIFECYCLE
+- **Reset `importance_sum` BEFORE the LLM call, restore on failure.** If reset happens only on success, a failing LLM causes infinite retries that burn tokens. The pattern: capture → reset → try → catch restores if still 0.
 
 ## SWIPE PROTECTION
 - **Trim tail turns from extraction batches.** `trimTailTurns(chat, ids, N)` removes N complete User+Bot turns from the tail using the same Bot→User boundary logic as `snapToTurnBoundary()`.

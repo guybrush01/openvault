@@ -26,6 +26,12 @@
 ## TOKEN BOUNDARIES (`tokens.js`)
 - **Snap arrays to turn boundaries.** Use `snapToTurnBoundary()` to trim message indices backward until reaching a valid `Bot -> User` transition. Never orphan a User message from its Bot response during auto-hide or batching.
 
+## REGEX & MULTILINGUAL
+- **Never use `\b` for non-ASCII text.** Word boundaries only match ASCII `[A-Za-z0-9_]`. Use `(?<![\p{L}\p{N}_])` / `(?![\p{L}\p{N}])` with the `u` flag instead.
+
+## ASYNC UTILITIES (`st-helpers.js`)
+- **Clear timers after `Promise.race`.** `Promise.race` does not cancel the losing promise. Always `clearTimeout` in a `.finally()` on the primary promise to prevent memory leaks.
+
 ## AIMD LADDER QUEUE (`queue.js`)
 - **Manage Phase 2 parallelism.** Use `createLadderQueue()` for LLM tasks.
 - **Decrease multiplicatively.** On 429 or Timeout, halve concurrency and pause for 4 seconds.

@@ -7,6 +7,7 @@ Flat-JSON entity and relationship storage with rigorous semantic deduplication, 
 - **Keys**: Normalized (`normalizeKey()`) — lowercased, possessives stripped ("Vova's" -> "vova"), whitespace collapsed.
 - **Nodes**: `{ [key]: { name, type, description, mentions, embedding, aliases? } }`. Descriptions append with `|` (FIFO capped).
 - **Edges**: `{ "source__target": { source, target, description, weight, _descriptionTokens } }`. Token count tracked for consolidation triggers.
+- **Edges have embeddings.** Edges store `embedding_b64` after consolidation and participate in embedding migrations/invalidation alongside nodes. Always iterate `graph.edges` in any embedding-related loop.
 
 ## EDGE CONSOLIDATION
 - **Token Tracking**: Each edge stores `_descriptionTokens` count (updated on every `upsertRelationship` call).

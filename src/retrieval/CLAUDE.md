@@ -19,6 +19,10 @@
   - **Layer 2:** Corpus-grounded message stems (3x boost).
   - **Layer 3:** Non-grounded message stems (2x boost).
 
+## ST VECTOR RETRIEVAL
+- **`selectRelevantMemoriesWithST` returns all item types.** Build lookup maps for memories, graph nodes (`graphNodes`), AND communities — not just memories. Results include `itemType` field ('memory', 'node', 'community') for downstream routing.
+- **Community retrieval skips local embeddings in ST Vector mode.** `retrieveWorldContext` returns `null` when `embeddingMode === 'st_vector'` since communities are already retrieved via the scoring layer.
+
 ## WORLD CONTEXT & INTENT ROUTING
 - **Route via multilingual intent.** Use `detectMacroIntent()` (matches "recap", "вкратце", etc.).
 - **Macro queries:** Inject the pre-computed `global_world_state`.

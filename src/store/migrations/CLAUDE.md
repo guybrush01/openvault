@@ -34,6 +34,9 @@ try {
 }
 ```
 
+## EMBEDDING MIGRATION ITEM TYPES
+- **Always include graph edges.** `_countEmbeddings`, `_hasSyncedItems`, `_clearAllStSyncFlags`, and `invalidateStaleEmbeddings` must iterate all 4 types: memories, nodes, edges, communities. Missing edges causes desync on model changes.
+
 ## SCHEMA VS EMBEDDING MIGRATIONS
 **Different pipelines, different triggers:**
 - **Schema Migrations** (`src/store/migrations/`): Structural changes. Run on chat load.

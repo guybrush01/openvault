@@ -340,6 +340,7 @@ export const RetrievalContextSchema = z.object({
     queryConfig: QueryConfigSchema,
     graphNodes: z.record(z.string(), GraphNodeSchema).optional(),
     graphEdges: z.record(z.string(), GraphEdgeSchema).optional(),
+    communities: z.record(z.string(), CommunitySummarySchema).optional(),
     allAvailableMemories: z.array(MemorySchema).optional(),
     idfCache: IDFCacheSchema.optional(),
     chatFingerprintMap: z.map(z.string(), z.number()).nullable().optional(),

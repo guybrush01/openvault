@@ -512,6 +512,16 @@ export type RetrievalContext = {
             _st_synced?: boolean | undefined;
         };
     } | undefined;
+    communities?: {
+        [key: string]: {
+            id: string;
+            title: string;
+            summary: string;
+            entities?: string[] | undefined;
+            findings?: string[] | undefined;
+            last_updated?: number | undefined;
+        };
+    } | undefined;
     allAvailableMemories?: {
         id: string;
         summary: string;

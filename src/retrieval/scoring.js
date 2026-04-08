@@ -103,7 +103,15 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit, allHiddenMemor
     const strategy = getStrategy(source);
 
     if (strategy.usesExternalStorage()) {
-        return selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemories, idfCache, strategy);
+        return selectRelevantMemoriesWithST(
+            memories,
+            ctx,
+            limit,
+            allHiddenMemories,
+            idfCache,
+            strategy,
+            ctx.communities
+        );
     }
 
     // Extract context from recent messages for enriched queries
@@ -177,9 +185,18 @@ async function selectRelevantMemoriesSimple(memories, ctx, limit, allHiddenMemor
  * @param {Memory[]} allHiddenMemories - All hidden memories for IDF corpus
  * @param {IDFCache|null} idfCache - Pre-computed IDF cache
  * @param {Object} strategy - ST Vector strategy object with searchItems method
- * @returns {Promise<{memories: Memory[], scoredResults: ScoredMemory[]}>}
+ * @param {Object} [communities={}] - Communities map for community results
+ * @returns {Promise<{memories: Memory[], scoredResults: ScoredMemory[], communityIds: string[]}>}
  */
-async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemories, idfCache, strategy) {
+export async function selectRelevantMemoriesWithST(
+    memories,
+    ctx,
+    limit,
+    allHiddenMemories,
+    idfCache,
+    strategy,
+    communities = {}
+) {
     const { recentContext, userMessages, activeCharacters, chatLength, scoringConfig, queryConfig } = ctx;
 
     // Over-fetch from ST for reranking headroom
@@ -190,8 +207,10 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
         scoringConfig.vectorSimilarityThreshold
     );
 
-    // Build lookup map for memories
+    // Build lookup map for memories and communities
     const memoriesById = new Map(memories.map((m) => [m.id, m]));
+    const communityById = new Map(Object.entries(communities));
+    const communityResults = [];
 
     if (stResults && stResults.length > 0) {
         const candidates = [];
@@ -199,10 +218,12 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
             const result = stResults[i];
             const item = memoriesById.get(result.id);
 
-            if (!item) continue;
-
-            item._proxyVectorScore = rankToProxyScore(i, stResults.length);
-            candidates.push(item);
+            if (item) {
+                item._proxyVectorScore = rankToProxyScore(i, stResults.length);
+                candidates.push(item);
+            } else if (communityById.has(result.id)) {
+                communityResults.push(result.id);
+            }
         }
 
         if (candidates.length > 0) {
@@ -263,6 +284,7 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
             return {
                 memories: topScored.map((r) => r.memory),
                 scoredResults: topScored,
+                communityIds: communityResults,
             };
         }
     }
@@ -277,7 +299,7 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
         bm25Tokens = buildBM25Tokens(userMessages, queryContext, corpusVocab, null, queryConfig);
     }
 
-    return scoreMemoriesDirect(
+    const fallbackResult = await scoreMemoriesDirect(
         memories,
         null,
         chatLength,
@@ -289,6 +311,11 @@ async function selectRelevantMemoriesWithST(memories, ctx, limit, allHiddenMemor
         scoringConfig,
         ctx.chatFingerprintMap
     );
+
+    return {
+        ...fallbackResult,
+        communityIds: communityResults,
+    };
 }
 
 /**

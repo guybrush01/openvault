@@ -5,11 +5,18 @@
     border-bottom: 2px solid var(--SmartThemeBorderColor, #333);
     margin-bottom: 15px;
     gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.openvault-tab-nav::-webkit-scrollbar {
+    display: none;
 }
 
 .openvault-tab-btn {
     flex: 1;
-    padding: 10px 8px;
+    padding: 8px 6px;
     text-align: center;
     background: transparent;
     border: none;
@@ -20,6 +27,8 @@
     color: var(--SmartThemeBodyColor, #ccc);
     border-bottom: 2px solid transparent;
     margin-bottom: -2px;
+    white-space: nowrap;
+    min-width: fit-content;
 }
 
 .openvault-tab-btn:hover {

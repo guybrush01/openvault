@@ -20,9 +20,12 @@ Agentic memory extension for SillyTavern providing POV-aware memory, witness tra
 - **Validate arrays explicitly.** Use `array?.length > 0 ? array : fallback`. Empty arrays are truthy and will bypass `||` fallbacks
 - **Throw `AbortError` to signal cancellation.** Catch it explicitly and do not log it as a failure
 - **Yield the main thread in heavy loops.** Call `await yieldToMain()` to polyfill `scheduler.yield()` and prevent ST UI freezes
-- **Format and typecheck before commit.** First run `npm run lint` (Biome auto-fixes formatting) THEN run `npm run typecheck` (`@ts-check` + JSDoc). Never edit `src/types.d.ts` directly; regenerate it from Zod schemas using `npm run generate-types`
+- **Never edit `src/types.d.ts` directly.** Regenerate it from Zod schemas using `npm run generate-types`
 
-### 4. ST Sync Pipeline Types
+### 4. Pre-Commit
+- **`npm run check` runs automatically on every commit** (sync-version, generate-types, lint, jsdoc, css, typecheck). The commit is aborted on any failure — fix errors, never skip them
+
+### 5. ST Sync Pipeline Types
 - **toDelete items:** Always push `{ hash: number }` objects, never plain strings
 - **Hash computation:** Use `cyrb53(text)` (returns number), never `.toString()`
 - **Schema contract:** `StSyncChangesSchema` in `schemas.js` validates shapes — keep in sync

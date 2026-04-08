@@ -45,25 +45,9 @@
     margin-right: 4px;
 }
 
-/* Responsive tab labels - hide short by default */
-.openvault-tab-short {
-    display: none;
-}
-
-/* Medium screens: use short labels */
-@media (max-width: 450px) {
-    .openvault-tab-text {
-        display: none;
-    }
-    .openvault-tab-short {
-        display: inline;
-    }
-}
-
-/* Very small screens: icons only */
-@media (max-width: 320px) {
-    .openvault-tab-text,
-    .openvault-tab-short {
+/* Wide screens: icons only */
+@media (min-width: 1281px) {
+    .openvault-tab-btn span {
         display: none;
     }
     .openvault-tab-btn i {

@@ -6,6 +6,7 @@ import {
     extractMemories,
     runPhase2Enrichment,
     synthesizeReflections,
+    updateIDFCache,
 } from '../../src/extraction/extract.js';
 
 /**
@@ -532,5 +533,44 @@ describe('synthesizeReflections accumulator reset', () => {
         // Second call - importance_sum is now 0, should NOT attempt reflection
         await synthesizeReflections(data, ['TestCharacter'], settings);
         expect(generateReflections).toHaveBeenCalledTimes(1); // Still 1, not 2
+    });
+});
+
+// ── updateIDFCache — archived memories (bugfix tests) ──
+
+describe('updateIDFCache — archived memories', () => {
+    it('counts only active memories, excluding archived', async () => {
+        const data = {
+            memories: [
+                { id: 'm1', summary: 'Active memory one', tokens: ['active', 'memory', 'one'] },
+                { id: 'm2', summary: 'Active memory two', tokens: ['active', 'memory', 'two'] },
+                { id: 'm3', summary: 'Archived memory', tokens: ['archived', 'memory'], archived: true },
+                { id: 'm4', summary: 'Another archived', tokens: ['another', 'archived'], archived: true },
+            ],
+        };
+
+        updateIDFCache(data);
+
+        // Should count 2 active memories, NOT 4 total
+        expect(data.idf_cache.memoryCount).toBe(2);
+    });
+
+    it('produces cache that validates against active-only corpus', async () => {
+        const data = {
+            memories: [
+                { id: 'm1', summary: 'Active one', tokens: ['active', 'one'] },
+                { id: 'm2', summary: 'Active two', tokens: ['active', 'two'] },
+                { id: 'm3', summary: 'Archived', tokens: ['archived'], archived: true },
+            ],
+        };
+
+        updateIDFCache(data);
+
+        // Simulate what scoreMemories validates:
+        // activeMemories = memories.filter(m => !m.archived) → length = 2
+        // hiddenMemories = [] → length = 0
+        // totalCorpusSize = 2
+        // cacheValid = idfCache.memoryCount === totalCorpusSize
+        expect(data.idf_cache.memoryCount).toBe(2);
     });
 });

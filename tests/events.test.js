@@ -308,6 +308,31 @@ describe('onChatChanged resets session controller', () => {
         expect(newSignal.aborted).toBe(false);
         expect(newSignal).not.toBe(oldSignal);
     });
+
+    it('resets session controller even when extension is disabled', async () => {
+        // Set up a session controller that we can observe
+        const { resetSessionController, getSessionSignal } = await import('../src/state.js');
+        resetSessionController(); // fresh controller
+        const oldSignal = getSessionSignal();
+        expect(oldSignal.aborted).toBe(false);
+
+        // Now disable the extension
+        setupTestContext({
+            settings: {
+                enabled: false, // Extension disabled
+            },
+            deps: {
+                saveChatConditional: vi.fn(async () => true),
+            },
+        });
+
+        // Switch chat while extension is disabled
+        const { onChatChanged } = await import('../src/events.js');
+        await onChatChanged();
+
+        // The old signal should have been aborted regardless of extension state
+        expect(oldSignal.aborted).toBe(true);
+    });
 });
 
 describe('onChatChanged embedding model mismatch detection', () => {

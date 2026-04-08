@@ -122,11 +122,13 @@ async function rpmDelay(settings, label = 'Rate limit') {
 export async function applySyncChanges(stChanges) {
     if (!isStVectorSource()) return;
     const chatId = getCurrentChatId();
+    let requiresSave = false;
     if (stChanges.toSync?.length > 0) {
         const items = stChanges.toSync.map((c) => ({ hash: c.hash, text: c.text, index: 0 }));
         const success = await syncItemsToST(items, chatId);
         if (success) {
             for (const c of stChanges.toSync) markStSynced(c.item);
+            requiresSave = true;
         }
     }
     if (stChanges.toDelete?.length > 0) {
@@ -134,6 +136,9 @@ export async function applySyncChanges(stChanges) {
             stChanges.toDelete.map((c) => c.hash),
             chatId
         );
+    }
+    if (requiresSave) {
+        await saveOpenVaultData();
     }
 }
 

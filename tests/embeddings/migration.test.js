@@ -357,4 +357,85 @@ describe('migration', () => {
             expect(mockContext.chatMetadata[METADATA_KEY][MEMORIES_KEY][0].embedding).toBeUndefined();
         });
     });
+
+    describe('invalidateStaleEmbeddings edge handling', () => {
+        it('should clear embeddings from graph edges', async () => {
+            const data = {
+                embedding_model_id: 'old-model',
+                memories: [],
+                graph: {
+                    nodes: {},
+                    edges: {
+                        'edge1': {
+                            source: 'A',
+                            target: 'B',
+                            description: 'Test edge',
+                            embedding_b64: 'base64encodedembedding',
+                            embedding: [0.1, 0.2, 0.3],
+                        },
+                        'edge2': {
+                            source: 'B',
+                            target: 'C',
+                            description: 'Another edge',
+                            embedding_b64: 'anotherembedding',
+                            embedding: [0.4, 0.5, 0.6],
+                        },
+                    },
+                },
+                communities: {},
+            };
+
+            const result = await invalidateStaleEmbeddings(data, 'new-model');
+
+            // Should report 2 embeddings cleared (the edges)
+            expect(result).toBe(2);
+
+            // Edge embeddings should be removed
+            expect(data.graph.edges['edge1'].embedding_b64).toBeUndefined();
+            expect(data.graph.edges['edge1'].embedding).toBeUndefined();
+            expect(data.graph.edges['edge2'].embedding_b64).toBeUndefined();
+            expect(data.graph.edges['edge2'].embedding).toBeUndefined();
+        });
+
+        it('should clear edge embeddings along with other embeddings', async () => {
+            const data = {
+                embedding_model_id: 'old-model',
+                memories: [{ id: 'm1', summary: 'Test', embedding_b64: 'mem1' }],
+                graph: {
+                    nodes: { Alice: { name: 'Alice', embedding_b64: 'node1' } },
+                    edges: { edge1: { source: 'A', target: 'B', embedding_b64: 'edge1' } },
+                },
+                communities: { C1: { id: 'C1', embedding_b64: 'comm1' } },
+            };
+
+            const result = await invalidateStaleEmbeddings(data, 'new-model');
+
+            // Should clear: 1 memory + 1 node + 1 community + 1 edge = 4
+            expect(result).toBe(4);
+
+            expect(data.memories[0].embedding_b64).toBeUndefined();
+            expect(data.graph.nodes['Alice'].embedding_b64).toBeUndefined();
+            expect(data.graph.edges['edge1'].embedding_b64).toBeUndefined();
+            expect(data.communities['C1'].embedding_b64).toBeUndefined();
+        });
+
+        it('should handle empty or missing edges gracefully', async () => {
+            const data1 = {
+                embedding_model_id: 'old-model',
+                memories: [],
+                graph: { nodes: {} }, // No edges property
+                communities: {},
+            };
+
+            const data2 = {
+                embedding_model_id: 'old-model',
+                memories: [],
+                graph: { nodes: {}, edges: {} }, // Empty edges
+                communities: {},
+            };
+
+            expect(await invalidateStaleEmbeddings(data1, 'new-model')).toBe(0);
+            expect(await invalidateStaleEmbeddings(data2, 'new-model')).toBe(0);
+        });
+    });
 });

@@ -26,20 +26,28 @@ Agentic memory extension for SillyTavern providing POV-aware memory, witness tra
 ### 4. Pre-Commit
 - **`npm run check` runs automatically on every commit** (sync-version, generate-types, lint, jsdoc, css, typecheck). The commit is aborted on any failure — fix errors, never skip them
 
-### 5. ST Sync Pipeline Types
-- **toDelete items:** Always push `{ hash: number }` objects, never plain strings
-- **Hash computation:** Use `cyrb53(text)` (returns number), never `.toString()`
-- **Schema contract:** `StSyncChangesSchema` in `schemas.js` validates shapes — keep in sync
-- **Every mutation must return complete stChanges.** If a function modifies/deletes entities, memories, or communities, it must return `{ toSync, toDelete }` for both. Missing either causes orphaned embeddings. Check all code paths — early returns are the most common leak source.
-- **Use the `syncNode(key)` helper pattern** (from `graph.js`) to avoid duplicating the `[OV_ID:${key}] ${description}` + `cyrb53` boilerplate in every merge path.
+## COMMANDS
+| Command | Description |
+|---------|-------------|
+| `npm test` | Run all tests (generates types first) |
+| `npm run check` | Pre-commit: sync-version, generate-types, lint, jsdoc, css, typecheck |
+| `npm run lint` | Run biome + JSDoc checks |
+| `npm run generate-types` | Regenerate `src/types.d.ts` from Zod schemas |
+| `npm run typecheck` | Run TypeScript compiler for type validation |
+| `npm run repomix:logic-lite` | Pack source logic into single context file for LLM |
 
 ## DIRECTORY KNOWLEDGE MAP
-To keep context windows clean, domain-specific rules live in their respective directories:
-- `src/store/CLAUDE.md` - State management, migrations, flat-file DB rules
-- `src/extraction/CLAUDE.md` - Background worker, graph building, reflection, Louvain communities
-- `src/retrieval/CLAUDE.md` - Alpha-blend scoring, BM25 math, world context intent routing
-- `src/prompts/CLAUDE.md` - Prompt topologies, `<think>` tags, bilingual schemas
-- `src/ui/CLAUDE.md` - Progressive disclosure, DOM manipulation, payload calculations
-- `src/utils/CLAUDE.md` - Codecs, logging, stemmers, AIMD queues
-- `tests/CLAUDE.md` - Test pyramid, mocking boundaries, factories
-- `include/DATA_SCHEMA.md` - Data schema
+Domain-specific rules live in subdirectory CLAUDE.md files (auto-discovered by Claude):
+- `src/store/` — State management, stChanges contract, migrations
+- `src/store/migrations/` — Schema versioning, rollback patterns
+- `src/extraction/` — Background worker, turn boundaries, swipe protection, backfill
+- `src/graph/` — Semantic merge, edge consolidation, Louvain communities
+- `src/reflection/` — Reflection pipeline, accumulator, 3-tier dedup
+- `src/retrieval/` — Context budgeting, world context intent routing, query building
+- `src/services/` — ST Vector REST API, CSRF, collection isolation
+- `src/prompts/` — Prompt topology, `<think/>` tags, bilingual schemas
+- `src/ui/` — Progressive disclosure, DOM patterns, payload calculator
+- `src/perf/` — Metrics store, sync vs async instrumentation
+- `src/utils/` — Codecs, logging, stemmers, AIMD queue
+- `tests/` — Test pyramid, mocking boundaries, factories
+- `include/DATA_SCHEMA.md` — Data schema & retrieval formulas (authoritative)

@@ -232,7 +232,7 @@ export const StSyncChangesSchema = z.object({
             z.object({
                 hash: z.number(),
                 text: z.string(),
-                item: z.any(),
+                item: z.union([MemorySchema, GraphNodeSchema, GraphEdgeSchema, CommunitySummarySchema]),
             })
         )
         .optional(),

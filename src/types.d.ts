@@ -337,7 +337,52 @@ export type StSyncChanges = {
     toSync?: {
         hash: number;
         text: string;
-        item: any;
+        item: {
+            id: string;
+            summary: string;
+            importance: number;
+            embedding?: number[] | undefined;
+            message_id: number;
+            timestamp: number;
+            witnesses?: string[] | undefined;
+            type?: ("event" | "reflection" | "global_synthesis") | undefined;
+            level?: number | undefined;
+            tokens: string[];
+            message_ids?: number[] | undefined;
+            message_fingerprints?: string[] | undefined;
+            mentions?: number | undefined;
+            retrieval_hits?: number | undefined;
+            archived?: boolean | undefined;
+            temporal_anchor?: (string | null) | undefined;
+            is_transient?: boolean | undefined;
+            _st_synced?: boolean | undefined;
+            _proxyVectorScore?: number | undefined;
+        } | {
+            name: string;
+            type: "PERSON" | "PLACE" | "ORGANIZATION" | "OBJECT" | "CONCEPT";
+            description: string;
+            mentions: number;
+            embedding?: number[] | undefined;
+            embedding_b64?: string | undefined;
+            aliases?: string[] | undefined;
+            _st_synced?: boolean | undefined;
+        } | {
+            source: string;
+            target: string;
+            description: string;
+            weight: number;
+            _descriptionTokens?: number | undefined;
+            embedding?: number[] | undefined;
+            embedding_b64?: string | undefined;
+            _st_synced?: boolean | undefined;
+        } | {
+            id: string;
+            title: string;
+            summary: string;
+            entities?: string[] | undefined;
+            findings?: string[] | undefined;
+            last_updated?: number | undefined;
+        };
     }[] | undefined;
     toDelete?: {
         hash: number;
@@ -402,7 +447,52 @@ export type GenerateReflectionsResult = {
         toSync?: {
             hash: number;
             text: string;
-            item: any;
+            item: {
+                id: string;
+                summary: string;
+                importance: number;
+                embedding?: number[] | undefined;
+                message_id: number;
+                timestamp: number;
+                witnesses?: string[] | undefined;
+                type?: ("event" | "reflection" | "global_synthesis") | undefined;
+                level?: number | undefined;
+                tokens: string[];
+                message_ids?: number[] | undefined;
+                message_fingerprints?: string[] | undefined;
+                mentions?: number | undefined;
+                retrieval_hits?: number | undefined;
+                archived?: boolean | undefined;
+                temporal_anchor?: (string | null) | undefined;
+                is_transient?: boolean | undefined;
+                _st_synced?: boolean | undefined;
+                _proxyVectorScore?: number | undefined;
+            } | {
+                name: string;
+                type: "PERSON" | "PLACE" | "ORGANIZATION" | "OBJECT" | "CONCEPT";
+                description: string;
+                mentions: number;
+                embedding?: number[] | undefined;
+                embedding_b64?: string | undefined;
+                aliases?: string[] | undefined;
+                _st_synced?: boolean | undefined;
+            } | {
+                source: string;
+                target: string;
+                description: string;
+                weight: number;
+                _descriptionTokens?: number | undefined;
+                embedding?: number[] | undefined;
+                embedding_b64?: string | undefined;
+                _st_synced?: boolean | undefined;
+            } | {
+                id: string;
+                title: string;
+                summary: string;
+                entities?: string[] | undefined;
+                findings?: string[] | undefined;
+                last_updated?: number | undefined;
+            };
         }[] | undefined;
         toDelete?: {
             hash: number;
@@ -416,7 +506,52 @@ export type ConsolidateEdgesResult = {
         toSync?: {
             hash: number;
             text: string;
-            item: any;
+            item: {
+                id: string;
+                summary: string;
+                importance: number;
+                embedding?: number[] | undefined;
+                message_id: number;
+                timestamp: number;
+                witnesses?: string[] | undefined;
+                type?: ("event" | "reflection" | "global_synthesis") | undefined;
+                level?: number | undefined;
+                tokens: string[];
+                message_ids?: number[] | undefined;
+                message_fingerprints?: string[] | undefined;
+                mentions?: number | undefined;
+                retrieval_hits?: number | undefined;
+                archived?: boolean | undefined;
+                temporal_anchor?: (string | null) | undefined;
+                is_transient?: boolean | undefined;
+                _st_synced?: boolean | undefined;
+                _proxyVectorScore?: number | undefined;
+            } | {
+                name: string;
+                type: "PERSON" | "PLACE" | "ORGANIZATION" | "OBJECT" | "CONCEPT";
+                description: string;
+                mentions: number;
+                embedding?: number[] | undefined;
+                embedding_b64?: string | undefined;
+                aliases?: string[] | undefined;
+                _st_synced?: boolean | undefined;
+            } | {
+                source: string;
+                target: string;
+                description: string;
+                weight: number;
+                _descriptionTokens?: number | undefined;
+                embedding?: number[] | undefined;
+                embedding_b64?: string | undefined;
+                _st_synced?: boolean | undefined;
+            } | {
+                id: string;
+                title: string;
+                summary: string;
+                entities?: string[] | undefined;
+                findings?: string[] | undefined;
+                last_updated?: number | undefined;
+            };
         }[] | undefined;
         toDelete?: {
             hash: number;
@@ -430,7 +565,52 @@ export type MergeEntityResult = {
         toSync?: {
             hash: number;
             text: string;
-            item: any;
+            item: {
+                id: string;
+                summary: string;
+                importance: number;
+                embedding?: number[] | undefined;
+                message_id: number;
+                timestamp: number;
+                witnesses?: string[] | undefined;
+                type?: ("event" | "reflection" | "global_synthesis") | undefined;
+                level?: number | undefined;
+                tokens: string[];
+                message_ids?: number[] | undefined;
+                message_fingerprints?: string[] | undefined;
+                mentions?: number | undefined;
+                retrieval_hits?: number | undefined;
+                archived?: boolean | undefined;
+                temporal_anchor?: (string | null) | undefined;
+                is_transient?: boolean | undefined;
+                _st_synced?: boolean | undefined;
+                _proxyVectorScore?: number | undefined;
+            } | {
+                name: string;
+                type: "PERSON" | "PLACE" | "ORGANIZATION" | "OBJECT" | "CONCEPT";
+                description: string;
+                mentions: number;
+                embedding?: number[] | undefined;
+                embedding_b64?: string | undefined;
+                aliases?: string[] | undefined;
+                _st_synced?: boolean | undefined;
+            } | {
+                source: string;
+                target: string;
+                description: string;
+                weight: number;
+                _descriptionTokens?: number | undefined;
+                embedding?: number[] | undefined;
+                embedding_b64?: string | undefined;
+                _st_synced?: boolean | undefined;
+            } | {
+                id: string;
+                title: string;
+                summary: string;
+                entities?: string[] | undefined;
+                findings?: string[] | undefined;
+                last_updated?: number | undefined;
+            };
         }[] | undefined;
         toDelete?: {
             hash: number;

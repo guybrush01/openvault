@@ -449,7 +449,13 @@ export type LLMConfig = {
     maxTokens: number;
     errorContext: string;
     timeoutMs: number;
-    getJsonSchema?: any | undefined;
+    getJsonSchema?: (() => {
+        name: string;
+        strict: boolean;
+        value: {
+            [key: string]: unknown;
+        };
+    }) | undefined;
 };
 
 export type LLMCallOptions = {

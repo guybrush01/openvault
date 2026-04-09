@@ -310,7 +310,12 @@ export const LLMConfigSchema = z.object({
     maxTokens: z.number(),
     errorContext: z.string(),
     timeoutMs: z.number(),
-    getJsonSchema: z.any().optional(),
+    getJsonSchema: z
+        .function({
+            input: [],
+            output: z.object({ name: z.string(), strict: z.boolean(), value: z.record(z.string(), z.unknown()) }),
+        })
+        .optional(),
 });
 
 // LLM call options

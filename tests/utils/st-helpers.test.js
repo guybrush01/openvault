@@ -130,6 +130,43 @@ describe('st-helpers', () => {
             safeSetExtensionPrompt('test content');
             expect(mockSetPrompt).toHaveBeenCalledWith('openvault', 'test content', 0, 0);
         });
+
+        it('passes position and depth parameters', () => {
+            const mockSetPrompt = vi.fn();
+            setDeps({
+                console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
+                setExtensionPrompt: mockSetPrompt,
+                extension_prompt_types: { IN_PROMPT: 0, AN: 2, CHAT: 4 },
+            });
+
+            safeSetExtensionPrompt('test content', 'openvault', 2, 4);
+            expect(mockSetPrompt).toHaveBeenCalledWith('openvault', 'test content', 2, 4);
+        });
+
+        it('skips injection when position is CUSTOM (-1)', () => {
+            const mockSetPrompt = vi.fn();
+            setDeps({
+                console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
+                setExtensionPrompt: mockSetPrompt,
+                extension_prompt_types: { IN_PROMPT: 0 },
+            });
+
+            expect(safeSetExtensionPrompt('test content', 'openvault', -1, 0)).toBe(false);
+            expect(mockSetPrompt).not.toHaveBeenCalled();
+        });
+
+        it('maps named slot world position', () => {
+            const mockSetPrompt = vi.fn();
+            setDeps({
+                console: { log: vi.fn(), warn: vi.fn(), error: vi.fn() },
+                setExtensionPrompt: mockSetPrompt,
+                extension_prompt_types: { IN_PROMPT: 0, AN: 2 },
+            });
+
+            safeSetExtensionPrompt('world content', 'openvault_world', 1, 0);
+            // Position 1 is the named world slot — maps to IN_PROMPT (0)
+            expect(mockSetPrompt).toHaveBeenCalledWith('openvault_world', 'world content', 0, 0);
+        });
     });
 
     describe('isExtensionEnabled', () => {

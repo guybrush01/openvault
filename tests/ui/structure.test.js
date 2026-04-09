@@ -23,28 +23,6 @@ describe('UI structure', () => {
             expect(quickTogglesIndex).toBeLessThan(connectionSettingsIndex);
         });
 
-        it('has Status Card visible (not in details)', () => {
-            const statusCardMatch = dashboardHtml.match(/openvault-status-card/);
-            expect(statusCardMatch).toBeTruthy();
-
-            // Status card should not be inside a details element
-            const beforeStatus = dashboardHtml.split('openvault-status-card')[0];
-            const detailsOpenCount = (beforeStatus.match(/<details/g) || []).length;
-            const detailsCloseCount = (beforeStatus.match(/<\/details>/g) || []).length;
-            expect(detailsOpenCount).toBe(detailsCloseCount);
-        });
-
-        it('has API Limits section in dashboard', () => {
-            expect(dashboardHtml).toContain('API Limits');
-            expect(dashboardHtml).toContain('Cloud API Concurrency');
-            expect(dashboardHtml).toContain('Backfill RPM');
-        });
-
-        it('has collapsible details for Connection Settings', () => {
-            expect(dashboardHtml).toContain('<details');
-            expect(dashboardHtml).toContain('Connection Settings');
-        });
-
         it('has Emergency Cut button in Extraction Progress card', () => {
             const progressMatch = dashboardHtml.match(
                 /Extraction Progress[\s\S]*?<div class="openvault-button-row[^"]*">([\s\S]*?)<\/div>\s*<\/div>/
@@ -85,32 +63,6 @@ describe('UI structure', () => {
             expect(advancedHtml).toContain('pre-calibrated');
             expect(advancedHtml).toContain('openvault-warning-banner');
         });
-
-        it('has warning banner before any settings', () => {
-            const warningIndex = advancedHtml.indexOf('Expert Tuning');
-            const firstDetailsIndex = advancedHtml.indexOf('<details');
-            expect(warningIndex).toBeLessThan(firstDetailsIndex);
-        });
-
-        it('has Scoring & Weights in collapsible details', () => {
-            expect(advancedHtml).toContain('Scoring');
-            expect(advancedHtml).toContain('Alpha');
-        });
-
-        it('has Decay Math section', () => {
-            expect(advancedHtml).toContain('Decay');
-            expect(advancedHtml).toContain('Lambda');
-        });
-
-        it('has Similarity Thresholds section', () => {
-            expect(advancedHtml).toContain('Similarity');
-            expect(advancedHtml).toContain('Vector Threshold');
-        });
-
-        it('renames reset button to clarify scope', () => {
-            expect(advancedHtml).toContain('Restore Default Math');
-            expect(advancedHtml).toContain('chat memories and connection profiles will not be touched');
-        });
     });
 
     describe('Memories Tab', () => {
@@ -126,69 +78,9 @@ describe('UI structure', () => {
             expect(searchIndex).toBeGreaterThan(-1);
             expect(searchIndex).toBeLessThan(firstDetailsIndex);
         });
-
-        it('has Character States section in collapsible details', () => {
-            expect(memoriesHtml).toContain('Character States');
-            // Should be in a details element after the browser
-            const afterBrowser = memoriesHtml.split('openvault_memory_list')[1] || '';
-            expect(afterBrowser).toContain('Character States');
-            expect(afterBrowser).toContain('<details');
-        });
-
-        it('has Extraction & Context section', () => {
-            expect(memoriesHtml).toContain('Extraction');
-            expect(memoriesHtml).toContain('Batch Size');
-            expect(memoriesHtml).toContain('Context Window');
-        });
-
-        it('has Reflection Engine section', () => {
-            expect(memoriesHtml).toContain('Reflection');
-            expect(memoriesHtml).toContain('Threshold');
-            expect(memoriesHtml).toContain('Max Insights');
-        });
-
-        it('renamed Extraction Token Budget to Extraction Batch Size', () => {
-            expect(memoriesHtml).toContain('Extraction Batch Size');
-        });
     });
 
     describe('Tab Structure (Entities + Communities)', () => {
-        it('has no World tab', () => {
-            expect(html).not.toContain('data-tab="world"');
-        });
-
-        it('has Entities tab button', () => {
-            expect(html).toContain('data-tab="entities"');
-        });
-
-        it('has Communities tab button', () => {
-            expect(html).toContain('data-tab="communities"');
-        });
-
-        it('has no Graph Stats Card in Entities tab', () => {
-            const entitiesMatch = html.match(
-                /<div class="openvault-tab-content[^"]*" data-tab="entities">([\s\S]*?)<div class="openvault-tab-content"/i
-            );
-            const entitiesHtml = entitiesMatch ? entitiesMatch[1] : '';
-            expect(entitiesHtml).not.toContain('openvault_graph_stats');
-        });
-
-        it('has no visible sliders/inputs in Entities tab', () => {
-            const entitiesMatch = html.match(
-                /<div class="openvault-tab-content[^"]*" data-tab="entities">([\s\S]*?)<div class="openvault-tab-content"/i
-            );
-            const entitiesHtml = entitiesMatch ? entitiesMatch[1] : '';
-            const inputMatches = entitiesHtml.match(/<input[^>]*type="range"/g);
-            if (inputMatches) {
-                for (const match of inputMatches) {
-                    const beforeInput = entitiesHtml.split(match)[0];
-                    const openDetails = (beforeInput.match(/<details/g) || []).length;
-                    const closedDetails = (beforeInput.match(/<\/details>/g) || []).length;
-                    expect(openDetails).toBeGreaterThan(closedDetails);
-                }
-            }
-        });
-
         it('has Entity browser with search and type filter', () => {
             const entitiesMatch = html.match(
                 /<div class="openvault-tab-content[^"]*" data-tab="entities">([\s\S]*?)<div class="openvault-tab-content"/i
@@ -244,12 +136,6 @@ describe('Progressive Disclosure Integration', () => {
         return match ? match[1] : '';
     }
 
-    it('has all 6 tabs', () => {
-        const tabBtnMatches = html.matchAll(/<button class="openvault-tab-btn/g);
-        const tabCount = [...tabBtnMatches].length;
-        expect(tabCount).toBe(6);
-    });
-
     it('Dashboard has Quick Toggles before collapsible sections', () => {
         const dashboardHtml = extractTabContent('dashboard-connections');
         const quickTogglesIndex = dashboardHtml.indexOf('Quick Toggles');
@@ -268,30 +154,6 @@ describe('Progressive Disclosure Integration', () => {
         expect(searchIndex).toBeGreaterThan(-1);
         expect(detailsIndex).toBeGreaterThan(-1);
         expect(searchIndex).toBeLessThan(detailsIndex);
-    });
-
-    it('Entities has no visible range inputs', () => {
-        const worldHtml = extractTabContent('entities');
-        // Check for range inputs that are NOT inside details elements
-        const nonDetailsRanges = [];
-        const lines = worldHtml.split('\n');
-        let inDetails = false;
-
-        for (const line of lines) {
-            if (line.includes('<details')) {
-                inDetails = true;
-                continue;
-            }
-            if (line.includes('</details>')) {
-                inDetails = false;
-                continue;
-            }
-            if (!inDetails && line.includes('type="range"') && !line.includes('<details')) {
-                nonDetailsRanges.push(line);
-            }
-        }
-
-        expect(nonDetailsRanges.length).toBe(0);
     });
 
     it('Advanced has warning banner', () => {

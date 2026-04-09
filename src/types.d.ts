@@ -348,9 +348,9 @@ export type ExtractionOptions = {
     isBackfill?: boolean | undefined;
     isEmergencyCut?: boolean | undefined;
     silent?: boolean | undefined;
-    abortSignal?: any | undefined;
-    progressCallback?: any | undefined;
-    onPhase2Start?: any | undefined;
+    abortSignal?: AbortSignal | undefined;
+    progressCallback?: (current: number, total: number, phase: number) => void | undefined;
+    onPhase2Start?: () => void | undefined;
 };
 
 export type IDFCache = {
@@ -373,7 +373,7 @@ export type ExtractionContextParams = {
 
 export type ExtractionLLMOptions = {
     structured: boolean;
-    signal?: any | undefined;
+    signal?: AbortSignal | undefined;
 };
 
 export type GenerateReflectionsResult = {
@@ -460,7 +460,7 @@ export type LLMConfig = {
 
 export type LLMCallOptions = {
     structured?: boolean | undefined;
-    signal?: any | undefined;
+    signal?: AbortSignal | undefined;
     profileId?: string | undefined;
     backupProfileId?: string | undefined;
 };

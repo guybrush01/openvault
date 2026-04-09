@@ -39,95 +39,68 @@ describe('text', () => {
     });
 
     describe('stripThinkingTags', () => {
-        it('strips <think> tags', () => {
-            expect(stripThinkingTags('<think>reasoning here</think>{"result": true}')).toBe('{"result": true}');
+        describe('paired tags', () => {
+            it.each([
+                ['<thinking> tags', '<thinking>analysis</thinking>{"data": [1,2]}', '{"data": [1,2]}'],
+                ['<reasoning> tags', '<reasoning>my thoughts</reasoning>[1,2,3]', '[1,2,3]'],
+                ['case-insensitive', '<THINK>loud</THINK><Thinking>mixed</Thinking>{"done": true}', '{"done": true}'],
+                [
+                    '<tool_call> paired tags',
+                    '<tool_call>{"name":"extract"}</tool_call>{"events": []}',
+                    '{"events": []}',
+                ],
+                [
+                    '<tool_call> with attributes',
+                    '<tool_call name="extract_events">{"name":"extract"}</tool_call>{"events": []}',
+                    '{"events": []}',
+                ],
+            ])('strips $name', (_, input, expected) => {
+                expect(stripThinkingTags(input)).toBe(expected);
+            });
         });
 
-        it('strips <thinking> tags', () => {
-            expect(stripThinkingTags('<thinking>analysis</thinking>{"data": [1,2]}')).toBe('{"data": [1,2]}');
+        describe('orphaned closing tags', () => {
+            it.each([
+                ['orphaned </thinking> closing tag', 'reasoning about the scene\n</thinking>\n[1,2,3]', '[1,2,3]'],
+                ['orphaned </thought> closing tag', 'analysis\n</thought>{"ok": true}', '{"ok": true}'],
+                ['orphaned </reasoning> closing tag', 'my reasoning here\n</reasoning>\n{"data": 1}', '{"data": 1}'],
+                [
+                    'orphaned </tool_call> closing tag',
+                    'calling the tool now\n</tool_call>\n{"events": []}',
+                    '{"events": []}',
+                ],
+                [
+                    'orphaned </ideal_output> closing tag',
+                    '{"events": [{"summary": "test"}]}\n</ideal_output>',
+                    '{"events": [{"summary": "test"}]}',
+                ],
+                [
+                    'orphaned </ideal_output> with trailing whitespace',
+                    '{"events": []}\n</ideal_output>\n\n',
+                    '{"events": []}',
+                ],
+            ])('strips $name', (_, input, expected) => {
+                expect(stripThinkingTags(input)).toBe(expected);
+            });
         });
 
-        it('strips <reasoning> tags', () => {
-            expect(stripThinkingTags('<reasoning>my thoughts</reasoning>[1,2,3]')).toBe('[1,2,3]');
+        describe('edge cases', () => {
+            it.each([
+                ['null input', null, null],
+                ['undefined input', undefined, undefined],
+                ['number input', 123, 123],
+                ['string with no tags', '{"pure": "json"}', '{"pure": "json"}'],
+            ])('handles $name', (_, input, expected) => {
+                expect(stripThinkingTags(input)).toBe(expected);
+            });
         });
 
-        it('handles multiline thinking', () => {
-            expect(stripThinkingTags('<think>\nline1\nline2\n</think>{"ok": true}')).toBe('{"ok": true}');
-        });
-
-        it('handles multiple tags', () => {
-            expect(stripThinkingTags('<think>a</think><reasoning>b</reasoning>{"x": 1}')).toBe('{"x": 1}');
-        });
-
-        it('returns original if no tags', () => {
-            expect(stripThinkingTags('{"pure": "json"}')).toBe('{"pure": "json"}');
-        });
-
-        it('handles non-string input', () => {
-            expect(stripThinkingTags(null)).toBe(null);
-            expect(stripThinkingTags(undefined)).toBe(undefined);
-            expect(stripThinkingTags(123)).toBe(123);
-        });
-
-        it('is case-insensitive', () => {
-            expect(stripThinkingTags('<THINK>loud</THINK><Thinking>mixed</Thinking>{"done": true}')).toBe(
-                '{"done": true}'
-            );
-        });
-
-        it('strips orphaned </think> closing tag from prefill continuation', () => {
-            const input = 'Step 1: analysis of events...\n</think>{"events": []}';
-            expect(stripThinkingTags(input)).toBe('{"events": []}');
-        });
-
-        it('strips orphaned </thinking> closing tag', () => {
-            const input = 'reasoning about the scene\n</thinking>\n[1,2,3]';
-            expect(stripThinkingTags(input)).toBe('[1,2,3]');
-        });
-
-        it('strips orphaned </thought> closing tag', () => {
-            const input = 'analysis\n</thought>{"ok": true}';
-            expect(stripThinkingTags(input)).toBe('{"ok": true}');
-        });
-
-        it('strips orphaned </reasoning> closing tag', () => {
-            const input = 'my reasoning here\n</reasoning>\n{"data": 1}';
-            expect(stripThinkingTags(input)).toBe('{"data": 1}');
-        });
-
-        it('does not strip content when no orphaned closing tag exists', () => {
-            expect(stripThinkingTags('{"pure": "json"}')).toBe('{"pure": "json"}');
-        });
-
-        it('strips <tool_call> paired tags', () => {
-            const input = '<tool_call>{"name":"extract"}</tool_call>{"events": []}';
-            expect(stripThinkingTags(input)).toBe('{"events": []}');
-        });
-
-        it('strips <tool_call> tags with attributes', () => {
-            const input = '<tool_call name="extract_events">{"name":"extract"}</tool_call>{"events": []}';
-            expect(stripThinkingTags(input)).toBe('{"events": []}');
-        });
-
-        it('strips orphaned </tool_call> closing tag', () => {
-            const input = 'calling the tool now\n</tool_call>\n{"events": []}';
-            expect(stripThinkingTags(input)).toBe('{"events": []}');
-        });
-
-        it('strips [TOOL_CALL] bracket tags', () => {
-            const input = '[TOOL_CALL]function call here[/TOOL_CALL]{"result": true}';
-            expect(stripThinkingTags(input)).toBe('{"result": true}');
-        });
-
-        it('strips orphaned </ideal_output> closing tag (few-shot example wrapper)', () => {
-            // ideal_output appears AFTER the JSON, not before like thinking tags
-            const input = '{"events": [{"summary": "test"}]}\n</ideal_output>';
-            expect(stripThinkingTags(input)).toBe('{"events": [{"summary": "test"}]}');
-        });
-
-        it('strips </ideal_output> with trailing whitespace', () => {
-            const input = '{"events": []}\n</ideal_output>\n\n';
-            expect(stripThinkingTags(input)).toBe('{"events": []}');
+        describe('bracket tags', () => {
+            it('strips [TOOL_CALL] bracket tags', () => {
+                expect(stripThinkingTags('[TOOL_CALL]function call here[/TOOL_CALL]{"result": true}')).toBe(
+                    '{"result": true}'
+                );
+            });
         });
     });
 

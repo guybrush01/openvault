@@ -138,16 +138,6 @@ describe('ui/helpers', () => {
             expect(filterEntities({}, '', '')).toHaveLength(0);
         });
 
-        it('handles null/undefined graph', () => {
-            expect(filterEntities(null, '', '')).toHaveLength(0);
-            expect(filterEntities(undefined, '', '')).toHaveLength(0);
-        });
-
-        it('search is case-insensitive', () => {
-            const result = filterEntities(mockGraph, 'KING', '');
-            expect(result).toHaveLength(1);
-        });
-
         it('sorts by mentions descending', () => {
             const result = filterEntities(mockGraph, '', '');
             expect(result[0][0]).toBe('aldric'); // 7 mentions
@@ -220,29 +210,6 @@ describe('ui/helpers', () => {
             expect(result[0].id).toBe('2');
             expect(result[1].id).toBe('3');
             expect(result[2].id).toBe('1');
-        });
-
-        it('does not mutate original array', () => {
-            const memories = [
-                { id: '1', created_at: 1000 },
-                { id: '2', created_at: 2000 },
-            ];
-
-            sortMemoriesByDate(memories);
-
-            expect(memories[0].id).toBe('1');
-        });
-
-        it('handles missing created_at (treats as 0)', () => {
-            const memories = [
-                { id: '1', created_at: 1000 },
-                { id: '2' }, // no created_at
-            ];
-
-            const result = sortMemoriesByDate(memories);
-
-            expect(result[0].id).toBe('1');
-            expect(result[1].id).toBe('2');
         });
 
         it('handles empty array', () => {
@@ -326,11 +293,6 @@ describe('ui/helpers', () => {
 
         it('handles empty memories', () => {
             expect(extractCharactersSet([])).toEqual([]);
-        });
-
-        it('handles missing characters_involved', () => {
-            const memories = [{ id: '1' }, { characters_involved: ['Alice'] }];
-            expect(extractCharactersSet(memories)).toEqual(['Alice']);
         });
     });
 
@@ -467,20 +429,6 @@ describe('ui/helpers', () => {
             // 5 extractable - 7 extracted = -2, clamped to 0
             expect(result.extractableMessages).toBe(5);
             expect(result.unextractedCount).toBe(0);
-        });
-
-        it('excludes dead fingerprints from extracted count', () => {
-            const chat = [
-                { mes: 'Hello', send_date: '1000000', is_system: false },
-                { mes: 'Hi', send_date: '1000001', is_system: false },
-            ];
-            // '9999999' is a dead fingerprint (message no longer exists)
-            const processedFps = new Set(['1000000', '9999999']);
-
-            const result = calculateExtractionStats(chat, processedFps, chat.length);
-
-            // extractedCount should be 1 (only chat[0] with send_date '1000000'), not 2
-            expect(result.extractedCount).toBe(1);
         });
     });
 

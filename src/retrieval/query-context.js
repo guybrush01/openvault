@@ -7,6 +7,7 @@
 
 import { CORPUS_GROUNDED_BOOST_RATIO, NON_GROUNDED_BOOST_RATIO } from '../constants.js';
 import { getOptimalChunkSize } from '../embeddings.js';
+import { logDebug } from '../utils/logging.js';
 import { stemName, stemWord } from '../utils/stemmer.js';
 import { tokenize } from './math.js';
 
@@ -189,9 +190,8 @@ export function buildBM25Tokens(userMessage, extractedEntities, corpusVocab = nu
         const grounded = msgStems.filter((t) => corpusVocab.has(t));
         const nonGrounded = msgStems.filter((t) => !corpusVocab.has(t));
 
-        // DEBUG: Log corpus grounding behavior
         if (msgStems.length > 0) {
-            console.log('[BM25-DEBUG] Three-tier BM25:', {
+            logDebug('Three-tier BM25:', {
                 msgStems: msgStems.slice(0, 20),
                 groundedCount: grounded.length,
                 nonGroundedCount: nonGrounded.length,

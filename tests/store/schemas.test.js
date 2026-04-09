@@ -173,12 +173,12 @@ describe('schemas', () => {
         it('should include transientDecayMultiplier', () => {
             const validConfig = {
                 forgetfulnessBaseLambda: 0.05,
-                forgetfulnessImportance5Floor: 0.3,
-                reflectionDecayThreshold: 0.2,
-                reflectionLevelMultiplier: 0.5,
+                forgetfulnessImportance5Floor: 5,
+                reflectionDecayThreshold: 750,
+                reflectionLevelMultiplier: 2.0,
                 vectorSimilarityThreshold: 0.3,
                 alpha: 0.6,
-                combinedBoostWeight: 0.4,
+                combinedBoostWeight: 15,
                 embeddingSource: 'local',
                 transientDecayMultiplier: 5.0,
             };
@@ -190,17 +190,109 @@ describe('schemas', () => {
         it('should default transientDecayMultiplier when omitted', () => {
             const validConfig = {
                 forgetfulnessBaseLambda: 0.05,
-                forgetfulnessImportance5Floor: 0.3,
-                reflectionDecayThreshold: 0.2,
-                reflectionLevelMultiplier: 0.5,
+                forgetfulnessImportance5Floor: 5,
+                reflectionDecayThreshold: 750,
+                reflectionLevelMultiplier: 2.0,
                 vectorSimilarityThreshold: 0.3,
                 alpha: 0.6,
-                combinedBoostWeight: 0.4,
+                combinedBoostWeight: 15,
                 embeddingSource: 'local',
             };
             const result = schemas.ScoringConfigSchema.safeParse(validConfig);
             expect(result.success).toBe(true);
             expect(result.data.transientDecayMultiplier).toBe(5.0);
+        });
+
+        it('should reject negative forgetfulnessBaseLambda', () => {
+            const result = schemas.ScoringConfigSchema.safeParse({
+                forgetfulnessBaseLambda: -0.05,
+                forgetfulnessImportance5Floor: 5,
+                reflectionDecayThreshold: 750,
+                reflectionLevelMultiplier: 2.0,
+                vectorSimilarityThreshold: 0.5,
+                alpha: 0.7,
+                combinedBoostWeight: 15,
+                embeddingSource: 'local',
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it('should reject vectorSimilarityThreshold >= 1.0', () => {
+            const result = schemas.ScoringConfigSchema.safeParse({
+                forgetfulnessBaseLambda: 0.05,
+                forgetfulnessImportance5Floor: 5,
+                reflectionDecayThreshold: 750,
+                reflectionLevelMultiplier: 2.0,
+                vectorSimilarityThreshold: 1.0,
+                alpha: 0.7,
+                combinedBoostWeight: 15,
+                embeddingSource: 'local',
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it('should reject alpha < 0', () => {
+            const result = schemas.ScoringConfigSchema.safeParse({
+                forgetfulnessBaseLambda: 0.05,
+                forgetfulnessImportance5Floor: 5,
+                reflectionDecayThreshold: 750,
+                reflectionLevelMultiplier: 2.0,
+                vectorSimilarityThreshold: 0.5,
+                alpha: -0.5,
+                combinedBoostWeight: 15,
+                embeddingSource: 'local',
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it('should reject alpha > 1', () => {
+            const result = schemas.ScoringConfigSchema.safeParse({
+                forgetfulnessBaseLambda: 0.05,
+                forgetfulnessImportance5Floor: 5,
+                reflectionDecayThreshold: 750,
+                reflectionLevelMultiplier: 2.0,
+                vectorSimilarityThreshold: 0.5,
+                alpha: 1.5,
+                combinedBoostWeight: 15,
+                embeddingSource: 'local',
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it('should accept valid scoring config', () => {
+            const result = schemas.ScoringConfigSchema.safeParse({
+                forgetfulnessBaseLambda: 0.05,
+                forgetfulnessImportance5Floor: 5,
+                reflectionDecayThreshold: 750,
+                reflectionLevelMultiplier: 2.0,
+                vectorSimilarityThreshold: 0.5,
+                alpha: 0.7,
+                combinedBoostWeight: 15,
+                embeddingSource: 'local',
+            });
+            expect(result.success).toBe(true);
+        });
+    });
+
+    describe('ScoringSettingsSchema', () => {
+        it('should reject vectorSimilarityThreshold >= 1.0', () => {
+            const result = schemas.ScoringSettingsSchema.safeParse({
+                vectorSimilarityThreshold: 1.0,
+                alpha: 0.7,
+                combinedBoostWeight: 15,
+                transientDecayMultiplier: 5.0,
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it('should accept valid scoring settings', () => {
+            const result = schemas.ScoringSettingsSchema.safeParse({
+                vectorSimilarityThreshold: 0.5,
+                alpha: 0.7,
+                combinedBoostWeight: 15,
+                transientDecayMultiplier: 5.0,
+            });
+            expect(result.success).toBe(true);
         });
     });
 });

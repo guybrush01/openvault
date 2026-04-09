@@ -185,15 +185,15 @@ export const StVectorItemSchema = z.object({
 // --- Config Schemas ---
 
 export const ScoringConfigSchema = z.object({
-    forgetfulnessBaseLambda: z.number(),
-    forgetfulnessImportance5Floor: z.number(),
-    reflectionDecayThreshold: z.number(),
-    reflectionLevelMultiplier: z.number(),
-    vectorSimilarityThreshold: z.number(),
-    alpha: z.number(),
-    combinedBoostWeight: z.number(),
+    forgetfulnessBaseLambda: z.number().min(0.001).max(1),
+    forgetfulnessImportance5Floor: z.number().min(0),
+    reflectionDecayThreshold: z.number().min(0),
+    reflectionLevelMultiplier: z.number().min(1).max(10),
+    vectorSimilarityThreshold: z.number().min(0).max(0.99),
+    alpha: z.number().min(0).max(1),
+    combinedBoostWeight: z.number().min(0).max(100),
     embeddingSource: z.enum(['local', 'ollama', 'st_vector']),
-    transientDecayMultiplier: z.number().positive().optional().default(5.0),
+    transientDecayMultiplier: z.number().positive().max(50).optional().default(5.0),
 });
 
 export const QueryConfigSchema = z.object({
@@ -362,10 +362,10 @@ export const ForgetfulnessConstantsSchema = z.object({
 
 // Scoring settings
 export const ScoringSettingsSchema = z.object({
-    vectorSimilarityThreshold: z.number(),
-    alpha: z.number(),
-    combinedBoostWeight: z.number(),
-    transientDecayMultiplier: z.number().optional(),
+    vectorSimilarityThreshold: z.number().min(0).max(0.99),
+    alpha: z.number().min(0).max(1),
+    combinedBoostWeight: z.number().min(0).max(100),
+    transientDecayMultiplier: z.number().positive().max(50).optional(),
 });
 
 // Memory update fields for updateMemory()

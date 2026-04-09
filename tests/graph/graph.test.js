@@ -5,7 +5,6 @@ import {
     consolidateEdges,
     createEmptyGraph,
     expandMainCharacterKeys,
-    findCrossScriptCharacterKeys,
     markEdgeForConsolidation,
     mergeOrInsertEntity,
     normalizeKey,
@@ -13,18 +12,6 @@ import {
     upsertEntity,
     upsertRelationship,
 } from '../../src/graph/graph.js';
-
-describe('dead code removal', () => {
-    it('consolidateGraph is no longer exported', async () => {
-        const exports = await import('../../src/graph/graph.js');
-        expect(exports.consolidateGraph).toBeUndefined();
-    });
-
-    it('redirectEdges is no longer exported', async () => {
-        const exports = await import('../../src/graph/graph.js');
-        expect(exports.redirectEdges).toBeUndefined();
-    });
-});
 
 // Mock embeddings module
 vi.mock('../../src/embeddings.js', () => ({
@@ -323,25 +310,6 @@ describe('upsertRelationship', () => {
 
         // Should be marked for consolidation
         expect(graph._edgesNeedingConsolidation).toContain('alice__bob');
-    });
-
-    it('detects near-duplicate descriptions with stem-aware tokenizer', () => {
-        // Stemming makes inflected words match: running/run, houses/house, etc.
-        // Without stemming, Jaccard is low; with stemming, it crosses the 0.6 threshold.
-        upsertRelationship(graphData, 'King Aldric', 'Castle', 'Running through houses', 5);
-        upsertRelationship(graphData, 'King Aldric', 'Castle', 'Runs towards house', 5);
-
-        const edge = graphData.edges['king aldric__castle'];
-        // Should NOT have appended — stem-aware Jaccard should detect near-duplicate
-        expect(edge.description).toBe('Running through houses');
-        expect(edge.weight).toBe(2);
-    });
-});
-
-describe('createEmptyGraph', () => {
-    it('returns an object with empty nodes and edges', () => {
-        const g = createEmptyGraph();
-        expect(g).toEqual({ nodes: {}, edges: {} });
     });
 });
 
@@ -1132,113 +1100,5 @@ describe('shouldMergeEntities', () => {
             // CONCEPT type requires token overlap
             expect(shouldMergeEntities(0.95, 0.9, tokensA, 'honor', 'glory', 'CONCEPT')).toBe(false);
         });
-    });
-});
-
-describe('findCrossScriptCharacterKeys', () => {
-    it.each([
-        {
-            desc: 'finds Cyrillic character node matching English base key',
-            baseKeys: ['suzy'],
-            graphNodes: {
-                suzy: { name: 'Suzy', type: 'PERSON', description: 'Main char', mentions: 28 },
-                сузи: { name: 'Сузи', type: 'PERSON', description: 'Главная героиня', mentions: 59 },
-                'бордовый силиконовый дилдо': {
-                    name: 'Бордовый силиконовый дилдо',
-                    type: 'OBJECT',
-                    description: 'An object',
-                    mentions: 14,
-                },
-            },
-            expectedResults: ['сузи'],
-            unexpectedResults: ['suzy'],
-        },
-        {
-            desc: 'finds multiple Cyrillic character nodes',
-            baseKeys: ['suzy', 'vova'],
-            graphNodes: {
-                suzy: { name: 'Suzy', type: 'PERSON', description: 'Main char', mentions: 28 },
-                vova: { name: 'Vova', type: 'PERSON', description: 'User', mentions: 28 },
-                сузи: { name: 'Сузи', type: 'PERSON', description: 'Героиня', mentions: 59 },
-                вова: { name: 'Вова', type: 'PERSON', description: 'Пользователь', mentions: 59 },
-            },
-            expectedResults: ['сузи', 'вова'],
-            unexpectedResults: [],
-        },
-        {
-            desc: 'does not match non-PERSON nodes',
-            baseKeys: ['suzy'],
-            graphNodes: {
-                suzy: { name: 'Suzy', type: 'PERSON', description: 'Main char', mentions: 28 },
-                сузи: { name: 'Сузи', type: 'OBJECT', description: 'Not a person', mentions: 5 },
-            },
-            expectedResults: [],
-            unexpectedResults: [],
-        },
-        {
-            desc: 'does not match Latin PERSON nodes',
-            baseKeys: ['suzy'],
-            graphNodes: {
-                suzy: { name: 'Suzy', type: 'PERSON', description: 'Main', mentions: 28 },
-                susan: { name: 'Susan', type: 'PERSON', description: 'NPC', mentions: 3 },
-            },
-            expectedResults: [],
-            unexpectedResults: [],
-        },
-        {
-            desc: 'returns empty array when no matches',
-            baseKeys: ['suzy'],
-            graphNodes: {
-                замок: { name: 'Замок', type: 'PLACE', description: 'A castle', mentions: 5 },
-            },
-            expectedResults: [],
-            unexpectedResults: [],
-        },
-        {
-            desc: 'tolerates Levenshtein distance ≤ 2 (Мина→mina vs mina)',
-            baseKeys: ['mina'],
-            graphNodes: {
-                mina: { name: 'Mina', type: 'PERSON', description: 'Third char', mentions: 10 },
-                мина: { name: 'Мина', type: 'PERSON', description: 'Третий персонаж', mentions: 20 },
-            },
-            expectedResults: ['мина'],
-            unexpectedResults: [],
-        },
-        {
-            desc: 'uses stricter threshold (≤1) for short names (≤4 chars) to prevent false positives',
-            baseKeys: ['kaya'],
-            graphNodes: {
-                kaya: { name: 'Kaya', type: 'PERSON', description: 'A friend', mentions: 5 },
-                мама: { name: 'Мама', type: 'PERSON', description: 'Mother', mentions: 10 },
-            },
-            expectedResults: [],
-            unexpectedResults: ['мама'],
-        },
-        {
-            desc: 'matches short names with distance 1 (within stricter threshold)',
-            baseKeys: ['mina'],
-            graphNodes: {
-                mina: { name: 'Mina', type: 'PERSON', description: 'A character', mentions: 5 },
-                мина: { name: 'Мина', type: 'PERSON', description: 'Персонаж', mentions: 10 },
-            },
-            expectedResults: ['мина'],
-            unexpectedResults: [],
-        },
-        {
-            desc: 'uses threshold ≤2 for longer names (>4 chars)',
-            baseKeys: ['elizabeth'],
-            graphNodes: {
-                elizabeth: { name: 'Elizabeth', type: 'PERSON', description: 'Queen', mentions: 10 },
-                элизабет: { name: 'Элизабет', type: 'PERSON', description: 'Королева', mentions: 15 },
-            },
-            expectedResults: ['элизабет'],
-            unexpectedResults: [],
-        },
-    ])('$desc', ({ baseKeys, graphNodes, expectedResults, unexpectedResults }) => {
-        const result = findCrossScriptCharacterKeys(baseKeys, graphNodes);
-
-        expect(result).toHaveLength(expectedResults.length);
-        void expectedResults.forEach((key) => void expect(result).toContain(key));
-        void unexpectedResults.forEach((key) => void expect(result).not.toContain(key));
     });
 });

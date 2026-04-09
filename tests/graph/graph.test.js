@@ -818,6 +818,60 @@ describe('_mergeRedirects serialization', () => {
     });
 });
 
+describe('_resolveKey chained redirects', () => {
+    it('should follow A→B→C redirect chain and return C', async () => {
+        const { upsertRelationship } = await import('../../src/graph/graph.js');
+
+        const graphData = { nodes: {}, edges: {}, _mergeRedirects: {} };
+
+        // Create nodes
+        graphData.nodes.alice = { name: 'Alice', type: 'PERSON', description: 'desc', mentions: 1 };
+        graphData.nodes['alice smith'] = { name: 'Alice Smith', type: 'PERSON', description: 'desc', mentions: 1 };
+        graphData.nodes.alison = { name: 'Alison', type: 'PERSON', description: 'desc', mentions: 1 };
+        graphData.nodes.bob = { name: 'Bob', type: 'PERSON', description: 'desc', mentions: 1 };
+        graphData.nodes.charlie = { name: 'Charlie', type: 'PERSON', description: 'desc', mentions: 1 };
+
+        // Set up chain: alice → alice smith → alison
+        graphData._mergeRedirects.alice = 'alice smith';
+        graphData._mergeRedirects['alice smith'] = 'alison';
+
+        // upsertRelationship uses _resolveKey internally for both source and target
+        upsertRelationship(graphData, 'alice', 'bob', 'knows bob', 5);
+        upsertRelationship(graphData, 'charlie', 'alice smith', 'met alice smith', 5);
+
+        // Edge from alice should land on 'alison' (final resolved target)
+        const edgeToAlison = graphData.edges.alison__bob;
+        expect(edgeToAlison).toBeDefined();
+        expect(edgeToAlison.description).toBe('knows bob');
+
+        // Edge to alice smith should also land on 'alison'
+        const edgeFromCharlie = graphData.edges.charlie__alison;
+        expect(edgeFromCharlie).toBeDefined();
+        expect(edgeFromCharlie.description).toBe('met alice smith');
+    });
+
+    it('should break circular redirect chains', async () => {
+        const { upsertRelationship } = await import('../../src/graph/graph.js');
+
+        const graphData = { nodes: {}, edges: {}, _mergeRedirects: {} };
+
+        // Create three nodes
+        graphData.nodes.bob = { name: 'Bob', type: 'PERSON', description: 'desc', mentions: 1 };
+        graphData.nodes.charlie = { name: 'Charlie', type: 'PERSON', description: 'desc', mentions: 1 };
+        graphData.nodes.dave = { name: 'Dave', type: 'PERSON', description: 'desc', mentions: 1 };
+
+        // Create circular redirect (should not happen in practice, but defensive)
+        graphData._mergeRedirects.bob = 'charlie';
+        graphData._mergeRedirects.charlie = 'bob';
+
+        upsertRelationship(graphData, 'bob', 'dave', 'knows dave', 5);
+
+        // Should not infinite-loop — either bob or charlie key should exist
+        const hasEdge = !!graphData.edges.bob__dave || !!graphData.edges.charlie__dave;
+        expect(hasEdge).toBe(true);
+    });
+});
+
 describe('mergeOrInsertEntity - description in embedding', () => {
     let graphData;
 

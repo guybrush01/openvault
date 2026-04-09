@@ -53,15 +53,28 @@ function getCrossScriptMaxDistance(lenA, lenB) {
     return minLen <= 4 ? 1 : 2;
 }
 
+const MAX_REDIRECT_DEPTH = 10;
+
 /**
  * Resolve a raw entity name to its final graph key, accounting for merge redirects.
+ * Follows redirect chains with circular reference and depth guards.
  * @param {Object} graphData - The graph object
  * @param {string} rawName - The raw entity name
  * @returns {string} The resolved key (may differ due to semantic merge)
  */
 function _resolveKey(graphData, rawName) {
     const key = normalizeKey(rawName);
-    return graphData._mergeRedirects?.[key] || key;
+    const visited = new Set();
+    let current = key;
+
+    while (graphData._mergeRedirects?.[current]) {
+        if (visited.has(current)) break; // Circular redirect guard
+        visited.add(current);
+        current = graphData._mergeRedirects[current];
+        if (visited.size > MAX_REDIRECT_DEPTH) break; // Depth guard
+    }
+
+    return current;
 }
 
 /**

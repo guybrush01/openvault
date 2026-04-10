@@ -409,6 +409,15 @@
                         </label>
                         <input type="range" id="openvault_max_reflections" min="10" max="200" step="10" />
                         <small class="openvault-hint">Maximum stored insights per character. Older ones are archived when exceeded</small>
+
+                        <!-- Injection toggle -->
+                        <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                            <label class="checkbox_label">
+                                <input id="openvault_reflection_injection" type="checkbox" />
+                                <span>Inject reflections into context</span>
+                            </label>
+                            <small class="openvault-hint">When disabled, existing reflections will not appear in the AI's context window</small>
+                        </div>
                     </div>
                 </details>
 
@@ -657,6 +666,18 @@
                         <small class="openvault-hint">Permanently remove all OpenVault data for this chat</small>
                     </div>
                 </div>
+
+                <!-- Reflection Engine Settings -->
+                <details class="openvault-details" style="margin-top: 15px;">
+                    <summary><i class="fa-solid fa-lightbulb"></i> Reflection Engine</summary>
+                    <div class="openvault-settings-group">
+                        <label class="checkbox_label">
+                            <input id="openvault_reflection_generation" type="checkbox" />
+                            <span>Generate reflections automatically</span>
+                        </label>
+                        <small class="openvault-hint">When disabled, no new reflections will be generated. Existing reflections remain untouched.</small>
+                    </div>
+                </details>
 
                 <!-- Footer -->
                 <div class="openvault-footer">
